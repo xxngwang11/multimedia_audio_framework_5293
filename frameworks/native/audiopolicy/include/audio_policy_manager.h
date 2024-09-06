@@ -419,6 +419,12 @@ public:
 
     int32_t InjectInterruption(const std::string networkId, InterruptEvent &event);
 
+    int32_t SetMicrophoneBlockedCallback(const std::string clientId,
+        const std::shared_ptr<AudioManagerMicrophoneBlockedCallback> &callback);
+    
+    int32_t UnSetMicrophoneBlockedCallback(const std::string clientId,
+        const std::shared_ptr<AudioManagerMicrophoneBlockedCallback> &callback);
+
     int32_t LoadSplitModule(const std::string &splitArgs, const std::string &networkId);
 
     int32_t SetDefaultOutputDevice(const DeviceType deviceType, const uint32_t sessionID,
