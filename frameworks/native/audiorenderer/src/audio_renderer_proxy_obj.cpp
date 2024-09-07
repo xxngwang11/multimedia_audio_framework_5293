@@ -39,6 +39,7 @@ void AudioRendererProxyObj::MuteStreamImpl(const StreamSetStateEventInternal &st
 
 void AudioRendererProxyObj::UnmuteStreamImpl(const StreamSetStateEventInternal &streamSetStateEventInternal)
 {
+    std::lock_guard<std::mutex> lock(mutex_);
     if (renderer != nullptr) {
         renderer->Unmute(CMD_FROM_SYSTEM);
     }
