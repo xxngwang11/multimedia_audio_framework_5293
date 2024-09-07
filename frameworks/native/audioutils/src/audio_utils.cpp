@@ -1193,6 +1193,7 @@ const std::string AudioInfoDumpUtils::GetDeviceVolumeTypeName(DeviceVolumeType d
     return deviceTypeName;
 }
 
+bool VolumeUtils::isPCVlolumeEnable_ = false;
 std::unordered_map<AudioStreamType, AudioVolumeType> VolumeUtils::defaultVolumeMap_ = {
     {STREAM_VOICE_CALL, STREAM_VOICE_CALL},
     {STREAM_VOICE_MESSAGE, STREAM_VOICE_CALL},
@@ -1220,9 +1221,50 @@ std::unordered_map<AudioStreamType, AudioVolumeType> VolumeUtils::defaultVolumeM
     {STREAM_ALL, STREAM_ALL},
 };
 
+std::unordered_map<AudioStreamType, AudioVolumeType> VolumeUtils::audioPCVolumeMap_ = {
+    {STREAM_VOICE_CALL, STREAM_MUSIC},
+    {STREAM_VOICE_CALL_ASSISTANT, STREAM_VOICE_CALL},
+    {STREAM_VOICE_MESSAGE, STREAM_MUSIC},
+    {STREAM_VOICE_ASSISTANT, STREAM_MUSIC},
+    {STREAM_VOICE_COMMUNICATION, STREAM_MUSIC},
+    {STREAM_DTMF, STREAM_MUSIC},
+    {STREAM_MUSIC, STREAM_MUSIC},
+    {STREAM_MEDIA, STREAM_MUSIC},
+    {STREAM_MOVIE, STREAM_MUSIC},
+    {STREAM_GAME, STREAM_MUSIC},
+    {STREAM_SPEECH, STREAM_MUSIC},
+    {STREAM_RECORDING, STREAM_MUSIC},
+    {STREAM_NAVIGATION, STREAM_MUSIC},
+    {STREAM_ACCESSIBILITY, STREAM_MUSIC},
+    {STREAM_ALL, STREAM_ALL},
+
+    {STREAM_RING, STREAM_RING},
+    {STREAM_VOICE_RING, STREAM_RING},
+    {STREAM_SYSTEM, STREAM_RING},
+    {STREAM_NOTIFICATION, STREAM_RING},
+    {STREAM_SYSTEM_ENFORCED, STREAM_RING},
+    {STREAM_ALARM, STREAM_RING},
+
+    {STREAM_ULTRASONIC, STREAM_ULTRASONIC},
+};
+
 std::unordered_map<AudioStreamType, AudioVolumeType>& VolumeUtils::GetVolumeMap()
 {
-    return defaultVolumeMap_;
+    if (isPCVlolumeEnable_) {
+        return audioPCVolumeMap_;
+    } else {
+        return defaultVolumeMap_;
+    }
+}
+
+void VolumeUtils::SetPCVolumeEnable(const bool& isPCVolumeEnable)
+{
+    isPCVlolumeEnable_ = isPCVolumeEnable;
+}
+
+bool VolumeUtils::IsPCVolumeEnable()
+{
+    return isPCVlolumeEnable_;
 }
 
 AudioVolumeType VolumeUtils::GetVolumeTypeFromStreamType(AudioStreamType streamType)

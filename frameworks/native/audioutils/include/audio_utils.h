@@ -231,15 +231,6 @@ public:
     static const std::string GetDeviceVolumeTypeName(DeviceVolumeType deviceType);
 };
 
-class VolumeUtils {
-public:
-    static AudioVolumeType GetVolumeTypeFromStreamType(AudioStreamType streamType);
-
-private:
-    static std::unordered_map<AudioStreamType, AudioVolumeType> defaultVolumeMap_;
-    static std::unordered_map<AudioStreamType, AudioVolumeType>& GetVolumeMap();
-};
-
 template<typename T>
 class ObjectRefMap {
 public:

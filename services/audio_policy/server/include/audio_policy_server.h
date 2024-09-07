@@ -60,6 +60,35 @@ class AudioPolicyServerHandler;
 class AudioSessionService;
 class BluetoothEventSubscriber;
 
+// for phone
+const std::vector<AudioStreamType> GET_STREAM_ALL_VOLUME_TYPES {
+    STREAM_MUSIC,
+    STREAM_VOICE_CALL,
+    STREAM_RING,
+    STREAM_VOICE_ASSISTANT,
+    STREAM_ALARM,
+    STREAM_ACCESSIBILITY,
+    STREAM_ULTRASONIC
+};
+
+// for PC
+const std::vector<AudioStreamType> GET_PC_STREAM_RING_VOLUME_TYPES {
+    STREAM_RING,
+    STREAM_VOICE_RING,
+    STREAM_SYSTEM,
+    STREAM_SYSTEM_ENFORCED,
+    STREAM_ALARM,
+    STREAM_NOTIFICATION
+};
+
+const std::vector<AudioStreamType> GET_PC_STREAM_ALL_VOLUME_TYPES {
+    STREAM_MUSIC,
+    STREAM_VOICE_CALL,
+    STREAM_VOICE_ASSISTANT,
+    STREAM_ACCESSIBILITY,
+    STREAM_ULTRASONIC
+};
+
 class AudioPolicyServer : public SystemAbility,
                           public AudioPolicyManagerStub,
                           public AudioStreamRemovedCallback {
@@ -71,16 +100,6 @@ public:
     enum DeathRecipientId {
         TRACKER_CLIENT = 0,
         LISTENER_CLIENT
-    };
-
-    const std::vector<AudioStreamType> GET_STREAM_ALL_VOLUME_TYPES {
-        STREAM_MUSIC,
-        STREAM_VOICE_CALL,
-        STREAM_RING,
-        STREAM_VOICE_ASSISTANT,
-        STREAM_ALARM,
-        STREAM_ACCESSIBILITY,
-        STREAM_ULTRASONIC
     };
 
     explicit AudioPolicyServer(int32_t systemAbilityId, bool runOnCreate = true);
