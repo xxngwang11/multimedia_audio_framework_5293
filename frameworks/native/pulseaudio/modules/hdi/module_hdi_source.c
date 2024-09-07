@@ -30,7 +30,7 @@
 
 #include "audio_hdi_log.h"
 #include "audio_enhance_chain_adapter.h"
-#include "userdata.h"
+#include "source_userdata.h"
 
 pa_source *PaHdiSourceNew(pa_module *m, pa_modargs *ma, const char *driver);
 void PaHdiSourceFree(pa_source *s);

@@ -12,8 +12,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef USERDATA_H
-#define USERDATA_H
+#ifndef SOURCE_USERDATA_H
+#define SOURCE_USERDATA_H
 
 #include <pulsecore/core.h>
 #include <pulsecore/log.h>
@@ -37,7 +37,7 @@
 #define BYTE_SIZE_SAMPLE_S32 4
 #define BASE_TEN 10
 
-struct Userdata{
+struct Userdata {
     pa_core *core;
     pa_module *module;
     pa_source *source;
@@ -50,24 +50,25 @@ struct Userdata{
     pa_usec_t timestamp;
     SourceAttr attrs;
     bool isCapturerStarted;
+    pa_hashmap *sceneToResamplermap;
+    uint32_t captureId;
+    uint32_t renderId;
+    // ec and micref begin
     EcType ecType;
     const char *ecAdapterName;
     uint32_t ecSamplingRate;
     int32_t ecFormat;
-    unit32_t ecChannels;
+    uint32_t ecChannels;
     MicRefSwitch micRef;
     uint32_t micRefRate;
-    int32_t micRefFormat
-    unit32_t micRefChannels;
-    pa_hashmap *sceneToResamplermap;
-    uint32_t captureId;
-    unit32_t renderId;
+    int32_t micRefFormat;
+    uint32_t micRefChannels;
     HdiCaptureHandle *captureHandleEc;
     HdiCaptureHandle *captureHandleMicRef;
-    unit64_t requestBytesEc;
+    uint64_t requestBytesEc;
     uint64_t requestBytesMicRef;
     void *bufferEc;
     void *bufferMicRef;
 };
 
-#endif //USERDATA_H
+#endif // SOURCE_USERDATA_H
