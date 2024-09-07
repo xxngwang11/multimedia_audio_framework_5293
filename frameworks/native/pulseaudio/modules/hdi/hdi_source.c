@@ -264,20 +264,19 @@ static int32_t HandleCaptureFrame(const struct userdata *u,
             FrameDesc *fdescEc = AllocateFrameDesc((char *)(u->bufferEc), u->requestBytesEc);
             u->sourceAdapter->CaptureSourceFrameWithEc(u->sourceAdapter->wapper,
                 fdesc, replyBytes, fdescEc, &replyBytesEc);
-                FreeFrameDesc(fdesc);
-                FreeFrameDesc(fdescEc);
+            FreeFrameDesc(fdesc);
+            FreeFrameDesc(fdescEc);
         } else if (u->ecType == EC_DIFFERENT_ADAPTER) {
             u->sourceAdapter->CatpturerSourceFrame(
                 u->sourceAdapter->wapper, buffer, requestBytes, replyBytes);
 
-                if (u->captureHandleEc != NULL) {
-                    FrameDesc *fdesc = AllocateFrameDesc(buffer, requestBytes);
-                    FrameDesc *fdescEc = AllocateFrameDesc((char *)(u->bufferEc), u->requestBytesEc);
-                    uint64_t replyBytesUnused = 0;
-                    u->captureHandleEc->CpatureFrameWithEc(u->captureHandleEc->capture,
-                        fdesc, &replyBytesUnused, fdescEc, &replyBytesEc);
-                }
-                
+            if (u->captureHandleEc != NULL) {
+                FrameDesc *fdesc = AllocateFrameDesc(buffer, requestBytes);
+                FrameDesc *fdescEc = AllocateFrameDesc((char *)(u->bufferEc), u->requestBytesEc);
+                uint64_t replyBytesUnused = 0;
+                u->captureHandleEc->CpatureFrameWithEc(u->captureHandleEc->capture,
+                    fdesc, &replyBytesUnused, fdescEc, &replyBytesEc);
+            }
         } else {
             AUDIO_WARNING_LOG("should not be here");
         }  
