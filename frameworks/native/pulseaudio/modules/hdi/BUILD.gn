@@ -113,6 +113,7 @@ ohos_shared_library("module-hdi-source") {
 
   deps = [
     "../../../audioeffect:audio_effect",
+    "../../../audioschedule:audio_schedule",
     "../../../audioutils:audio_utils",
     "../../../hdiadapter/source:capturer_source_adapter",
   ]

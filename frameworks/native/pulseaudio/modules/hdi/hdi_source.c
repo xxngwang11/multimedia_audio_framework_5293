@@ -36,6 +36,7 @@
 
 #include "audio_hdiadapter_info.h"
 #include "audio_hdi_log.h"
+#include "audio_schedule.h"
 #include "audio_source_type.h"
 #include "audio_utils_c.h"
 #include "capturer_source_adapter.h"
@@ -295,11 +296,9 @@ static void ThreadFuncCapturerTimer(void *userdata)
     struct Userdata *u = userdata;
     bool timerElapsed = false;
 
+    //set audio thread priority
+    ScheduleThreadInServer(getpid().gettid());
     pa_assert(u);
-
-    if (u->core->realtime_scheduling) {
-        pa_thread_make_realtime(u->core->realtime_priority);
-    }
 
     pa_thread_mq_install(&u->thread_mq);
     u->timestamp = pa_rtclock_now();
@@ -336,6 +335,7 @@ static void ThreadFuncCapturerTimer(void *userdata)
             return;
         }
     }
+    UnscheduleThreadInServer(getpid().gettid());
 }
 
 static int PaHdiCapturerInit(struct Userdata *u)
