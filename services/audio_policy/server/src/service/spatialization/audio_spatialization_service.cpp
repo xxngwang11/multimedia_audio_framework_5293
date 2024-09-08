@@ -658,8 +658,9 @@ void AudioSpatializationService::WriteSpatializationStateToDb(WriteToDbOperation
             uint32_t deviceID = addressToDeviceIDMap_[encryptedAddress];
             ErrCode ret = settingProvider.PutStringValue(SPATIALIZATION_STATE_SETTINGKEY + "_device" +
                 std::to_string(deviceID), addressToDeviceSpatialInfoMap_[encryptedAddress]);
+            uint32_t tempID = deviceID;
             CHECK_AND_RETURN_LOG(ret == SUCCESS, "Failed to write spatialization_state_device%{public}d to"
-                    "setting db: %{public}d", deviceID, ret);
+                    "setting db: %{public}d", tempID, ret);
             break;
         }
         default:
