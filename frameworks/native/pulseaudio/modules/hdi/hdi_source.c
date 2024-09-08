@@ -297,7 +297,7 @@ static void ThreadFuncCapturerTimer(void *userdata)
     bool timerElapsed = false;
 
     //set audio thread priority
-    ScheduleThreadInServer(getpid().gettid());
+    ScheduleThreadInServer(getpid(), gettid());
     pa_assert(u);
 
     pa_thread_mq_install(&u->thread_mq);
@@ -335,7 +335,7 @@ static void ThreadFuncCapturerTimer(void *userdata)
             return;
         }
     }
-    UnscheduleThreadInServer(getpid().gettid());
+    UnscheduleThreadInServer(getpid(), gettid());
 }
 
 static int PaHdiCapturerInit(struct Userdata *u)
