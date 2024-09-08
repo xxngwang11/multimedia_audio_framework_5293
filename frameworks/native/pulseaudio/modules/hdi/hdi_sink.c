@@ -1561,9 +1561,10 @@ static char *HandleSinkSceneType(struct Userdata *u, time_t currentTime, int32_t
 
 static char *CheckAndDealEffectZeroVolume(struct Userdata *u, time_t currentTime, const char *sceneType)
 {
-    int32_t i;
-    for (i = 0; i < SCENE_TYPE_NUM; i++) {
-        if (!strcmp(SCENE_TYPE_SET[i], sceneType)) {
+    int32_t i = SCENE_TYPE_NUM - 1;
+    for (int32_t j = 0; j < SCENE_TYPE_NUM; j++) {
+        if (!strcmp(SCENE_TYPE_SET[j], sceneType)) {
+            i = j;
             break;
         }
     }
@@ -1715,10 +1716,10 @@ static void UpdateSceneToCountMap(pa_hashmap *sceneMap)
     if (sceneMap == NULL) {
         return;
     }
-    uint32_t curNum;
     uint32_t *num = NULL;
+    (void)num;
     for (int32_t i = 0; i < SCENE_TYPE_NUM - 1; i++) {
-        if ((curNum = EffectChainManagerGetSceneCount(SCENE_TYPE_SET[i]))) {
+        if ((uint32_t curNum = EffectChainManagerGetSceneCount(SCENE_TYPE_SET[i]))) {
             if ((num = (uint32_t *)pa_hashmap_get(sceneMap, SCENE_TYPE_SET[i])) != NULL) {
                 (*num) = curNum;
             } else {
