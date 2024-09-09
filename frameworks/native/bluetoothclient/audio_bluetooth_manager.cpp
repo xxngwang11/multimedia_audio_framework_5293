@@ -321,15 +321,15 @@ void AudioA2dpListener::OnMediaStackChanged(const BluetoothRemoteDevice &device,
     MediaBluetoothDeviceManager::SetMediaStack(device, action);
 }
 
-void AudioA2dpListener::OnVirtualDeviceChanged(int32_t action, std::string address)
+void AudioA2dpListener::OnVirtualDeviceChanged(int32_t action, std::string macAddress)
 {
     AUDIO_INFO_LOG("AudioA2dpListener: action: %{public}d", action);
     if (action == static_cast<int32_t>(Bluetooth::BT_VIRTUAL_DEVICE_ADD)) {
-        MediaBluetoothDeviceManager::SetMediaStack(BluetoothRemoteDevice(address),
+        MediaBluetoothDeviceManager::SetMediaStack(BluetoothRemoteDevice(macAddress),
             BluetoothDeviceAction::VIRTUAL_DEVICE_ADD_ACTION);
     }
     if (action == static_cast<int32_t>(Bluetooth::BT_VIRTUAL_DEVICE_REMOVE)) {
-        MediaBluetoothDeviceManager::SetMediaStack(BluetoothRemoteDevice(address),
+        MediaBluetoothDeviceManager::SetMediaStack(BluetoothRemoteDevice(macAddress),
             BluetoothDeviceAction::VIRTUAL_DEVICE_REMOVE_ACTION);
     }
 }
