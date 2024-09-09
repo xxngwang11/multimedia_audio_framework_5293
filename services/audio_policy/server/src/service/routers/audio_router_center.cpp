@@ -71,12 +71,16 @@ vector<unique_ptr<AudioDeviceDescriptor>> AudioRouterCenter::FetchRingRenderDevi
             return descs;
         }
     }
-    AudioRingerMode curRingerMode = AudioPolicyService::GetAudioPolicyService().GetRingerMode();
     vector<unique_ptr<AudioDeviceDescriptor>> descs;
-    if (curRingerMode == RINGER_MODE_NORMAL) {
-        descs.push_back(AudioDeviceManager::GetAudioDeviceManager().GetRenderDefaultDevice());
+    if (streamUsage == STREAM_USAGE_RINGTONE || streamUsage == STREAM_USAGE_VOICE_RINGTONE) {
+        AudioRingerMode curRingerMode = AudioPolicyService::GetAudioPolicyService().GetRingerMode();
+        if (curRingerMode == RINGER_MODE_NORMAL) {
+            descs.push_back(AudioDeviceManager::GetAudioDeviceManager().GetRenderDefaultDevice());
+        } else {
+            descs.push_back(make_unique<AudioDeviceDescriptor>());
+        }
     } else {
-        descs.push_back(make_unique<AudioDeviceDescriptor>());
+        descs.push_back(AudioDeviceManager::GetAudioDeviceManager().GetRenderDefaultDevice());
     }
     return descs;
 }
