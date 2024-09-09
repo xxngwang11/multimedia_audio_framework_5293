@@ -30,6 +30,7 @@
 #include "audio_errors.h"
 #include "audio_service_log.h"
 #include "audio_schedule.h"
+#include "audio_qosmanager.h"
 #include "audio_utils.h"
 #include "bluetooth_renderer_sink.h"
 #include "fast_audio_renderer_sink.h"
@@ -2002,7 +2003,7 @@ int32_t AudioEndpointInner::ReadFromEndpoint(uint64_t curReadPos)
 
 void AudioEndpointInner::RecordEndpointWorkLoopFuc()
 {
-    ScheduleReportData(getpid(), gettid(), "audio_server");
+    SetThreadQosLevel();
     int64_t curTime = 0;
     uint64_t curReadPos = 0;
     int64_t wakeUpTime = ClockTime::GetCurNano();
@@ -2038,11 +2039,12 @@ void AudioEndpointInner::RecordEndpointWorkLoopFuc()
         threadStatus_ = SLEEPING;
         ClockTime::AbsoluteSleep(wakeUpTime);
     }
+    ReSetThreadQosLevel();
 }
 
 void AudioEndpointInner::EndpointWorkLoopFuc()
 {
-    ScheduleReportData(getpid(), gettid(), "audio_server");
+    SetThreadQosLevel();
     int64_t curTime = 0;
     uint64_t curWritePos = 0;
     int64_t wakeUpTime = ClockTime::GetCurNano();
@@ -2095,6 +2097,7 @@ void AudioEndpointInner::EndpointWorkLoopFuc()
         ClockTime::AbsoluteSleep(wakeUpTime);
     }
     AUDIO_DEBUG_LOG("Endpoint work loop fuc end, ret %{public}d", ret);
+    ReSetThreadQosLevel();
 }
 
 void AudioEndpointInner::InitLatencyMeasurement()
