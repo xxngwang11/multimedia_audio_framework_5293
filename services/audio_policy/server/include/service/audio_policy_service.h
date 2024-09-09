@@ -1048,6 +1048,10 @@ private:
 
     void CheckAndNotifyUserSelectedDevice(const sptr<AudioDeviceDescriptor> &deviceDescriptor);
 
+    bool GetAudioEffectOffloadFlag();
+
+    bool CheckSpatializationAndEffectState();
+
     bool isUpdateRouteSupported_ = true;
     bool isCurrentRemoteRenderer = false;
     bool remoteCapturerSwitch_ = false;
