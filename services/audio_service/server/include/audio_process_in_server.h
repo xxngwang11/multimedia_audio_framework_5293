@@ -64,7 +64,7 @@ public:
 
     int32_t RequestHandleInfo(bool isAsync) override;
 
-    int32_t Release() override;
+    int32_t Release(bool destoryAtOnce = false) override;
 
     int32_t RegisterProcessCb(sptr<IRemoteObject> object) override;
 
