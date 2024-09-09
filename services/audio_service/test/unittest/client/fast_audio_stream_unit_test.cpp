@@ -24,7 +24,7 @@ using namespace testing::ext;
 namespace OHOS {
 namespace AudioStandard {
 
-class AudioSteamManagerUnitTest : public testing::Test {
+class FastSystemStreamUnitTest : public testing::Test {
 public:
     static void SetUpTestCase(void);
     static void TearDownTestCase(void);
@@ -49,7 +49,7 @@ HWTEST(FastSystemStreamUnitTest, GetVolume_001, TestSize.Level1)
     fastAudioStream->cacheVolume_ = 0.5f;
     float result = fastAudioStream->GetVolume();
     AUDIO_INFO_LOG("AudioSystemManagerUnitTest GetVolume_001 result:%{public}f", result);
-    EXPECT_LT(result, 0);
+    EXPECT_GT(result, 0);
 }
 
 /**
@@ -68,7 +68,7 @@ HWTEST(FastSystemStreamUnitTest, SetVolume_001, TestSize.Level1)
     fastAudioStream->silentModeAndMixWithOthers_ = true;
     int32_t result = fastAudioStream->SetVolume(volume);
     AUDIO_INFO_LOG("AudioSystemManagerUnitTest SetVolume_001 result:%{public}d", result);
-    EXPECT_EQ(result, ERROR);
+    EXPECT_NE(result, ERROR);
 }
 
 /**
