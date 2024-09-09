@@ -744,5 +744,11 @@ uint32_t AudioEndpointSeparate::GetLinkedProcessCount()
     std::lock_guard<std::mutex> lock(listLock_);
     return processList_.size();
 }
+
+AudioMode AudioEndpointSeparate::GetAudioMode() const
+{
+    // AudioEndpointSeparate only support playback for now
+    return AUDIO_MODE_PLAYBACK;
+}
 } // namespace AudioStandard
 } // namespace OHOS
