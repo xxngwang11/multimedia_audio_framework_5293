@@ -187,6 +187,7 @@ private:
     bool CheckConfigFormat(const AudioProcessConfig &config);
     int32_t GetHapBuildApiVersion(int32_t callerUid);
 
+    void NotifyProcessStatus(bool isStart);
     void AudioServerDied(pid_t pid);
     void RegisterPolicyServerDeathRecipient();
     void RegisterAudioCapturerSourceCallback();

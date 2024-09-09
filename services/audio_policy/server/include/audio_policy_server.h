@@ -472,7 +472,7 @@ public:
 
 protected:
     void OnAddSystemAbility(int32_t systemAbilityId, const std::string& deviceId) override;
-
+    void OnAddSystemAbilityExtract(int32_t systemAbilityId, const std::string& deviceId);
     void RegisterParamCallback();
 
     void OnRemoveSystemAbility(int32_t systemAbilityId, const std::string& deviceId) override;
@@ -509,7 +509,7 @@ private:
     // offload session
     void OffloadStreamCheck(int64_t activateSessionId, int64_t deactivateSessionId);
     void CheckSubscribePowerStateChange();
-
+    void NotifyProcessStatus(bool isStart);
     void CheckStreamMode(const int64_t activateSessionId);
     bool CheckAudioSessionStrategy(const AudioSessionStrategy &sessionStrategy);
 
