@@ -3968,7 +3968,7 @@ DeviceType AudioPolicyService::FindConnectedHeadset()
 int32_t AudioPolicyService::HandleSpecialDeviceType(DeviceType &devType, bool &isConnected, const std::string &address)
 {
     // usb device needs to be distinguished form arm or hifi
-    if (devType == DEVICE_TYPE_USB_HEADSET) {
+    if (devType == DEVICE_TYPE_USB_HEADSET || devType == DEVICE_TYPE_USB_ARM_HEADSET) {
         CHECK_AND_RETURN_RET_LOG(g_adProxy != nullptr, ERROR, "Audio server Proxy is null");
         AUDIO_INFO_LOG("has hifi:%{public}d, has arm:%{public}d", hasHifiUsbDevice_, hasArmUsbDevice_);
         std::string identity = IPCSkeleton::ResetCallingIdentity();
