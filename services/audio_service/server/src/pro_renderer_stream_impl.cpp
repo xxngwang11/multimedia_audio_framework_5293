@@ -566,9 +566,7 @@ int32_t ProRendererStreamImpl::Peek(std::vector<char> *audioBuffer, int32_t &ind
 
 int32_t ProRendererStreamImpl::ReturnIndex(int32_t index)
 {
-    if (isBlock_) {
-        return SUCCESS;
-    }
+    Trace::Count("ProRendererStreamImpl::ReturnIndex", index);
     if (index < 0) {
         return SUCCESS;
     }
@@ -614,6 +612,7 @@ void ProRendererStreamImpl::PopSinkBuffer(std::vector<char> *audioBuffer, int32_
         index = readQueue_.front();
         readQueue_.pop();
         *audioBuffer = sinkBuffer_[index];
+        Trace::Count("ProRendererStreamImpl::PopSinkBuffer", index);
     }
     if (readQueue_.empty() && isDrain_) {
         drainSync_.notify_all();
