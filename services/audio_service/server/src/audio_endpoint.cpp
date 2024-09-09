@@ -1583,7 +1583,9 @@ bool AudioEndpointInner::ProcessToEndpointDataHandle(uint64_t curWritePos)
         }
     }
 
-    ProcessToDupStream(audioDataList, dstStreamData);
+    if (isInnerCapEnabled_) {
+        ProcessToDupStream(audioDataList, dstStreamData);
+    }
 
     DumpFileUtil::WriteDumpFile(dumpHdi_, static_cast<void *>(dstStreamData.bufferDesc.buffer),
         dstStreamData.bufferDesc.bufLength);
@@ -1602,22 +1604,20 @@ bool AudioEndpointInner::ProcessToEndpointDataHandle(uint64_t curWritePos)
 
 void AudioEndpointInner::ProcessToDupStream(std::vector<AudioStreamData> &audioDataList, AudioStreamData &dstStreamData)
 {
-    if (isInnerCapEnabled_) {
-        Trace trace("AudioEndpointInner::ProcessToDupStream");
-        if (endpointType_ == TYPE_VOIP_MMAP) {
-            if (audioDataList.size() == 1 && audioDataList[0].isInnerCaped) {
-                BufferDesc temp;
-                temp.buffer = dupBuffer_.get();
-                temp.bufLength = dupBufferSize_;
-                temp.dataLength = dupBufferSize_;
+    Trace trace("AudioEndpointInner::ProcessToDupStream");
+    if (endpointType_ == TYPE_VOIP_MMAP) {
+        if (audioDataList.size() == 1 && audioDataList[0].isInnerCaped) {
+            BufferDesc temp;
+            temp.buffer = dupBuffer_.get();
+            temp.bufLength = dupBufferSize_;
+            temp.dataLength = dupBufferSize_;
 
-                dstStreamData.bufferDesc = temp;
-                HandleRendererDataParams(audioDataList[0], dstStreamData, false);
-                dupStream_->EnqueueBuffer(temp);
-            }
-        } else {
-            MixToDupStream(audioDataList);
+            dstStreamData.bufferDesc = temp;
+            HandleRendererDataParams(audioDataList[0], dstStreamData, false);
+            dupStream_->EnqueueBuffer(temp);
         }
+    } else {
+        MixToDupStream(audioDataList);
     }
 }
 
