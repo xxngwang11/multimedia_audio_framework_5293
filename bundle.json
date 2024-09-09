@@ -81,7 +81,8 @@
             "glib",
             "libsnd",
             "libxml2",
-            "openssl"
+            "openssl",
+            "init"
           ]
         },
         "build": {

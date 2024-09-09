@@ -40,6 +40,7 @@ public:
 
     IDeviceStatusObserver &deviceObserver_;
     void OnPnpDeviceStatusChanged(const std::string &info);
+    void OnMicrophoneBlocked(const std::string &info);
 
     int32_t SetAudioDeviceAnahsCallback(const sptr<IRemoteObject> &object);
     int32_t UnsetAudioDeviceAnahsCallback();
@@ -59,6 +60,8 @@ public:
     virtual ~AudioPnpStatusCallback();
 
     void OnPnpDeviceStatusChanged(const std::string &info);
+
+    void OnMicrophoneBlocked(const std::string &info);
 
     void SetDeviceStatusListener(DeviceStatusListener *listener);
 private:

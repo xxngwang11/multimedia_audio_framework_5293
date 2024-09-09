@@ -297,6 +297,7 @@ bool AudioSystemManager::IsStreamActive(AudioVolumeType volumeType) const
         case STREAM_ALARM:
         case STREAM_ACCESSIBILITY:
         case STREAM_VOICE_RING:
+        case STREAM_CAMCORDER:
             break;
         case STREAM_ULTRASONIC:{
             bool ret = PermissionUtil::VerifySelfPermission();
@@ -599,6 +600,25 @@ int32_t AudioSystemManager::UnsetDeviceChangeCallback(DeviceFlag flag,
     int32_t clientId = GetCallingPid();
     return AudioPolicyManager::GetInstance().UnsetDeviceChangeCallback(clientId, flag, cb);
 }
+
+int32_t AudioSystemManager::SetMicrophoneBlockedCallback(
+    const std::shared_ptr<AudioManagerMicrophoneBlockedCallback>& callback)
+{
+    AUDIO_INFO_LOG("Entered %{public}s", __func__);
+    CHECK_AND_RETURN_RET_LOG(callback != nullptr, ERR_INVALID_PARAM, "callback is nullptr");
+
+    int32_t clientId = GetCallingPid();
+    return AudioPolicyManager::GetInstance().SetMicrophoneBlockedCallback(clientId, callback);
+}
+
+int32_t AudioSystemManager::UnsetMicrophoneBlockedCallback(
+    const std::shared_ptr<AudioManagerMicrophoneBlockedCallback> callback)
+{
+    AUDIO_INFO_LOG("Entered %{public}s", __func__);
+    int32_t clientId = GetCallingPid();
+    return AudioPolicyManager::GetInstance().UnsetMicrophoneBlockedCallback(clientId, callback);
+}
+
 
 int32_t AudioSystemManager::SetQueryClientTypeCallback(const std::shared_ptr<AudioQueryClientTypeCallback> &callback)
 {
