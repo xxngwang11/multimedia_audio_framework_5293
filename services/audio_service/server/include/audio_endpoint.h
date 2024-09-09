@@ -92,6 +92,8 @@ public:
     virtual float GetMaxAmplitude() = 0;
     virtual uint32_t GetLinkedProcessCount() = 0;
 
+    virtual AudioMode GetAudioMode() const = 0;
+
     virtual ~AudioEndpoint() = default;
 private:
     virtual bool Config(const DeviceInfo &deviceInfo) = 0;
@@ -151,7 +153,10 @@ public:
     }
 
     float GetMaxAmplitude() override;
+
     uint32_t GetLinkedProcessCount() override;
+
+    AudioMode GetAudioMode() const final;
 private:
     int32_t PrepareDeviceBuffer(const DeviceInfo &deviceInfo);
     int32_t GetAdapterBufferInfo(const DeviceInfo &deviceInfo);

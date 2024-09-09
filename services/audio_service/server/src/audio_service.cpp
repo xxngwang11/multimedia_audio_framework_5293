@@ -30,8 +30,8 @@ namespace OHOS {
 namespace AudioStandard {
 
 static uint64_t g_id = 1;
-static const uint32_t NORMAL_ENDPOINT_RELEASE_DELAY_TIME = 10000; // 10ms
-static const uint32_t A2DP_ENDPOINT_RELEASE_DELAY_TIME = 3000; // 3ms
+static const uint32_t NORMAL_ENDPOINT_RELEASE_DELAY_TIME = 10000; // 10s
+static const uint32_t A2DP_ENDPOINT_RELEASE_DELAY_TIME = 3000; // 3s
 
 AudioService *AudioService::GetInstance()
 {

@@ -53,7 +53,8 @@ namespace {
     static constexpr int64_t RECORD_DELAY_TIME = 4000000; // 4ms
     static constexpr int64_t RECORD_VOIP_DELAY_TIME = 10000000; // 10ms
     static constexpr int64_t MAX_SPAN_DURATION_IN_NANO = 100000000; // 100ms
-    static constexpr int64_t DELAY_STOP_HDI_TIME = 10000000000; // 10s
+    static constexpr int64_t PLAYBACK_DELAY_STOP_HDI_TIME = 10000000000; // 10s
+    static constexpr int64_t RECORDER_DELAY_STOP_HDI_TIME = 200000000; // 200ms
     static constexpr int64_t WAIT_CLIENT_STANDBY_TIME_NS = 1000000000; // 1s
     static constexpr int64_t DELAY_STOP_HDI_TIME_FOR_ZERO_VOLUME = 4000000000; // 4s
     static constexpr int32_t SLEEP_TIME_IN_DEFAULT = 400; // 400ms
@@ -170,6 +171,7 @@ public:
     float GetMaxAmplitude() override;
     uint32_t GetLinkedProcessCount() override;
 
+    AudioMode GetAudioMode() const final;
 private:
     AudioProcessConfig GetInnerCapConfig();
     void StartThread(const IAudioSinkAttr &attr);
@@ -1104,7 +1106,8 @@ int32_t AudioEndpointInner::OnPause(IAudioProcessStream *processStream)
     if (endpointStatus_ == IDEL) {
         // delay call sink stop when no process running
         AUDIO_PRERELEASE_LOGI("OnPause status is IDEL, need delay call stop");
-        delayStopTime_ = ClockTime::GetCurNano() + DELAY_STOP_HDI_TIME;
+        delayStopTime_ = ClockTime::GetCurNano() + ((clientConfig_.audioMode == AUDIO_MODE_PLAYBACK)
+            ? PLAYBACK_DELAY_STOP_HDI_TIME : RECORDER_DELAY_STOP_HDI_TIME);
     }
     // todo
     return SUCCESS;
@@ -1172,8 +1175,7 @@ int32_t AudioEndpointInner::LinkProcessStream(IAudioProcessStream *processStream
     CHECK_AND_RETURN_RET_LOG(processStream != nullptr, ERR_INVALID_PARAM, "IAudioProcessStream is null");
     std::shared_ptr<OHAudioBuffer> processBuffer = processStream->GetStreamBuffer();
     CHECK_AND_RETURN_RET_LOG(processBuffer != nullptr, ERR_INVALID_PARAM, "processBuffer is null");
-    CHECK_AND_RETURN_RET_LOG(processBuffer->GetStreamStatus() != nullptr, ERR_INVALID_PARAM,
-        "the stream status is null");
+    CHECK_AND_RETURN_RET_LOG(processBuffer->GetStreamStatus() != nullptr, ERR_INVALID_PARAM, "stream status is null");
 
     CHECK_AND_RETURN_RET_LOG(processList_.size() < MAX_LINKED_PROCESS, ERR_OPERATION_FAILED, "reach link limit.");
 
@@ -1199,7 +1201,8 @@ int32_t AudioEndpointInner::LinkProcessStream(IAudioProcessStream *processStream
         endpointStatus_ = IDEL; // handle push_back in IDEL
         if (isDeviceRunningInIdel_) {
             CHECK_AND_RETURN_RET_LOG(StartDevice(), ERR_OPERATION_FAILED, "StartDevice failed");
-            delayStopTime_ = ClockTime::GetCurNano() + DELAY_STOP_HDI_TIME;
+            delayStopTime_ = ClockTime::GetCurNano() + ((clientConfig_.audioMode == AUDIO_MODE_PLAYBACK)
+                ? PLAYBACK_DELAY_STOP_HDI_TIME : RECORDER_DELAY_STOP_HDI_TIME);
         }
     }
 
@@ -1283,7 +1286,8 @@ void AudioEndpointInner::CheckStandBy()
     if (endpointStatus_ == IDEL) {
         // delay call sink stop when no process running
         AUDIO_INFO_LOG("status is IDEL, need delay call stop");
-        delayStopTime_ = ClockTime::GetCurNano() + DELAY_STOP_HDI_TIME;
+        delayStopTime_ = ClockTime::GetCurNano() + ((clientConfig_.audioMode == AUDIO_MODE_PLAYBACK)
+            ? PLAYBACK_DELAY_STOP_HDI_TIME : RECORDER_DELAY_STOP_HDI_TIME);
     }
 }
 
@@ -1635,6 +1639,11 @@ float AudioEndpointInner::GetMaxAmplitude()
     lastGetMaxAmplitudeTime_ = ClockTime::GetCurNano();
     startUpdate_ = true;
     return maxAmplitude_;
+}
+
+AudioMode AudioEndpointInner::GetAudioMode() const
+{
+    return clientConfig_.audioMode;
 }
 
 int64_t AudioEndpointInner::GetPredictNextReadTime(uint64_t posInFrame)
