@@ -26,6 +26,7 @@
 #include <thread>
 #include <unordered_map>
 #include <vector>
+#include <dlfcn.h>
 
 #include "bundle_mgr_interface.h"
 #include "bundle_mgr_proxy.h"
@@ -65,6 +66,10 @@ using namespace std;
 
 namespace OHOS {
 namespace AudioStandard {
+
+constexpr int32_t SYSTEM_STATUS_START = 1;
+constexpr int32_t SYSTEM_STATUS_STOP = 0;
+constexpr int32_t SYSTEM_PROCESS_TYPE = 1;
 uint32_t AudioServer::paDaemonTid_;
 std::map<std::string, std::string> AudioServer::audioParameters;
 std::unordered_map<std::string, std::unordered_map<std::string, std::set<std::string>>> AudioServer::audioParameterKeys;
@@ -296,6 +301,7 @@ void AudioServer::OnStart()
     }
     AddSystemAbilityListener(AUDIO_POLICY_SERVICE_ID);
     AddSystemAbilityListener(RES_SCHED_SYS_ABILITY_ID);
+    AddSystemAbilityListener(MEMORY_MANAGER_SA_ID);
 #ifdef PA
     int32_t ret = pthread_create(&m_paDaemonThread, nullptr, AudioServer::paDaemonThread, nullptr);
     pthread_setname_np(m_paDaemonThread, "OS_PaDaemon");
@@ -340,15 +346,46 @@ void AudioServer::OnAddSystemAbility(int32_t systemAbilityId, const std::string&
             AUDIO_INFO_LOG("ressched service start");
             OnAddResSchedService(getpid());
             break;
+        case MEMORY_MANAGER_SA_ID:
+            NotifyProcessStatus(true);
+            break;
         default:
             AUDIO_ERR_LOG("unhandled sysabilityId:%{public}d", systemAbilityId);
             break;
     }
 }
 
+void AudioServer::NotifyProcessStatus(bool isStart)
+{
+    int pid = getpid();
+    void *libMemMgrClientHandle = dlopen("libmemmgrclient.z.so", RTLD_NOW);
+    if (!libMemMgrClientHandle) {
+        AUDIO_ERR_LOG("dlopen libmemmgrclient library failed");
+        return;
+    }
+    void *notifyProcessStatusFunc = dlsym(libMemMgrClientHandle, "notify_process_status");
+    if (!notifyProcessStatusFunc) {
+        AUDIO_ERR_LOG("dlsm notify_process_status failed");
+        dlclose(libMemMgrClientHandle);
+        return;
+    }
+    auto notifyProcessStatus = reinterpret_cast<int(*)(int, int, int, int)>(notifyProcessStatusFunc);
+    if (isStart) {
+        AUDIO_ERR_LOG("notify to memmgr when audio_server is started");
+        // 1 indicates the service is started
+        notifyProcessStatus(pid, SYSTEM_PROCESS_TYPE, SYSTEM_STATUS_START, AUDIO_DISTRIBUTED_SERVICE_ID);
+    } else {
+        AUDIO_ERR_LOG("notify to memmgr when audio_server is stopped");
+        // 0 indicates the service is stopped
+        notifyProcessStatus(pid, SYSTEM_PROCESS_TYPE, SYSTEM_STATUS_STOP, AUDIO_DISTRIBUTED_SERVICE_ID);
+    }
+    dlclose(libMemMgrClientHandle);
+}
+
 void AudioServer::OnStop()
 {
     AUDIO_DEBUG_LOG("OnStop");
+    NotifyProcessStatus(false);
 }
 
 void AudioServer::RecognizeAudioEffectType(const std::string &mainkey, const std::string &subkey,
