@@ -1561,13 +1561,14 @@ static char *HandleSinkSceneType(struct Userdata *u, time_t currentTime, int32_t
 
 static char *CheckAndDealEffectZeroVolume(struct Userdata *u, time_t currentTime, const char *sceneType)
 {
-    int32_t i = SCENE_TYPE_NUM - 1;
-    for (int32_t j = 0; j < SCENE_TYPE_NUM; j++) {
-        if (!strcmp(SCENE_TYPE_SET[j], sceneType)) {
-            i = j;
+    int32_t i;
+    for (i = 0; i < SCENE_TYPE_NUM; i++) {
+        if (!strcmp(SCENE_TYPE_SET[i], sceneType)) {
             break;
         }
     }
+
+    i = i == SCENE_TYPE_NUM ? SCENE_TYPE_NUM - 1 : i;
     void *state = NULL;
     pa_sink_input *input;
     g_effectAllStreamVolumeZeroMap[i] = true;
