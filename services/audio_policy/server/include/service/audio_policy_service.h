@@ -570,7 +570,7 @@ public:
 
     int32_t SetDefaultOutputDevice(const DeviceType deviceType, const uint32_t sessionID,
         const StreamUsage streamUsage, bool isRunning);
-    
+
     int32_t SetAudioDeviceAnahsCallback(const sptr<IRemoteObject> &object);
 
     int32_t UnsetAudioDeviceAnahsCallback();
@@ -923,6 +923,8 @@ private:
     void CheckWiredActiveMusicTime(int32_t safeVolume);
 
     void RestoreSafeVolume(AudioStreamType streamType, int32_t safeVolume);
+
+    void SetSafeVolumeCallback(AudioStreamType streamType);
 
     int32_t CheckActiveMusicTime();
 
