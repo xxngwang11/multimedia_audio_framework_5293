@@ -29,7 +29,7 @@ class ProcessReleaseCallback {
 public:
     virtual ~ProcessReleaseCallback() = default;
 
-    virtual int32_t OnProcessRelease(IAudioProcessStream *process) = 0;
+    virtual int32_t OnProcessRelease(IAudioProcessStream *process, bool destoryAtOnce = false) = 0;
 };
 class AudioProcessInServer;
 class ProcessDeathRecipient : public IRemoteObject::DeathRecipient {
