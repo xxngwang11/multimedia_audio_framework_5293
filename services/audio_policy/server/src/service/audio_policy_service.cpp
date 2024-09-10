@@ -4482,7 +4482,7 @@ int32_t AudioPolicyService::GetUserSetDeviceNameFromDataShareHelper(std::string 
     std::string accountIdStr = std::to_string(osAccountId);
     std::shared_ptr<Uri> uri = std::make_shared<Uri>(SETTINGS_DATA_SECURE_URI + accountIdStr + "?Proxy=true&key=" +
         USER_DEFINED_STRING);
-    
+
     std::vector<std::string> columns;
     columns.emplace_back(SETTINGS_DATA_FIELD_VALUE);
     DataShare::DataSharePredicates predicates;
@@ -5858,11 +5858,17 @@ void AudioPolicyService::RestoreSafeVolume(AudioStreamType streamType, int32_t s
 
     AUDIO_INFO_LOG("restore safe volume.");
     SetSystemVolumeLevel(streamType, safeVolume);
+    SetSafeVolumeCallback(streamType);
+}
 
+void AudioPolicyService::SetSafeVolumeCallback(AudioStreamType streamType)
+{
+    CHECK_AND_RETURN_LOG(VolumeUtils::GetVolumeTypeFromStreamType(streamType) == STREAM_MUSIC,
+        "streamtype:%{public}d no need to set safe volume callback.", streamType);
     VolumeEvent volumeEvent;
     volumeEvent.volumeType = streamType;
     volumeEvent.volume = GetSystemVolumeLevel(streamType);
-    volumeEvent.updateUi = true;
+    volumeEvent.updateUi = false;
     volumeEvent.volumeGroupId = 0;
     volumeEvent.networkId = LOCAL_NETWORK_ID;
     if (audioPolicyServerHandler_ != nullptr && IsRingerModeMute()) {
@@ -8001,6 +8007,7 @@ int32_t AudioPolicyService::SafeVolumeDialogDisapper()
     isSafeVolumeDialogShowing_.store(false);
     dialogSelectCondition_.notify_all();
     SetDeviceSafeVolumeStatus();
+    SetSafeVolumeCallback(STREAM_MUSIC);
     return SUCCESS;
 }
 
@@ -8893,7 +8900,7 @@ int32_t  AudioPolicyService::LoadSplitModule(const std::string &splitArgs, const
     AudioModuleInfo moudleInfo = ConstructRemoteAudioModuleInfo(networkId, OUTPUT_DEVICE, DEVICE_TYPE_SPEAKER);
     moudleInfo.lib = "libmodule-split-stream-sink.z.so";
     moudleInfo.extra = splitArgs;
-    
+
     int32_t openRet = OpenPortAndInsertIOHandle(moduleName, moudleInfo);
     if (openRet != 0) {
         AUDIO_ERR_LOG("open fail, OpenPortAndInsertIOHandle ret: %{public}d", openRet);
