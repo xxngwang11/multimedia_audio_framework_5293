@@ -86,7 +86,7 @@ int32_t AudioService::OnProcessRelease(IAudioProcessStream *process, bool destor
         releasingEndpointSet_.insert(endpointName);
         int32_t delayTime = 0;
         if ((*paired).second->GetDeviceInfo().deviceType == DEVICE_TYPE_BLUETOOTH_A2DP) {
-            if (!destoryAtOnce){
+            if (!destoryAtOnce) {
                 delayTime = A2DP_ENDPOINT_RELEASE_DELAY_TIME;
             }
         } else {
