@@ -1757,6 +1757,7 @@ bool AudioInterruptService::ShouldCallbackToClient(uint32_t uid, int32_t session
     switch (hintType) {
         case INTERRUPT_HINT_RESUME:
             muteFlag = false;
+            [[fallthrough]];
         case INTERRUPT_HINT_PAUSE:
         case INTERRUPT_HINT_STOP:
             AUDIO_INFO_LOG("mute flag is: %{public}d", muteFlag);
