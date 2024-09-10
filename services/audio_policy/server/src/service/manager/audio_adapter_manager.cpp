@@ -22,6 +22,7 @@
 #include "parameter.h"
 #include "parameters.h"
 
+#include "audio_policy_service.h"
 #include "audio_volume_parser.h"
 #include "audio_utils.h"
 
@@ -624,8 +625,9 @@ void AudioAdapterManager::SetVolumeForSwitchDevice(InternalDeviceType deviceType
 
     // The same device does not set the volume
     // Except for A2dp, because the currentActiveDevice_ has already been set in Activea2dpdevice.
+    bool isRingerModeMute = AudioPolicyService::GetAudioPolicyService().IsRingerModeMute();
     if (GetVolumeGroupForDevice(currentActiveDevice_) == GetVolumeGroupForDevice(deviceType) &&
-        deviceType != DEVICE_TYPE_BLUETOOTH_A2DP && deviceType != DEVICE_TYPE_BLUETOOTH_SCO) {
+        deviceType != DEVICE_TYPE_BLUETOOTH_A2DP && (deviceType != DEVICE_TYPE_BLUETOOTH_SCO || !isRingerModeMute)) {
         AUDIO_INFO_LOG("Old device: %{public}d. New device: %{public}d. No need to update volume",
             currentActiveDevice_, deviceType);
         currentActiveDevice_ = deviceType;
