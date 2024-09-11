@@ -30,7 +30,6 @@
 
 #include "audio_hdi_log.h"
 #include "audio_enhance_chain_adapter.h"
-#include "source_userdata.h"
 
 pa_source *PaHdiSourceNew(pa_module *m, pa_modargs *ma, const char *driver);
 void PaHdiSourceFree(pa_source *s);
@@ -56,7 +55,7 @@ PA_MODULE_USAGE(
         "source_type<source type or port>"
     );
 
-static const char *const VALID_MODARGS[] = {
+static const char * const VALID_MODARGS[] = {
     "source_name",
     "device_class",
     "source_properties",
@@ -71,15 +70,6 @@ static const char *const VALID_MODARGS[] = {
     "network_id",
     "device_type",
     "source_type",
-    "ec_type",
-    "ec_adapter",
-    "ec_sampling_rate",
-    "ec_format",
-    "ec_channels",
-    "open_mic_ref",
-    "mic_ref_rate",
-    "mic_ref_format",
-    "mic_ref_channels",
     NULL
 };
 
