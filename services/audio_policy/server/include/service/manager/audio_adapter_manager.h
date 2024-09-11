@@ -247,6 +247,7 @@ private:
     void ConvertSafeTime(void);
     void UpdateSafeVolume();
     void CheckAndDealMuteStatus(const DeviceType &deviceType, const AudioStreamType &streamType);
+    void SetVolumeCallbackAfterClone();
     template<typename T>
     std::vector<uint8_t> TransferTypeToByteArray(const T &t)
     {
