@@ -1181,6 +1181,7 @@ int32_t AudioPolicyService::SetRenderDeviceForUsage(StreamUsage streamUsage, spt
             (desc->networkId_ == device->networkId_) &&
             (desc->deviceId_ == device->deviceId_);
     };
+    uint32_t tempId = desc->deviceId_;
     if (streamUsage == STREAM_USAGE_VOICE_COMMUNICATION || streamUsage == STREAM_USAGE_VOICE_MODEM_COMMUNICATION ||
         streamUsage == STREAM_USAGE_VIDEO_COMMUNICATION) {
         std::vector<unique_ptr<AudioDeviceDescriptor>> devices = GetAvailableDevicesInner(CALL_OUTPUT_DEVICES);
@@ -1188,7 +1189,7 @@ int32_t AudioPolicyService::SetRenderDeviceForUsage(StreamUsage streamUsage, spt
         CHECK_AND_RETURN_RET_LOG(itr != devices.end(), ERR_INVALID_OPERATION,
             "device not available type:%{public}d macAddress:%{public}s id:%{public}d networkId:%{public}s",
             desc->deviceType_, GetEncryptStr(desc->networkId_).c_str(),
-            desc->deviceId_, GetEncryptAddr(desc->macAddress_).c_str());
+            tempId, GetEncryptAddr(desc->macAddress_).c_str());
         SetPreferredDevice(AUDIO_CALL_RENDER, new(std::nothrow) AudioDeviceDescriptor(**itr));
         return SUCCESS;
     } else {
@@ -1197,7 +1198,7 @@ int32_t AudioPolicyService::SetRenderDeviceForUsage(StreamUsage streamUsage, spt
         CHECK_AND_RETURN_RET_LOG(itr != devices.end(), ERR_INVALID_OPERATION,
             "device not available type:%{public}d macAddress:%{public}s id:%{public}d networkId:%{public}s",
             desc->deviceType_, GetEncryptStr(desc->networkId_).c_str(),
-            desc->deviceId_, GetEncryptAddr(desc->macAddress_).c_str());
+            tempId, GetEncryptAddr(desc->macAddress_).c_str());
         SetPreferredDevice(AUDIO_MEDIA_RENDER, new(std::nothrow) AudioDeviceDescriptor(**itr));
         return SUCCESS;
     }
