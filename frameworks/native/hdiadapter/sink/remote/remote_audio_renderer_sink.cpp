@@ -130,7 +130,7 @@ public:
     IAudioSinkCallback* GetParamCallback();
 
 private:
-    int32_t CreateRender(const struct AudioPort &renderPort, AudioCategory trpe, uint32_t &renderId);
+    int32_t CreateRender(const struct AudioPort &renderPort, AudioCategory type, uint32_t &renderId);
     void InitAttrs(struct AudioSampleAttributes &attrs);
     void splitStreamInit(const char *splitStreamString, vector<string> &splitStreamVector);
     int32_t RenderFrameLogic(char &data, uint64_t len, uint64_t &writeLen, const char *streamType);
