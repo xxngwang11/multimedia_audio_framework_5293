@@ -102,6 +102,8 @@ ohos_unittest("audio_policy_service_unit_test") {
     "../../audio_policy/server/include",
   ]
 
+  use_exceptions = true
+
   cflags = [
     "-Wall",
     "-Werror",
