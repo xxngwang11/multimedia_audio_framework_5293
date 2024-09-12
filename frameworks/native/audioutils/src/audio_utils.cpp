@@ -55,6 +55,8 @@ constexpr int32_t UID_DISTRIBUTED_CALL_SA = 3069;
 constexpr int32_t UID_TELEPHONY_SA = 1001;
 constexpr int32_t TIME_OUT_SECONDS = 10;
 
+const uint32_t UNIQUE_ID_INTERVAL = 8;
+
 constexpr size_t FIRST_CHAR = 1;
 constexpr size_t MIN_LEN = 8;
 constexpr size_t HEAD_STR_LEN = 2;
@@ -78,7 +80,7 @@ const std::set<SourceType> NO_BACKGROUND_CHECK_SOURCE_TYPE = {
     SOURCE_TYPE_VOICE_CALL,
     SOURCE_TYPE_REMOTE_CAST
 };
-}
+} // namespace
 
 static std::unordered_map<AudioStreamType, std::string> STREAM_TYPE_NAME_MAP = {
     {STREAM_VOICE_ASSISTANT, "VOICE_ASSISTANT"},
@@ -1260,6 +1262,11 @@ std::string ConvertNetworkId(const std::string &networkId)
     }
 
     return networkId;
+}
+
+uint32_t GenerateUniqueID(AudioHdiUniqueIDBase base, uint32_t offset)
+{
+    return base + offset * UNIQUE_ID_INTERVAL;
 }
 
 AudioDump& AudioDump::GetInstance()

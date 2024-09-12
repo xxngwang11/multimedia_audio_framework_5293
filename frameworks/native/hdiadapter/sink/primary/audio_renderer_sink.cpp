@@ -42,6 +42,7 @@
 #include "audio_utils.h"
 #include "parameters.h"
 #include "media_monitor_manager.h"
+#include "audio_enhance_chain_manager.h"
 
 #include "audio_log_utils.h"
 
@@ -61,9 +62,6 @@ const uint32_t PCM_8_BIT = 8;
 const uint32_t PCM_16_BIT = 16;
 const uint32_t PCM_24_BIT = 24;
 const uint32_t PCM_32_BIT = 32;
-const uint32_t PRIMARY_OUTPUT_STREAM_ID = 13; // 13 + 0 * 8
-const uint32_t DIRECT_OUTPUT_STREAM_ID = 69;  // 13 + 7 * 8
-const uint32_t VOIP_OUTPUT_STREAM_ID = 77;    // 13 + 8 * 8
 const uint32_t STEREO_CHANNEL_COUNT = 2;
 const unsigned int BUFFER_CALC_20MS = 20;
 const unsigned int BUFFER_CALC_1000MS = 1000;
@@ -195,6 +193,7 @@ public:
     float GetMaxAmplitude() override;
     int32_t SetPaPower(int32_t flag) override;
     int32_t SetPriPaPower() override;
+    int32_t GetRenderId(uint32_t &renderId) const override;
 
     int32_t UpdateAppsUid(const int32_t appsUid[MAX_MIX_CHANNELS],
         const size_t size) final;
@@ -278,6 +277,7 @@ private:
 
     AudioPortPin GetAudioPortPin() const noexcept;
     int32_t SetAudioRoute(DeviceType outputDevice, AudioRoute route);
+    int32_t SetAudioRouteInfoForEnhanceChain(const DeviceType &outputDevice);
 
     // use static because only register once for primary hal
     static struct HdfRemoteService *hdfRemoteService_;
@@ -594,7 +594,7 @@ void InitAttrs(struct AudioSampleAttributes &attrs)
     attrs.channelCount = AUDIO_CHANNELCOUNT;
     attrs.sampleRate = AUDIO_SAMPLE_RATE_48K;
     attrs.interleaved = true;
-    attrs.streamId = PRIMARY_OUTPUT_STREAM_ID;
+    attrs.streamId = GenerateUniqueID(AUDIO_HDI_RENDER_ID_BASE, HDI_RENDER_OFFSET_PRIMARY);
     attrs.type = AUDIO_IN_MEDIA;
     attrs.period = DEEP_BUFFER_RENDER_PERIOD_SIZE;
     attrs.isBigEndian = false;
@@ -684,10 +684,10 @@ int32_t AudioRendererSinkInner::CreateRender(const struct AudioPort &renderPort)
         param.type = AUDIO_DP;
     } else if (halName_ == DIRECT_HAL_NAME) {
         param.type = AUDIO_DIRECT;
-        param.streamId = DIRECT_OUTPUT_STREAM_ID;
+        param.streamId = GenerateUniqueID(AUDIO_HDI_RENDER_ID_BASE, HDI_RENDER_OFFSET_DIRECT);
     } else if (halName_ == VOIP_HAL_NAME) {
         param.type = AUDIO_IN_COMMUNICATION;
-        param.streamId = VOIP_OUTPUT_STREAM_ID;
+        param.streamId = GenerateUniqueID(AUDIO_HDI_RENDER_ID_BASE, HDI_RENDER_OFFSET_VOIP);
     }
     param.format = ConvertToHdiFormat(attr_.format);
     param.frameSize = PcmFormatToBits(param.format) * param.channelCount / PCM_8_BIT;
@@ -1065,20 +1065,24 @@ int32_t AudioRendererSinkInner::SetOutputRoutes(std::vector<std::pair<DeviceType
         std::to_string(outputDevice));
     currentActiveDevice_ = outputDevice;
     currentDevicesSize_ = static_cast<int32_t>(outputDevices.size());
+    int32_t ret = SetAudioRouteInfoForEnhanceChain(currentActiveDevice_);
+    if (ret != SUCCESS) {
+        AUDIO_WARNING_LOG("SetAudioRouteInfoForEnhanceChain failed");
+    }
 
     AudioRouteNode source = {};
     source.portId = static_cast<int32_t>(0);
     source.role = AUDIO_PORT_SOURCE_ROLE;
     source.type = AUDIO_PORT_MIX_TYPE;
     source.ext.mix.moduleId = static_cast<int32_t>(0);
-    source.ext.mix.streamId = PRIMARY_OUTPUT_STREAM_ID;
+    source.ext.mix.streamId = GenerateUniqueID(AUDIO_HDI_RENDER_ID_BASE, HDI_RENDER_OFFSET_PRIMARY);
     source.ext.device.desc = (char *)"";
 
     int32_t sinksSize = static_cast<int32_t>(outputDevices.size());
     AudioRouteNode* sinks = new AudioRouteNode[sinksSize];
 
     for (size_t i = 0; i < outputDevices.size(); i++) {
-        int32_t ret = SetOutputPortPin(outputDevices[i].first, sinks[i]);
+        ret = SetOutputPortPin(outputDevices[i].first, sinks[i]);
         if (ret != SUCCESS) {
             delete [] sinks;
             AUDIO_ERR_LOG("SetOutputRoutes FAILED: %{public}d", ret);
@@ -1100,7 +1104,7 @@ int32_t AudioRendererSinkInner::SetOutputRoutes(std::vector<std::pair<DeviceType
     route.sinks = sinks;
     route.sinksLen = static_cast<uint32_t>(sinksSize);
 
-    int32_t ret = SetAudioRoute(outputDevice, route);
+    ret = SetAudioRoute(outputDevice, route);
     if (sinks != nullptr) {
         delete [] sinks;
         sinks = nullptr;
@@ -1692,6 +1696,41 @@ int32_t AudioRendererSinkInner::SetSinkMuteForSwitchDevice(bool mute)
         muteCount_ = 0;
     }
 
+    return SUCCESS;
+}
+
+int32_t AudioRendererSinkInner::GetRenderId(uint32_t &renderId) const
+{
+    if (halName_ == "usb") {
+        renderId = GenerateUniqueID(AUDIO_HDI_RENDER_ID_BASE, HDI_RENDER_OFFSET_USB);
+    } else if (halName_ == "dp") {
+        renderId = GenerateUniqueID(AUDIO_HDI_RENDER_ID_BASE, HDI_RENDER_OFFSET_DP);
+    } else if (halName_ == VOIP_HAL_NAME) {
+        renderId = GenerateUniqueID(AUDIO_HDI_RENDER_ID_BASE, HDI_RENDER_OFFSET_VOIP);
+    } else if (halName_ == DIRECT_HAL_NAME) {
+        renderId = GenerateUniqueID(AUDIO_HDI_RENDER_ID_BASE, HDI_RENDER_OFFSET_DIRECT);
+    } else {
+        renderId = GenerateUniqueID(AUDIO_HDI_RENDER_ID_BASE, HDI_RENDER_OFFSET_PRIMARY);
+    }
+    return SUCCESS;
+}
+
+int32_t AudioRendererSinkInner::SetAudioRouteInfoForEnhanceChain(const DeviceType &outputDevice)
+{
+    AudioEnhanceChainManager *audioEnhanceChainManager = AudioEnhanceChainManager::GetInstance();
+    CHECK_AND_RETURN_RET_LOG(audioEnhanceChainManager != nullptr, ERROR, "audioEnhanceChainManager is nullptr");
+    uint32_t renderId = 0;
+    int32_t ret = GetRenderId(renderId);
+    if (ret != SUCCESS) {
+        AUDIO_WARNING_LOG("GetRenderId failed");
+    }
+    if (halName_ == "usb") {
+        audioEnhanceChainManager->SetOutputDevice(renderId, DEVICE_TYPE_USB_ARM_HEADSET);
+    } else if (halName_ == "dp") {
+        audioEnhanceChainManager->SetOutputDevice(renderId, DEVICE_TYPE_DP);
+    } else {
+        audioEnhanceChainManager->SetOutputDevice(renderId, outputDevice);
+    }
     return SUCCESS;
 }
 } // namespace AudioStandard

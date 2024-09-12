@@ -47,14 +47,21 @@ public:
     bool IsEmptyEnhanceChain();
     int32_t InitEnhanceBuffer();
 
+    int32_t SetInputDevice(const uint32_t &captureId, const DeviceType &inputDevice);
+    int32_t SetOutputDevice(const uint32_t &renderId, const DeviceType &outputDevice);
+    int32_t SetVolumeInfo(const AudioVolumeType &volumeType, const float &systemVol);
+    int32_t SetMicrophoneMuteInfo(const bool &isMute);
+    int32_t SetStreamVolumeInfo(const uint32_t &sessionId, const float &streamVol);
+
     int32_t SetAudioEnhanceProperty(const AudioEnhancePropertyArray &propertyArray);
     int32_t GetAudioEnhanceProperty(AudioEnhancePropertyArray &propertyArray);
+
 private:
     int32_t SetAudioEnhanceChainDynamic(const std::string &sceneType, const std::string &sceneMode,
         const std::string &upDevice, const std::string &downDevice);
-    
+
     int32_t FreeEnhanceBuffer();
-    
+
     std::map<std::string, std::shared_ptr<AudioEnhanceChain>> sceneTypeToEnhanceChainMap_;
     std::map<std::string, int32_t> sceneTypeToEnhanceChainCountMap_;
     std::map<std::string, std::string> sceneTypeAndModeToEnhanceChainNameMap_;
@@ -64,6 +71,15 @@ private:
     std::shared_ptr<EnhanceBuffer> enhanceBuffer_ = nullptr;
     std::mutex chainManagerMutex_;
     bool isInitialized_;
+    uint32_t captureId_ = 0;
+    uint32_t renderId_ = 0;
+    uint32_t sessionId_ = 0;
+    DeviceType inputDevice_ = DEVICE_TYPE_MIC;
+    DeviceType outputDevice_ = DEVICE_TYPE_SPEAKER;
+    AudioVolumeType volumeType_ = STREAM_MUSIC;
+    float systemVol_ = 0.0f;
+    float streamVol_ = 0.0f;
+    bool isMute_ = false;
 };
 
 }  // namespace AudioStandard
