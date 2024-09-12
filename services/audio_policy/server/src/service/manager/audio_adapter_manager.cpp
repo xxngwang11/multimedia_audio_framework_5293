@@ -192,6 +192,7 @@ void AudioAdapterManager::HandleKvData(bool isFirstBoot)
         isAllCopyDone_ = true;
         if (audioPolicyServerHandler_ != nullptr) {
             audioPolicyServerHandler_->SendRingerModeUpdatedCallback(ringerMode_);
+            SetVolumeCallbackAfterClone();
         }
     }
 
@@ -1256,6 +1257,21 @@ void  AudioAdapterManager::CheckAndDealMuteStatus(const DeviceType &deviceType, 
     }
     if (currentActiveDevice_ == deviceType) {
         SetVolumeDb(streamType);
+    }
+}
+
+void AudioAdapterManager::SetVolumeCallbackAfterClone()
+{
+    for (auto &streamType : VOLUME_TYPE_LIST) {
+        VolumeEvent volumeEvent;
+        volumeEvent.volumeType = streamType;
+        volumeEvent.volume = GetSystemVolumeLevel(streamType);
+        volumeEvent.updateUi = false;
+        volumeEvent.volumeGroupId = 0;
+        volumeEvent.networkId = LOCAL_NETWORK_ID;
+        if (audioPolicyServerHandler_ != nullptr) {
+            audioPolicyServerHandler_->SendVolumeKeyEventCallback(volumeEvent);
+        }
     }
 }
 
