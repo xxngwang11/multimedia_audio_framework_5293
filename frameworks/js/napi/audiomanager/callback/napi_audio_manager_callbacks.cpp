@@ -102,9 +102,7 @@ void NapiAudioManagerCallback::RemoveRoutingManagerDeviceChangeCbRef(napi_env en
     for (auto it = routingManagerDeviceChangeCbList_.begin(); it != routingManagerDeviceChangeCbList_.end(); ++it) {
         bool isSameCallback = IsSameCallback(env_, callback, (*it).first->cb_);
         if (isSameCallback) {
-            AUDIO_INFO_LOG("RemoveRoutingManagerDeviceChangeCbRef: find js callback, delete it");
-            napi_delete_reference(env, (*it).first->cb_);
-            (*it).first->cb_ = nullptr;
+            AUDIO_INFO_LOG("RemoveRoutingManagerDeviceChangeCbRef: find js callback, erase it");
             routingManagerDeviceChangeCbList_.erase(it);
             return;
         }
@@ -115,10 +113,6 @@ void NapiAudioManagerCallback::RemoveRoutingManagerDeviceChangeCbRef(napi_env en
 void NapiAudioManagerCallback::RemoveAllRoutingManagerDeviceChangeCb()
 {
     std::lock_guard<std::mutex> lock(mutex_);
-    for (auto it = routingManagerDeviceChangeCbList_.begin(); it != routingManagerDeviceChangeCbList_.end(); ++it) {
-        napi_delete_reference(env_, (*it).first->cb_);
-        (*it).first->cb_ = nullptr;
-    }
     routingManagerDeviceChangeCbList_.clear();
     AUDIO_INFO_LOG("RemoveAllRoutingManagerDeviceChangeCb: remove all js callbacks success");
 }
@@ -184,9 +178,7 @@ void NapiAudioManagerCallback::RemoveAudioManagerDeviceChangeCbRef(napi_env env,
     for (auto it = audioManagerDeviceChangeCbList_.begin(); it != audioManagerDeviceChangeCbList_.end(); ++it) {
         bool isSameCallback = IsSameCallback(env_, callback, (*it).first->cb_);
         if (isSameCallback) {
-            AUDIO_INFO_LOG("RemoveAudioManagerDeviceChangeCbRef: find js callback, delete it");
-            napi_delete_reference(env, (*it).first->cb_);
-            (*it).first->cb_ = nullptr;
+            AUDIO_INFO_LOG("RemoveAudioManagerDeviceChangeCbRef: find js callback, erase it");
             audioManagerDeviceChangeCbList_.erase(it);
             return;
         }
@@ -197,10 +189,6 @@ void NapiAudioManagerCallback::RemoveAudioManagerDeviceChangeCbRef(napi_env env,
 void NapiAudioManagerCallback::RemoveAllAudioManagerDeviceChangeCb()
 {
     std::lock_guard<std::mutex> lock(mutex_);
-    for (auto it = audioManagerDeviceChangeCbList_.begin(); it != audioManagerDeviceChangeCbList_.end(); ++it) {
-        napi_delete_reference(env_, (*it).first->cb_);
-        (*it).first->cb_ = nullptr;
-    }
     audioManagerDeviceChangeCbList_.clear();
     AUDIO_INFO_LOG("RemoveAllCallbacks: remove all js callbacks success");
 }
