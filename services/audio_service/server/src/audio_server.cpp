@@ -27,6 +27,7 @@
 #include <unordered_map>
 #include <vector>
 #include <dlfcn.h>
+#include <format>
 
 #include "bundle_mgr_interface.h"
 #include "bundle_mgr_proxy.h"
@@ -1688,7 +1689,11 @@ void AudioServer::OnCapturerState(bool isActive, int32_t num)
     }
 
     CHECK_AND_RETURN_LOG(callback != nullptr, "OnCapturerState callback is nullptr.");
+    Trace traceCb("callbackToIntelligentVoice");
+    int64_t stamp = ClockTime::GetCurNano();
     callback->OnCapturerState(isActive);
+    stamp = (ClockTime::GetCurNano() - stamp) / AUDIO_US_PER_SECOND;
+    AUDIO_INFO_LOG("isActive:%{public}d num:%{public}d cb cost[%{public}" PRId64 "]", isActive, num, stamp);
 }
 
 int32_t AudioServer::SetParameterCallback(const sptr<IRemoteObject>& object)
