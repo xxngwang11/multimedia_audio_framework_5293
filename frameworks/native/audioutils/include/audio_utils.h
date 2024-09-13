@@ -30,6 +30,7 @@
 #include "securec.h"
 
 #include "audio_info.h"
+#include "audio_common_utils.h"
 
 #define AUDIO_MS_PER_SECOND 1000
 #define AUDIO_US_PER_SECOND 1000000

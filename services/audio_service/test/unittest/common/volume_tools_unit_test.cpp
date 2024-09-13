@@ -1,0 +1,196 @@
+/*
+ * Copyright (c) 2024 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include <gtest/gtest.h>
+
+#include "audio_service_log.h"
+#include "audio_errors.h"
+#include "volume_tools.h"
+
+using namespace testing::ext;
+
+namespace OHOS {
+namespace AudioStandard {
+
+class VolumeToolsUnitTest : public testing::Test {
+public:
+    static void SetUpTestCase(void);
+    static void TearDownTestCase(void);
+    void SetUp();
+    void TearDown();
+};
+
+/**
+ * @tc.name  : Test IsVolumeValid API
+ * @tc.type  : FUNC
+ * @tc.number: IsVolumeValid_001
+ * @tc.desc  : Test IsVolumeValid interface.
+ */
+HWTEST(VolumeToolsUnitTest, IsVolumeValid_001, TestSize.Level1)
+{
+    std::shared_ptr<VolumeTools> volumeTools;
+    volumeTools = std::make_shared<VolumeTools>();
+    AUDIO_INFO_LOG("AudioSystemManagerUnitTest IsVolumeValid_001 start");
+    ChannelVolumes channelVolumes = {STEREO, {1, 2}, {3, 4}};
+    bool ret = volumeTools->IsVolumeValid(channelVolumes);
+    AUDIO_INFO_LOG("AudioSystemManagerUnitTest IsVolumeValid_001 result:%{public}d", ret);
+    EXPECT_EQ(ret, true);
+}
+
+/**
+ * @tc.name  : Test IsVolumeValid API
+ * @tc.type  : FUNC
+ * @tc.number: IsVolumeValid_002
+ * @tc.desc  : Test IsVolumeValid interface, when channelVolumes.channel is less than MONO(1).
+ */
+HWTEST(VolumeToolsUnitTest, IsVolumeValid_002, TestSize.Level1)
+{
+    std::shared_ptr<VolumeTools> volumeTools;
+    volumeTools = std::make_shared<VolumeTools>();
+    AUDIO_INFO_LOG("AudioSystemManagerUnitTest IsVolumeValid_002 start");
+    ChannelVolumes channelVolumes = {static_cast<AudioChannel>(0), {1, 2}, {3, 4}};
+    bool ret = volumeTools->IsVolumeValid(channelVolumes);
+    AUDIO_INFO_LOG("AudioSystemManagerUnitTest IsVolumeValid_001 result:%{public}d", ret);
+    EXPECT_EQ(ret, false);
+}
+
+/**
+ * @tc.name  : Test IsVolumeValid API
+ * @tc.type  : FUNC
+ * @tc.number: IsVolumeValid_003
+ * @tc.desc  : Test IsVolumeValid interface, when channelVolumes.channel is bigger than CHANNEL_16(16).
+ */
+HWTEST(VolumeToolsUnitTest, IsVolumeValid_003, TestSize.Level1)
+{
+    std::shared_ptr<VolumeTools> volumeTools;
+    volumeTools = std::make_shared<VolumeTools>();
+    AUDIO_INFO_LOG("AudioSystemManagerUnitTest IsVolumeValid_003 start");
+    ChannelVolumes channelVolumes = {static_cast<AudioChannel>(20), {1, 2}, {3, 4}};
+    bool ret = volumeTools->IsVolumeValid(channelVolumes);
+    AUDIO_INFO_LOG("AudioSystemManagerUnitTest IsVolumeValid_001 result:%{public}d", ret);
+    EXPECT_EQ(ret, false);
+}
+
+/**
+ * @tc.name  : Test IsVolumeValid API
+ * @tc.type  : FUNC
+ * @tc.number: IsVolumeValid_004
+ * @tc.desc  : Test IsVolumeValid interface.
+ */
+HWTEST(VolumeToolsUnitTest, IsVolumeValid_004, TestSize.Level1)
+{
+    std::shared_ptr<VolumeTools> volumeTools;
+    volumeTools = std::make_shared<VolumeTools>();
+    AUDIO_INFO_LOG("AudioSystemManagerUnitTest IsVolumeValid_004 start");
+    ChannelVolumes channelVolumes = {STEREO, {-1, 2}, {-1, 4}};
+    bool ret = volumeTools->IsVolumeValid(channelVolumes);
+    AUDIO_INFO_LOG("AudioSystemManagerUnitTest IsVolumeValid_004 result:%{public}d", ret);
+    EXPECT_EQ(ret, false);
+}
+
+/**
+ * @tc.name  : Test IsVolumeValid API
+ * @tc.type  : FUNC
+ * @tc.number: IsVolumeValid_005
+ * @tc.desc  : Test IsVolumeValid interface.
+ */
+HWTEST(VolumeToolsUnitTest, IsVolumeValid_005, TestSize.Level1)
+{
+    std::shared_ptr<VolumeTools> volumeTools = std::make_shared<VolumeTools>();
+    AUDIO_INFO_LOG("AudioSystemManagerUnitTest IsVolumeValid_005 start");
+    ChannelVolumes channelVolumes = {STEREO, {1, 65536}, {3, 65537}};
+    bool ret = volumeTools->IsVolumeValid(channelVolumes);
+    AUDIO_INFO_LOG("AudioSystemManagerUnitTest IsVolumeValid_005 result:%{public}d", ret);
+    EXPECT_EQ(ret, false);
+}
+
+/**
+ * @tc.name  : Test Process API
+ * @tc.type  : FUNC
+ * @tc.number: Process_001
+ * @tc.desc  : Test Process interface.
+ */
+HWTEST(VolumeToolsUnitTest, Process_001, TestSize.Level1)
+{
+    std::shared_ptr<VolumeTools> volumeTools = std::make_shared<VolumeTools>();
+    AUDIO_INFO_LOG("AudioSystemManagerUnitTest Process_001 start");
+    ChannelVolumes channelVolumes = {STEREO, {1, 2}, {3, 4}};
+    BufferDesc bufferDesc = {nullptr, 0, 0};
+    int32_t ret = volumeTools->Process(bufferDesc, SAMPLE_U8, channelVolumes);
+    EXPECT_EQ(ERR_INVALID_PARAM, ret);
+    ret = volumeTools->Process(bufferDesc, SAMPLE_S16LE, channelVolumes);
+    EXPECT_EQ(ERR_INVALID_PARAM, ret);
+    ret = volumeTools->Process(bufferDesc, SAMPLE_S24LE, channelVolumes);
+    EXPECT_EQ(ERR_INVALID_PARAM, ret);
+    ret = volumeTools->Process(bufferDesc, SAMPLE_S32LE, channelVolumes);
+    EXPECT_EQ(ERR_INVALID_PARAM, ret);
+    ret = volumeTools->Process(bufferDesc, SAMPLE_F32LE, channelVolumes);
+    EXPECT_EQ(ERR_INVALID_PARAM, ret);
+    ret = volumeTools->Process(bufferDesc, INVALID_WIDTH, channelVolumes);
+    EXPECT_EQ(ERR_INVALID_PARAM, ret);
+}
+
+/**
+ * @tc.name  : Test GetVolDb API
+ * @tc.type  : FUNC
+ * @tc.number: GetVolDb_001
+ * @tc.desc  : Test GetVolDb interface.
+ */
+HWTEST(VolumeToolsUnitTest, GetVolDb_001, TestSize.Level1)
+{
+    std::shared_ptr<VolumeTools> volumeTools = std::make_shared<VolumeTools>();
+    AUDIO_INFO_LOG("AudioSystemManagerUnitTest GetVolDb_001 start");
+    double ret = volumeTools->GetVolDb(SAMPLE_U8, 1);
+    EXPECT_NE(ret, 0);
+    ret = volumeTools->GetVolDb(SAMPLE_S16LE, 1);
+    EXPECT_NE(ret, 0);
+    ret = volumeTools->GetVolDb(SAMPLE_S24LE, 1);
+    EXPECT_NE(ret, 0);
+    ret = volumeTools->GetVolDb(SAMPLE_S32LE, 1);
+    EXPECT_NE(ret, 0);
+    ret = volumeTools->GetVolDb(SAMPLE_F32LE, 1);
+    EXPECT_NE(ret, 0);
+    ret = volumeTools->GetVolDb(INVALID_WIDTH, 1);
+    EXPECT_EQ(ret, 0);
+}
+
+/**
+ * @tc.name  : Test CountVolumeLevel API
+ * @tc.type  : FUNC
+ * @tc.number: CountVolumeLevel_001
+ * @tc.desc  : Test CountVolumeLevel interface.
+ */
+HWTEST(VolumeToolsUnitTest, CountVolumeLevel_001, TestSize.Level1)
+{
+    std::shared_ptr<VolumeTools> volumeTools = std::make_shared<VolumeTools>();
+    AUDIO_INFO_LOG("AudioSystemManagerUnitTest CountVolumeLevel_001 start");
+    BufferDesc bufferDesc = {nullptr, 0, 0};
+    ChannelVolumes ret = volumeTools->CountVolumeLevel(bufferDesc, SAMPLE_U8, MONO);
+    EXPECT_EQ(ret.channel, MONO);
+    ret = volumeTools->CountVolumeLevel(bufferDesc, SAMPLE_S16LE, STEREO);
+    EXPECT_EQ(ret.channel, STEREO);
+    ret = volumeTools->CountVolumeLevel(bufferDesc, SAMPLE_S24LE, CHANNEL_3);
+    EXPECT_EQ(ret.channel, CHANNEL_3);
+    ret = volumeTools->CountVolumeLevel(bufferDesc, SAMPLE_S32LE, CHANNEL_4);
+    EXPECT_EQ(ret.channel, CHANNEL_4);
+    ret = volumeTools->CountVolumeLevel(bufferDesc, SAMPLE_F32LE, CHANNEL_5);
+    EXPECT_EQ(ret.channel, CHANNEL_5);
+    ret = volumeTools->CountVolumeLevel(bufferDesc, INVALID_WIDTH, CHANNEL_6);
+    EXPECT_EQ(ret.channel, CHANNEL_6);
+    ret = volumeTools->CountVolumeLevel(bufferDesc, SAMPLE_U8, static_cast<AudioChannel>(CHANNEL_16 + 1));
+    EXPECT_EQ(ret.channel, (CHANNEL_16 + 1));
+}
+} // namespace AudioStandard
+} // namespace OHOS

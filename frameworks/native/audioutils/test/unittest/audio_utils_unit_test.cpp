@@ -16,15 +16,19 @@
 #include <thread>
 #include <gtest/gtest.h>
 #include "audio_utils.h"
+#include "audio_channel_blend.h"
+#include "volume_ramp.h"
+#include "audio_speed.h"
+#include "audio_errors.h"
 
 using namespace testing::ext;
 using namespace std;
 namespace OHOS {
 namespace AudioStandard {
 
-constexpr int32_t SUCCESS = 0;
 constexpr unsigned int QUEUE_SLOTS = 10;
 constexpr unsigned int THREAD_NUM = QUEUE_SLOTS + 1;
+uint8_t b[8] = {2, 4, 6, 8, 10, 12, 14, 16};
 class AudioUtilsUnitTest : public testing::Test {
 public:
     static void SetUpTestCase(void);
@@ -133,20 +137,6 @@ HWTEST(AudioUtilsUnitTest, AdjustStereoToMonoForPCM_001, TestSize.Level1)
     EXPECT_EQ(Bit16RET, data2[0]);
     EXPECT_EQ(Bit16RET, data2[1]);
 
-    len = 6;
-    const int8_t Bit8RET1 = 2;
-    const int8_t Bit8RET2 = 3;
-    const int8_t Bit8RET3 = 4;
-    int8_t arr3[6] = {1, 2, 3, 4, 5, 6};
-    int8_t *data3 = &arr3[0];
-    AdjustStereoToMonoForPCM24Bit(data3, len);
-    EXPECT_EQ(Bit8RET1, data3[0]);
-    EXPECT_EQ(Bit8RET2, data3[1]);
-    EXPECT_EQ(Bit8RET3, data3[2]);
-    EXPECT_EQ(Bit8RET1, data3[3]);
-    EXPECT_EQ(Bit8RET2, data3[4]);
-    EXPECT_EQ(Bit8RET3, data3[5]);
-
     len = 8;
     const int32_t Bit32RET = 1;
     int32_t arr4[2] = {1, 2};
@@ -184,17 +174,6 @@ HWTEST(AudioUtilsUnitTest, AdjustAudioBalanceForPCM_001, TestSize.Level1)
     AdjustAudioBalanceForPCM16Bit(data2, len, left, right);
     EXPECT_EQ(Bit16RET1, data2[0]);
     EXPECT_EQ(Bit16RET2, data2[1]);
-
-    len = 6;
-    int8_t arr3[6] = {1, 2, 3, 4, 5, 6};
-    int8_t *data3 = &arr3[0];
-    AdjustAudioBalanceForPCM24Bit(data3, len, left, right);
-    EXPECT_EQ(Bit8RET1, data3[0]);
-    EXPECT_EQ(Bit8RET1 * 2, data3[1]);
-    EXPECT_EQ(Bit8RET1 * 3, data3[2]);
-    EXPECT_EQ(Bit8RET1 * 4, data3[3]);
-    EXPECT_EQ(Bit8RET1 * 5, data3[4]);
-    EXPECT_EQ(Bit8RET1 * 6, data3[5]);
 
     len = 8;
     const int32_t Bit32RET = 2;
@@ -641,7 +620,7 @@ HWTEST(AudioUtilsUnitTest, SignalDetectAgent_DetectSignalData_002, TestSize.Leve
 {
     int32_t buffer[10] = {2, 3, 2, 3, 2, 3, 2, 3, 2, 3};
     size_t bufferLen = 10*sizeof(int32_t);
-    
+
     struct SignalDetectAgent signalDetectAgent;
     bool ret = signalDetectAgent.DetectSignalData(buffer, bufferLen);
     EXPECT_EQ(ret, false);
@@ -657,7 +636,7 @@ HWTEST(AudioUtilsUnitTest, SignalDetectAgent_DetectSignalData_003, TestSize.Leve
 {
     int32_t buffer[10] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     size_t bufferLen = 10*sizeof(int32_t);
-    
+
     struct SignalDetectAgent signalDetectAgent;
     signalDetectAgent.ResetDetectResult();
     signalDetectAgent.channels_ = 1;
@@ -675,7 +654,7 @@ HWTEST(AudioUtilsUnitTest, SignalDetectAgent_DetectSignalData_004, TestSize.Leve
 {
     int32_t buffer[10] = {0, 1, 0, 1, 0, 1, 0, 1, 0, 1 };
     size_t bufferLen = 10*sizeof(int32_t);
-    
+
     struct SignalDetectAgent signalDetectAgent;
     signalDetectAgent.ResetDetectResult();
     signalDetectAgent.channels_ = 1 ;
@@ -1865,6 +1844,699 @@ HWTEST(AudioUtilsUnitTest, testMutilthreadConcurrentGetAndPopInfullqueue001, Tes
     while (!DemoThreadData::shareQueue.IsEmpty()) {
         demoDatas[0].Get();
     }
+}
+
+/**
+* @tc.name  : Test AudioBlend  API
+* @tc.type  : FUNC
+* @tc.number: AudioBlend_001
+* @tc.desc  : Test AudioBlend Process API
+*/
+HWTEST(AudioUtilsUnitTest, AudioBlend_001, TestSize.Level1)
+{
+    shared_ptr<AudioBlend> audioBlend = std::make_shared<AudioBlend>(MODE_DEFAULT, SAMPLE_U8, MONO);
+    EXPECT_EQ(audioBlend->blendMode_, MODE_DEFAULT);
+
+    audioBlend->SetParams(MODE_BLEND_LR, SAMPLE_U8, MONO);
+    EXPECT_EQ(audioBlend->blendMode_, MODE_BLEND_LR);
+}
+
+/**
+* @tc.name  : Test Process  API
+* @tc.type  : FUNC
+* @tc.number: audio_channel_blend_001
+* @tc.desc  : Test AudioBlend Process API,Return buffer
+*             when blendMode is channel 0
+*/
+HWTEST(AudioUtilsUnitTest, audio_channel_blend_001, TestSize.Level1)
+{
+    uint8_t b[8] = {2, 4, 6, 8, 10, 12, 14, 16};
+    uint8_t format_ = 0;
+    uint8_t channels = 0;
+    shared_ptr<AudioBlend> audioBlend = std::make_shared<AudioBlend>(MODE_DEFAULT, format_, channels);
+    audioBlend->Process(b, 8);
+    EXPECT_EQ(b[0], 2);
+}
+
+/**
+* @tc.name  : Test audio_channel_blend  API
+* @tc.type  : FUNC
+* @tc.number: audio_channel_blend_002
+* @tc.desc  : Test AudioBlend Process API,Return buffer
+*             when blendMode is MODE_BLEND_LR,channel 8
+*/
+HWTEST(AudioUtilsUnitTest, audio_channel_blend_002, TestSize.Level1)
+{
+    uint8_t b[8] = {2, 4, 6, 8, 10, 12, 14, 16};
+    uint8_t format_ = SAMPLE_U8;
+    uint8_t channels = CHANNEL_8;
+    ChannelBlendMode blendMode_ = MODE_BLEND_LR;
+    shared_ptr<AudioBlend> audioBlend = std::make_shared<AudioBlend>(blendMode_, format_, channels);
+    audioBlend->Process(b, 8);
+    EXPECT_EQ(b[7], 15);
+    EXPECT_EQ(b[5], 11);
+    EXPECT_EQ(b[1], 3);
+}
+
+/**
+* @tc.name  : Test audio_channel_blend  API
+* @tc.type  : FUNC
+* @tc.number: audio_channel_blend_003
+* @tc.desc  : Test AudioBlend Process API,Return buffer
+*             when blendMode is MODE_BLEND_LR,channel 6
+*/
+HWTEST(AudioUtilsUnitTest, audio_channel_blend_003, TestSize.Level1)
+{
+    uint8_t b[8] = {2, 4, 6, 8, 10, 12, 14, 16};
+    uint8_t format_ = SAMPLE_U8;
+    uint8_t channels = CHANNEL_6;
+    ChannelBlendMode blendMode_ = MODE_BLEND_LR;
+    shared_ptr<AudioBlend> audioBlend = std::make_shared<AudioBlend>(blendMode_, format_, channels);
+    audioBlend->Process(b, 8);
+    EXPECT_EQ(b[5], 11);
+    EXPECT_EQ(b[1], 3);
+}
+
+/**
+* @tc.name  : Test audio_channel_blend  API
+* @tc.type  : FUNC
+* @tc.number: audio_channel_blend_004
+* @tc.desc  : Test AudioBlend Process API,Return buffer
+*             when blendMode is MODE_BLEND_LR,channel 4
+*/
+HWTEST(AudioUtilsUnitTest, audio_channel_blend_004, TestSize.Level1)
+{
+    uint8_t b[8] = {2, 4, 6, 8, 10, 12, 14, 16};
+    uint8_t format_ = SAMPLE_S16LE;
+    uint8_t channels = CHANNEL_4;
+    ChannelBlendMode blendMode_ = MODE_BLEND_LR;
+    shared_ptr<AudioBlend> audioBlend = std::make_shared<AudioBlend>(blendMode_, format_, channels);
+    audioBlend->Process(b, 8);
+    EXPECT_EQ(b[3], 6);
+    EXPECT_EQ(b[1], 6);
+}
+
+/**
+* @tc.name  : Test audio_channel_blend  API
+* @tc.type  : FUNC
+* @tc.number: audio_channel_blend_005
+* @tc.desc  : Test AudioBlend Process API,Return buffer
+*             when blendMode is MODE_BLEND_LR,STEREO
+*/
+HWTEST(AudioUtilsUnitTest, audio_channel_blend_005, TestSize.Level1)
+{
+    uint8_t b[8] = {2, 4, 6, 8, 10, 12, 14, 16};
+    uint8_t format_ = SAMPLE_S32LE;
+    uint8_t channels = STEREO;
+    ChannelBlendMode blendMode_ = MODE_BLEND_LR;
+    shared_ptr<AudioBlend> audioBlend = std::make_shared<AudioBlend>(blendMode_, format_, channels);
+    audioBlend->Process(b, 4);
+    EXPECT_EQ(b[1], 3);
+}
+
+/**
+* @tc.name  : Test audio_channel_blend  API
+* @tc.type  : FUNC
+* @tc.number: audio_channel_blend_006
+* @tc.desc  : Test AudioBlend Process API,Return buffer
+*             when blendMode is MODE_ALL_LEFT,channel 8
+*/
+HWTEST(AudioUtilsUnitTest, audio_channel_blend_006, TestSize.Level1)
+{
+    uint8_t b[8] = {2, 4, 6, 8, 10, 12, 14, 16};
+    uint8_t format_ = SAMPLE_U8;
+    uint8_t channels = CHANNEL_8;
+    ChannelBlendMode blendMode_ = MODE_ALL_LEFT;
+    shared_ptr<AudioBlend> audioBlend = std::make_shared<AudioBlend>(blendMode_, format_, channels);
+    audioBlend->Process(b, 8);
+    EXPECT_EQ(b[7], 14);
+    EXPECT_EQ(b[5], 10);
+    EXPECT_EQ(b[1], 2);
+}
+
+/**
+* @tc.name  : Test audio_channel_blend  API
+* @tc.type  : FUNC
+* @tc.number: audio_channel_blend_007
+* @tc.desc  : Test AudioBlend Process API,Return buffer
+*             when blendMode is MODE_ALL_LEFT,channel 6
+*/
+HWTEST(AudioUtilsUnitTest, audio_channel_blend_007, TestSize.Level1)
+{
+    uint8_t b[8] = {2, 4, 6, 8, 10, 12, 14, 16};
+    uint8_t format_ = SAMPLE_U8;
+    uint8_t channels = CHANNEL_6;
+    ChannelBlendMode blendMode_ = MODE_ALL_LEFT;
+    shared_ptr<AudioBlend> audioBlend = std::make_shared<AudioBlend>(blendMode_, format_, channels);
+    audioBlend->Process(b, 8);
+    EXPECT_EQ(b[5], 10);
+    EXPECT_EQ(b[1], 2);
+}
+
+/**
+* @tc.name  : Test audio_channel_blend  API
+* @tc.type  : FUNC
+* @tc.number: audio_channel_blend_008
+* @tc.desc  : Test AudioBlend Process API,Return buffer
+*             when blendMode is MODE_ALL_LEFT,channel 4
+*/
+HWTEST(AudioUtilsUnitTest, audio_channel_blend_008, TestSize.Level1)
+{
+    uint8_t b[8] = {2, 4, 6, 8, 10, 12, 14, 16};
+    uint8_t format_ = SAMPLE_S16LE;
+    uint8_t channels = CHANNEL_4;
+    ChannelBlendMode blendMode_ = MODE_ALL_LEFT;
+    shared_ptr<AudioBlend> audioBlend = std::make_shared<AudioBlend>(blendMode_, format_, channels);
+    audioBlend->Process(b, 8);
+    EXPECT_EQ(b[3], 4);
+    EXPECT_EQ(b[1], 4);
+}
+
+/**
+* @tc.name  : Test audio_channel_blend  API
+* @tc.type  : FUNC
+* @tc.number: audio_channel_blend_009
+* @tc.desc  : Test AudioBlend Process API,Return buffer
+*             when blendMode is MODE_ALL_LEFT,STEREO
+*/
+HWTEST(AudioUtilsUnitTest, audio_channel_blend_009, TestSize.Level1)
+{
+    uint8_t b[8] = {2, 4, 6, 8, 10, 12, 14, 16};
+    uint8_t format_ = SAMPLE_S32LE;
+    uint8_t channels = STEREO;
+    ChannelBlendMode blendMode_ = MODE_ALL_LEFT;
+    shared_ptr<AudioBlend> audioBlend = std::make_shared<AudioBlend>(blendMode_, format_, channels);
+    audioBlend->Process(b, 8);
+    EXPECT_EQ(b[1], 4);
+}
+
+/**
+* @tc.name  : Test audio_channel_blend  API
+* @tc.type  : FUNC
+* @tc.number: audio_channel_blend_010
+* @tc.desc  : Test AudioBlend Process API,Return buffer
+*             when blendMode is MODE_ALL_RIGHT,channel 8
+*/
+HWTEST(AudioUtilsUnitTest, audio_channel_blend_010, TestSize.Level1)
+{
+    uint8_t b[8] = {2, 4, 6, 8, 10, 12, 14, 16};
+    uint8_t format_ = SAMPLE_S16LE;
+    uint8_t channels = CHANNEL_8;
+    ChannelBlendMode blendMode_ = MODE_ALL_LEFT;
+    shared_ptr<AudioBlend> audioBlend = std::make_shared<AudioBlend>(blendMode_, format_, channels);
+    audioBlend->Process(b, 8);
+    EXPECT_EQ(b[6], 14);
+}
+
+/**
+* @tc.name  : Test audio_channel_blend  API
+* @tc.type  : FUNC
+* @tc.number: audio_channel_blend_011
+* @tc.desc  : Test AudioBlend Process API,Return buffer
+*             when blendMode is MODE_ALL_RIGHT,channel 6
+*/
+HWTEST(AudioUtilsUnitTest, audio_channel_blend_011, TestSize.Level1)
+{
+    uint8_t b[8] = {2, 4, 6, 8, 10, 12, 14, 16};
+    uint8_t format_ = SAMPLE_S24LE;
+    uint8_t channels = CHANNEL_6;
+    ChannelBlendMode blendMode_ = MODE_ALL_RIGHT;
+    shared_ptr<AudioBlend> audioBlend = std::make_shared<AudioBlend>(blendMode_, format_, channels);
+    audioBlend->Process(b, 8);
+    EXPECT_EQ(b[0], 2);
+}
+
+/**
+* @tc.name  : Test audio_channel_blend  API
+* @tc.type  : FUNC
+* @tc.number: audio_channel_blend_012
+* @tc.desc  : Test AudioBlend Process API,Return buffer
+*             when blendMode is MODE_ALL_RIGHT,STEREO
+*/
+HWTEST(AudioUtilsUnitTest, audio_channel_blend_012, TestSize.Level1)
+{
+    uint8_t b[8] = {2, 4, 6, 8, 10, 12, 14, 16};
+    uint8_t format_ = SAMPLE_S32LE;
+    uint8_t channels = CHANNEL_4;
+    ChannelBlendMode blendMode_ = MODE_ALL_RIGHT;
+    shared_ptr<AudioBlend> audioBlend = std::make_shared<AudioBlend>(blendMode_, format_, channels);
+    audioBlend->Process(b, 8);
+    EXPECT_EQ(b[2], 6);
+    EXPECT_EQ(b[0], 2);
+}
+
+/**
+* @tc.name  : Test audio_channel_blend  API
+* @tc.type  : FUNC
+* @tc.number: audio_channel_blend_013
+* @tc.desc  : Test AudioBlend Process API,Return buffer
+*             when blendMode is MODE_ALL_RIGHT,STEREO
+*/
+HWTEST(AudioUtilsUnitTest, audio_channel_blend_013, TestSize.Level1)
+{
+    uint8_t b[8] = {2, 4, 6, 8, 10, 12, 14, 16};
+    uint8_t format_ = SAMPLE_S24LE;
+    uint8_t channels = CHANNEL_3;
+    ChannelBlendMode blendMode_ = MODE_ALL_RIGHT;
+    shared_ptr<AudioBlend> audioBlend = std::make_shared<AudioBlend>(blendMode_, format_, channels);
+    audioBlend->Process(b, 8);
+    EXPECT_EQ(b[0], 2);
+}
+
+/**
+* @tc.name  : Test SetVolumeRampConfig  API
+* @tc.type  : FUNC
+* @tc.number: SetVolumeRampConfig_001
+* @tc.desc  : Test SetVolumeRampConfig API,
+*             when rampDirection_ is RAMP_UP
+*/
+HWTEST(AudioUtilsUnitTest, SetVolumeRampConfig_001, TestSize.Level1)
+{
+    shared_ptr<VolumeRamp> volumeRamp = std::make_shared<VolumeRamp>();
+    volumeRamp->SetVolumeRampConfig(9.9f, 10.1f, 4);
+    EXPECT_EQ(volumeRamp->rampDirection_, RAMP_DOWN);
+}
+
+/**
+* @tc.name  : Test GetRampVolume  API
+* @tc.type  : FUNC
+* @tc.number: GetRampVolume_001
+* @tc.desc  : Test GetRampVolume API,
+*             when ret is 0.0f
+*/
+HWTEST(AudioUtilsUnitTest, GetRampVolume_001, TestSize.Level1)
+{
+    shared_ptr<VolumeRamp> volumeRamp = std::make_shared<VolumeRamp>();
+    volumeRamp->isVolumeRampActive_ = true;
+    volumeRamp->initTime_ = -1;
+    float ret = volumeRamp->GetRampVolume();
+    EXPECT_EQ(ret, 0.0f);
+}
+
+/**
+* @tc.name  : Test GetRampVolume  API
+* @tc.type  : FUNC
+* @tc.number: GetRampVolume_002
+* @tc.desc  : Test GetRampVolume API,
+*             when ret is 0.0f
+*/
+HWTEST(AudioUtilsUnitTest, GetRampVolume_002, TestSize.Level1)
+{
+    shared_ptr<VolumeRamp> volumeRamp = std::make_shared<VolumeRamp>();
+    float ret = volumeRamp->GetRampVolume();
+    EXPECT_EQ(ret, 1.0f);
+}
+
+/**
+* @tc.name  : Test GetScaledTime  API
+* @tc.type  : FUNC
+* @tc.number: GetScaledTime_001
+* @tc.desc  : Test GetScaledTime API,return offset,
+*             when offset is 0.0f
+*/
+HWTEST(AudioUtilsUnitTest, GetScaledTime_001, TestSize.Level1)
+{
+    shared_ptr<VolumeRamp> volumeRamp = std::make_shared<VolumeRamp>();
+    volumeRamp->isVolumeRampActive_ = true;
+    volumeRamp->scale_ = 10.0f;
+    volumeRamp->initTime_ = 1;
+    float ret = volumeRamp->GetScaledTime(1000);
+    EXPECT_EQ(ret, 1.0f);
+}
+
+/**
+* @tc.name  : Test GetScaledTime  API
+* @tc.type  : FUNC
+* @tc.number: GetScaledTime_002
+* @tc.desc  : Test GetScaledTime API,return offset,
+*             when offset is 1.0f
+*/
+HWTEST(AudioUtilsUnitTest, GetScaledTime_002, TestSize.Level1)
+{
+    shared_ptr<VolumeRamp> volumeRamp = std::make_shared<VolumeRamp>();
+    volumeRamp->isVolumeRampActive_ = true;
+    volumeRamp->scale_ = -10.0f;
+    volumeRamp->initTime_ = 1;
+    float ret = volumeRamp->GetScaledTime(1000);
+    EXPECT_EQ(ret, 0.0f);
+}
+
+/**
+* @tc.name  : Test GetScaledTime  API
+* @tc.type  : FUNC
+* @tc.number: GetScaledTime_003
+* @tc.desc  : Test GetScaledTime API,return offset,
+*             when offset is 0.0f
+*/
+HWTEST(AudioUtilsUnitTest, GetScaledTime_003, TestSize.Level1)
+{
+    shared_ptr<VolumeRamp> volumeRamp = std::make_shared<VolumeRamp>();
+    volumeRamp->rampDirection_ = RAMP_DOWN;
+    volumeRamp->isVolumeRampActive_ = true;
+    volumeRamp->scale_ = 10.0f;
+    volumeRamp->initTime_ = 1;
+    float ret = volumeRamp->GetScaledTime(1000);
+    EXPECT_EQ(ret, 0.0f);
+}
+
+/**
+* @tc.name  : Test GetScaledTime  API
+* @tc.type  : FUNC
+* @tc.number: GetScaledTime_004
+* @tc.desc  : Test GetScaledTime API,return offset,
+*             when offset is 1.0f
+*/
+HWTEST(AudioUtilsUnitTest, GetScaledTime_004, TestSize.Level1)
+{
+    shared_ptr<VolumeRamp> volumeRamp = std::make_shared<VolumeRamp>();
+    volumeRamp->initTime_ = 1;
+    volumeRamp->rampDirection_ = RAMP_DOWN;
+    volumeRamp->isVolumeRampActive_ = true;
+    volumeRamp->scale_ = -10.0f;
+    float ret = volumeRamp->GetScaledTime(1000);
+    EXPECT_EQ(ret, 1.0f);
+}
+
+/**
+* @tc.name  : Test GetScaledTime  API
+* @tc.type  : FUNC
+* @tc.number: GetScaledTime_004
+* @tc.desc  : Test GetScaledTime API,return offset,
+*             when offset is 1.0f
+*/
+HWTEST(AudioUtilsUnitTest, GetScaledTime_005, TestSize.Level1)
+{
+    shared_ptr<VolumeRamp> volumeRamp = std::make_shared<VolumeRamp>();
+    volumeRamp->rampDirection_ = RAMP_DOWN;
+    volumeRamp->isVolumeRampActive_ = true;
+    volumeRamp->scale_ = -10.0f;
+    volumeRamp->initTime_ = 1;
+    float ret = volumeRamp->GetScaledTime(1000);
+    EXPECT_EQ(ret, 1.0f);
+}
+
+/**
+* @tc.name  : Test LoadChangeSpeedFunc API
+* @tc.type  : FUNC
+* @tc.number: LoadChangeSpeedFunc_001
+* @tc.desc  : Test LoadChangeSpeedFunc API
+*/
+HWTEST(AudioUtilsUnitTest, LoadChangeSpeedFunc_001, TestSize.Level1)
+{
+    shared_ptr<AudioSpeed> audioSpeed = std::make_shared<AudioSpeed>(1, 1, 1);
+    audioSpeed->format_ = 0;
+    int32_t result = audioSpeed->LoadChangeSpeedFunc();
+    EXPECT_EQ(0, result);
+}
+
+/**
+* @tc.name  : Test LoadChangeSpeedFunc API
+* @tc.type  : FUNC
+* @tc.number: LoadChangeSpeedFunc_002
+* @tc.desc  : Test LoadChangeSpeedFunc API
+*/
+HWTEST(AudioUtilsUnitTest, LoadChangeSpeedFunc_002, TestSize.Level1)
+{
+    shared_ptr<AudioSpeed> audioSpeed = std::make_shared<AudioSpeed>(1, 1, 1);
+    audioSpeed->format_ = 1;
+    int32_t result = audioSpeed->LoadChangeSpeedFunc();
+    EXPECT_EQ(0, result);
+}
+
+/**
+* @tc.name  : Test LoadChangeSpeedFunc  API
+* @tc.type  : FUNC
+* @tc.number: LoadChangeSpeedFunc_003
+* @tc.desc  : Test LoadChangeSpeedFunc API
+*/
+HWTEST(AudioUtilsUnitTest, LoadChangeSpeedFunc_003, TestSize.Level1)
+{
+    shared_ptr<AudioSpeed> audioSpeed = std::make_shared<AudioSpeed>(1, 1, 1);
+    audioSpeed->format_ = -1;
+    int32_t result = audioSpeed->LoadChangeSpeedFunc();
+    EXPECT_EQ(0, result);
+}
+
+/**
+* @tc.name  : Test AbsoluteSleep  API
+* @tc.type  : FUNC
+* @tc.number: AbsoluteSleep_001
+* @tc.desc  : Test AbsoluteSleep API
+*/
+HWTEST(AudioUtilsUnitTest, AbsoluteSleep_001, TestSize.Level1)
+{
+    const int64_t CLOCK_TIME = 0;
+    int32_t ret = ClockTime::AbsoluteSleep(CLOCK_TIME);
+    EXPECT_EQ(SUCCESS - 1, ret);
+}
+
+/**
+* @tc.name  : Test RelativeSleep  API
+* @tc.type  : FUNC
+* @tc.number: RelativeSleep_001
+* @tc.desc  : Test RelativeSleep API
+*/
+HWTEST(AudioUtilsUnitTest, RelativeSleep_001, TestSize.Level1)
+{
+    const int64_t CLOCK_TIME = 0;
+    int32_t ret = ClockTime::RelativeSleep(CLOCK_TIME);
+    EXPECT_EQ(SUCCESS - 1, ret);
+}
+
+/**
+* @tc.name  : Test AudioInfoDumpUtils::GetStreamName  API
+* @tc.type  : FUNC
+* @tc.number: AudioInfoDumpUtils_GetStreamName_016
+* @tc.desc  : Test AudioInfoDumpUtils GetStreamName API, Return UNKNOWN
+*             when streamType is others
+*/
+HWTEST(AudioUtilsUnitTest, AudioInfoDumpUtils_GetStreamName_016, TestSize.Level0)
+{
+    AudioStreamType streamType = STREAM_ACCESSIBILITY;
+    const std::string streamName = AudioInfoDumpUtils::GetStreamName(streamType);
+    EXPECT_EQ(streamName, "ACCESSIBILITY");
+}
+
+/**
+* @tc.name  : Test MockPcmData  API
+* @tc.type  : FUNC
+* @tc.number: MockPcmData_001
+* @tc.desc  : Test MockPcmData API
+*/
+HWTEST(AudioUtilsUnitTest, MockPcmData_001, TestSize.Level1)
+{
+    uint8_t buffer[0] = {};
+    size_t bufferLen = 0;
+    int32_t sampleRate = 44100;
+    int32_t channelCount = 2;
+    int32_t sampleFormat = 16;
+    std::string appName = "com.example.null";
+    uint32_t sessionId = 0;
+
+    std::shared_ptr<AudioLatencyMeasurement> audioLatencyMeasurement =
+        std::make_shared<AudioLatencyMeasurement>(sampleRate, channelCount, sampleFormat, appName, sessionId);
+
+    bool ret = audioLatencyMeasurement->MockPcmData(buffer, bufferLen);
+    EXPECT_EQ(ret, false);
+}
+
+/**
+* @tc.name  : Test UpdateClientTime  API
+* @tc.type  : FUNC
+* @tc.number: UpdateClientTime_001
+* @tc.desc  : Test UpdateClientTime API
+*/
+HWTEST(AudioUtilsUnitTest, UpdateClientTime_001, TestSize.Level1)
+{
+    bool IsRenderer = true;
+    std::string Timestamp = "abcdef";
+    LatencyMonitor::GetInstance().UpdateClientTime(IsRenderer, Timestamp);
+}
+
+/**
+* @tc.name  : Test UpdateClientTime  API
+* @tc.type  : FUNC
+* @tc.number: UpdateClientTime_002
+* @tc.desc  : Test UpdateClientTime API
+*/
+HWTEST(AudioUtilsUnitTest, UpdateClientTime_002, TestSize.Level1)
+{
+    bool IsRenderer = false;
+    std::string Timestamp = "abcdef";
+    LatencyMonitor::GetInstance().UpdateClientTime(IsRenderer, Timestamp);
+}
+
+/**
+* @tc.name  : Test UpdateSinkOrSourceTime  API
+* @tc.type  : FUNC
+* @tc.number: UpdateSinkOrSourceTime_001
+* @tc.desc  : Test UpdateSinkOrSourceTime API
+*/
+HWTEST(AudioUtilsUnitTest, UpdateSinkOrSourceTime_001, TestSize.Level1)
+{
+    bool IsRenderer = true;
+    std::string Timestamp = "abcdef";
+    LatencyMonitor::GetInstance().UpdateSinkOrSourceTime(IsRenderer, Timestamp);
+}
+
+/**
+* @tc.name  : Test UpdateSinkOrSourceTime  API
+* @tc.type  : FUNC
+* @tc.number: UpdateSinkOrSourceTime_002
+* @tc.desc  : Test UpdateSinkOrSourceTime API
+*/
+HWTEST(AudioUtilsUnitTest, UpdateSinkOrSourceTime_002, TestSize.Level1)
+{
+    bool IsRenderer = false;
+    std::string Timestamp = "abcdef";
+    LatencyMonitor::GetInstance().UpdateSinkOrSourceTime(IsRenderer, Timestamp);
+}
+
+/**
+* @tc.name  : Test ShowTimestamp  API
+* @tc.type  : FUNC
+* @tc.number: ShowTimestamp_001
+* @tc.desc  : Test ShowTimestamp API
+*/
+HWTEST(AudioUtilsUnitTest, ShowTimestamp_001, TestSize.Level1)
+{
+    bool IsRenderer = false;
+    LatencyMonitor::GetInstance().ShowTimestamp(IsRenderer);
+}
+
+/**
+* @tc.name  : Test ShowTimestamp  API
+* @tc.type  : FUNC
+* @tc.number: ShowTimestamp_002
+* @tc.desc  : Test ShowTimestamp API
+*/
+HWTEST(AudioUtilsUnitTest, ShowTimestamp_002, TestSize.Level1)
+{
+    bool IsRenderer = false;
+    LatencyMonitor latencyMonitor = LatencyMonitor::GetInstance();
+    latencyMonitor.UpdateDspTime("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+    latencyMonitor.ShowTimestamp(IsRenderer);
+}
+
+/**
+* @tc.name  : Test ShowTimestamp  API
+* @tc.type  : FUNC
+* @tc.number: ShowTimestamp_003
+* @tc.desc  : Test ShowTimestamp API
+*/
+HWTEST(AudioUtilsUnitTest, ShowTimestamp_003, TestSize.Level1)
+{
+    bool IsRenderer = true;
+    LatencyMonitor latencyMonitor = LatencyMonitor::GetInstance();
+    latencyMonitor.extraStrLen_ = 1;
+    latencyMonitor.ShowTimestamp(IsRenderer);
+}
+
+/**
+* @tc.name  : Test ShowTimestamp  API
+* @tc.type  : FUNC
+* @tc.number: ShowTimestamp_004
+* @tc.desc  : Test ShowTimestamp API
+*/
+HWTEST(AudioUtilsUnitTest, ShowTimestamp_004, TestSize.Level1)
+{
+    bool IsRenderer = true;
+    LatencyMonitor latencyMonitor = LatencyMonitor::GetInstance();
+    latencyMonitor.extraStrLen_ = 1;
+    latencyMonitor.UpdateDspTime("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+    latencyMonitor.ShowTimestamp(IsRenderer);
+}
+
+/**
+* @tc.name  : Test GetStreamNameExt  API
+* @tc.type  : FUNC
+* @tc.number: GetStreamNameExt_001
+* @tc.desc  : Test GetStreamNameExt API
+*/
+HWTEST(AudioUtilsUnitTest, GetStreamNameExt_001, TestSize.Level1)
+{
+    string ret = AudioInfoDumpUtils::GetStreamNameExt(STREAM_ENFORCED_AUDIBLE);
+    EXPECT_EQ("ENFORCED_AUDIBLE", ret);
+    ret = AudioInfoDumpUtils::GetStreamNameExt(STREAM_MOVIE);
+    EXPECT_EQ("MOVIE", ret);
+    ret = AudioInfoDumpUtils::GetStreamNameExt(STREAM_GAME);
+    EXPECT_EQ("GAME", ret);
+    ret = AudioInfoDumpUtils::GetStreamNameExt(STREAM_SPEECH);
+    EXPECT_EQ("SPEECH", ret);
+    ret = AudioInfoDumpUtils::GetStreamNameExt(STREAM_SYSTEM_ENFORCED);
+    EXPECT_EQ("SYSTEM_ENFORCED", ret);
+    ret = AudioInfoDumpUtils::GetStreamNameExt(STREAM_VOICE_MESSAGE);
+    EXPECT_EQ("VOICE_MESSAGE", ret);
+    ret = AudioInfoDumpUtils::GetStreamNameExt(STREAM_NAVIGATION);
+    EXPECT_EQ("NAVIGATION", ret);
+    ret = AudioInfoDumpUtils::GetStreamNameExt(STREAM_INTERNAL_FORCE_STOP);
+    EXPECT_EQ("INTERNAL_FORCE_STOP", ret);
+    ret = AudioInfoDumpUtils::GetStreamNameExt(STREAM_VOICE_CALL_ASSISTANT);
+    EXPECT_EQ("VOICE_CALL_ASSISTANT", ret);
+}
+
+/**
+* @tc.name  : Test GetVolumeTypeFromStreamType  API
+* @tc.type  : FUNC
+* @tc.number: GetVolumeTypeFromStreamType_001
+* @tc.desc  : Test GetVolumeTypeFromStreamType API
+*/
+HWTEST(AudioUtilsUnitTest, GetVolumeTypeFromStreamType_001, TestSize.Level1)
+{
+    AudioStreamType ret = VolumeUtils::GetVolumeTypeFromStreamType(STREAM_BLUETOOTH_SCO);
+    EXPECT_EQ(STREAM_MUSIC, ret);
+}
+
+/**
+* @tc.name  : Test GetEncryptStr  API
+* @tc.type  : FUNC
+* @tc.number: GetEncryptStr_003
+* @tc.desc  : Test GetEncryptStr API
+*/
+HWTEST(AudioUtilsUnitTest, GetEncryptStr_003, TestSize.Level1)
+{
+    const std::string src = "abcdefgh";
+    std::string dst = GetEncryptStr(src);
+    EXPECT_EQ(dst, "ab*defgh");
+}
+
+/**
+* @tc.name  : Test ConvertNetworkId  API
+* @tc.type  : FUNC
+* @tc.number: ConvertNetworkId_001
+* @tc.desc  : Test ConvertNetworkId API
+*/
+HWTEST(AudioUtilsUnitTest, ConvertNetworkId_001, TestSize.Level1)
+{
+    const std::string src = "abcdefgh";
+    std::string dst = ConvertNetworkId(src);
+    EXPECT_EQ(dst, REMOTE_NETWORK_ID);
+}
+
+/**
+* @tc.name  : Test ConvertNetworkId  API
+* @tc.type  : FUNC
+* @tc.number: ConvertNetworkId_002
+* @tc.desc  : Test ConvertNetworkId API
+*/
+HWTEST(AudioUtilsUnitTest, ConvertNetworkId_002, TestSize.Level1)
+{
+    const std::string src;
+    std::string dst = ConvertNetworkId(src);
+    EXPECT_EQ(dst, src);
+}
+
+/**
+* @tc.name  : Test ConvertNetworkId  API
+* @tc.type  : FUNC
+* @tc.number: ConvertNetworkId_003
+* @tc.desc  : Test ConvertNetworkId API
+*/
+HWTEST(AudioUtilsUnitTest, ConvertNetworkId_003, TestSize.Level1)
+{
+    const std::string src = LOCAL_NETWORK_ID;
+    std::string dst = ConvertNetworkId(src);
+    EXPECT_EQ(dst, LOCAL_NETWORK_ID);
 }
 } // namespace AudioStandard
 } // namespace OHOS

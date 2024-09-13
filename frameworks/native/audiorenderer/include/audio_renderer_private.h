@@ -49,11 +49,11 @@ public:
     bool GetAudioTime(Timestamp &timestamp, Timestamp::Timestampbase base) const override;
     bool GetAudioPosition(Timestamp &timestamp, Timestamp::Timestampbase base) const override;
     bool Drain() const override;
-    bool PauseTransitent(StateChangeCmdType cmdType = CMD_FROM_CLIENT) const override;
-    bool Pause(StateChangeCmdType cmdType = CMD_FROM_CLIENT) const override;
+    bool PauseTransitent(StateChangeCmdType cmdType = CMD_FROM_CLIENT) override;
+    bool Pause(StateChangeCmdType cmdType = CMD_FROM_CLIENT) override;
     bool Mute(StateChangeCmdType cmdType = CMD_FROM_CLIENT) const override;
     bool Unmute(StateChangeCmdType cmdType = CMD_FROM_CLIENT) const override;
-    bool Stop() const override;
+    bool Stop() override;
     bool Flush() const override;
     bool Release() override;
     int32_t GetBufferSize(size_t &bufferSize) const override;
@@ -130,6 +130,8 @@ public:
 
     void EnableVoiceModemCommunicationStartStream(bool enable) override;
 
+    bool IsNoStreamRenderer() const override;
+
     int32_t SetDefaultOutputDevice(DeviceType deviceType) override;
 
     static inline AudioStreamParams ConvertToAudioStreamParams(const AudioRendererParams params)
@@ -193,7 +195,6 @@ private:
     std::mutex audioRendererErrCallbackMutex_;
     std::shared_ptr<OutputDeviceChangeWithInfoCallbackImpl> outputDeviceChangeCallback_ = nullptr;
     mutable std::shared_ptr<RendererPolicyServiceDiedCallback> audioPolicyServiceDiedCallback_ = nullptr;
-    DeviceInfo currentDeviceInfo_ = {};
     bool isFastRenderer_ = false;
     bool latencyMeasEnabled_ = false;
     std::shared_ptr<AudioLatencyMeasurement> latencyMeasurement_ = nullptr;
@@ -204,6 +205,7 @@ private:
     bool isDirectVoipSupported_ = false;
     bool isEnableVoiceModemCommunicationStartStream_ = false;
     DeviceType selectedDefaultOutputDevice_ = DEVICE_TYPE_NONE;
+    RendererState state_ = RENDERER_INVALID;
 
     float speed_ = 1.0;
 

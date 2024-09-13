@@ -51,7 +51,7 @@ public:
 
     sptr<AudioProcessInServer> GetAudioProcess(const AudioProcessConfig &config);
     // override for ProcessReleaseCallback, do release process work.
-    int32_t OnProcessRelease(IAudioProcessStream *process) override;
+    int32_t OnProcessRelease(IAudioProcessStream *process, bool destoryAtOnce = false) override;
 
     DeviceInfo GetDeviceInfoForProcess(const AudioProcessConfig &config);
     std::shared_ptr<AudioEndpoint> GetAudioEndpointForDevice(DeviceInfo &deviceInfo,

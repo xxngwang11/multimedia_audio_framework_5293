@@ -30,6 +30,7 @@
 #include "audio_errors.h"
 #include "audio_service_log.h"
 #include "audio_schedule.h"
+#include "audio_qosmanager.h"
 #include "audio_utils.h"
 #include "bluetooth_renderer_sink.h"
 #include "fast_audio_renderer_sink.h"
@@ -53,7 +54,8 @@ namespace {
     static constexpr int64_t RECORD_DELAY_TIME = 4000000; // 4ms
     static constexpr int64_t RECORD_VOIP_DELAY_TIME = 10000000; // 10ms
     static constexpr int64_t MAX_SPAN_DURATION_IN_NANO = 100000000; // 100ms
-    static constexpr int64_t DELAY_STOP_HDI_TIME = 10000000000; // 10s
+    static constexpr int64_t PLAYBACK_DELAY_STOP_HDI_TIME = 10000000000; // 10s
+    static constexpr int64_t RECORDER_DELAY_STOP_HDI_TIME = 200000000; // 200ms
     static constexpr int64_t WAIT_CLIENT_STANDBY_TIME_NS = 1000000000; // 1s
     static constexpr int64_t DELAY_STOP_HDI_TIME_FOR_ZERO_VOLUME = 4000000000; // 4s
     static constexpr int32_t SLEEP_TIME_IN_DEFAULT = 400; // 400ms
@@ -168,7 +170,9 @@ public:
     }
 
     float GetMaxAmplitude() override;
+    uint32_t GetLinkedProcessCount() override;
 
+    AudioMode GetAudioMode() const final;
 private:
     AudioProcessConfig GetInnerCapConfig();
     void StartThread(const IAudioSinkAttr &attr);
@@ -180,9 +184,9 @@ private:
     void RecordReSyncPosition();
     void InitAudiobuffer(bool resetReadWritePos);
     void ProcessData(const std::vector<AudioStreamData> &srcDataList, const AudioStreamData &dstData);
-    void ProcessSingleData(const AudioStreamData &srcData, const AudioStreamData &dstData);
+    void ProcessSingleData(const AudioStreamData &srcData, const AudioStreamData &dstData, bool applyVol);
     void HandleZeroVolumeCheckEvent();
-    void HandleRendererDataParams(const AudioStreamData &srcData, const AudioStreamData &dstData);
+    void HandleRendererDataParams(const AudioStreamData &srcData, const AudioStreamData &dstData, bool applyVol = true);
     int32_t HandleCapturerDataParams(const BufferDesc &writeBuf, const BufferDesc &readBuf,
         const BufferDesc &convertedBuffer);
     void ZeroVolumeCheck(const int32_t vol);
@@ -206,6 +210,7 @@ private:
     bool CheckAllBufferReady(int64_t checkTime, uint64_t curWritePos);
     void WaitAllProcessReady(uint64_t curWritePos);
     bool ProcessToEndpointDataHandle(uint64_t curWritePos);
+    void ProcessToDupStream(std::vector<AudioStreamData> &audioDataList, AudioStreamData &dstStreamData);
     void GetAllReadyProcessData(std::vector<AudioStreamData> &audioDataList);
 
     std::string GetStatusStr(EndpointStatus status);
@@ -1103,7 +1108,8 @@ int32_t AudioEndpointInner::OnPause(IAudioProcessStream *processStream)
     if (endpointStatus_ == IDEL) {
         // delay call sink stop when no process running
         AUDIO_PRERELEASE_LOGI("OnPause status is IDEL, need delay call stop");
-        delayStopTime_ = ClockTime::GetCurNano() + DELAY_STOP_HDI_TIME;
+        delayStopTime_ = ClockTime::GetCurNano() + ((clientConfig_.audioMode == AUDIO_MODE_PLAYBACK)
+            ? PLAYBACK_DELAY_STOP_HDI_TIME : RECORDER_DELAY_STOP_HDI_TIME);
     }
     // todo
     return SUCCESS;
@@ -1171,8 +1177,7 @@ int32_t AudioEndpointInner::LinkProcessStream(IAudioProcessStream *processStream
     CHECK_AND_RETURN_RET_LOG(processStream != nullptr, ERR_INVALID_PARAM, "IAudioProcessStream is null");
     std::shared_ptr<OHAudioBuffer> processBuffer = processStream->GetStreamBuffer();
     CHECK_AND_RETURN_RET_LOG(processBuffer != nullptr, ERR_INVALID_PARAM, "processBuffer is null");
-    CHECK_AND_RETURN_RET_LOG(processBuffer->GetStreamStatus() != nullptr, ERR_INVALID_PARAM,
-        "the stream status is null");
+    CHECK_AND_RETURN_RET_LOG(processBuffer->GetStreamStatus() != nullptr, ERR_INVALID_PARAM, "stream status is null");
 
     CHECK_AND_RETURN_RET_LOG(processList_.size() < MAX_LINKED_PROCESS, ERR_OPERATION_FAILED, "reach link limit.");
 
@@ -1198,7 +1203,8 @@ int32_t AudioEndpointInner::LinkProcessStream(IAudioProcessStream *processStream
         endpointStatus_ = IDEL; // handle push_back in IDEL
         if (isDeviceRunningInIdel_) {
             CHECK_AND_RETURN_RET_LOG(StartDevice(), ERR_OPERATION_FAILED, "StartDevice failed");
-            delayStopTime_ = ClockTime::GetCurNano() + DELAY_STOP_HDI_TIME;
+            delayStopTime_ = ClockTime::GetCurNano() + ((clientConfig_.audioMode == AUDIO_MODE_PLAYBACK)
+                ? PLAYBACK_DELAY_STOP_HDI_TIME : RECORDER_DELAY_STOP_HDI_TIME);
         }
     }
 
@@ -1282,7 +1288,8 @@ void AudioEndpointInner::CheckStandBy()
     if (endpointStatus_ == IDEL) {
         // delay call sink stop when no process running
         AUDIO_INFO_LOG("status is IDEL, need delay call stop");
-        delayStopTime_ = ClockTime::GetCurNano() + DELAY_STOP_HDI_TIME;
+        delayStopTime_ = ClockTime::GetCurNano() + ((clientConfig_.audioMode == AUDIO_MODE_PLAYBACK)
+            ? PLAYBACK_DELAY_STOP_HDI_TIME : RECORDER_DELAY_STOP_HDI_TIME);
     }
 }
 
@@ -1437,14 +1444,15 @@ void AudioEndpointInner::HandleZeroVolumeCheckEvent()
 }
 
 
-void AudioEndpointInner::HandleRendererDataParams(const AudioStreamData &srcData, const AudioStreamData &dstData)
+void AudioEndpointInner::HandleRendererDataParams(const AudioStreamData &srcData, const AudioStreamData &dstData,
+    bool applyVol)
 {
     if (srcData.streamInfo.encoding != dstData.streamInfo.encoding) {
         AUDIO_ERR_LOG("Different encoding formats");
         return;
     }
     if (srcData.streamInfo.format == SAMPLE_S16LE && srcData.streamInfo.channels == STEREO) {
-        return ProcessSingleData(srcData, dstData);
+        return ProcessSingleData(srcData, dstData, applyVol);
     }
     if (srcData.streamInfo.format == SAMPLE_S16LE && srcData.streamInfo.channels == MONO) {
         CHECK_AND_RETURN_LOG(processList_.size() > 0 && processList_[0] != nullptr, "No avaliable process");
@@ -1453,14 +1461,15 @@ void AudioEndpointInner::HandleRendererDataParams(const AudioStreamData &srcData
         CHECK_AND_RETURN_LOG(ret == SUCCESS, "Convert channel from mono to stereo failed");
         AudioStreamData dataAfterProcess = srcData;
         dataAfterProcess.bufferDesc = convertedBuffer;
-        ProcessSingleData(dataAfterProcess, dstData);
+        ProcessSingleData(dataAfterProcess, dstData, applyVol);
         ret = memset_s(static_cast<void *>(convertedBuffer.buffer), convertedBuffer.bufLength, 0,
             convertedBuffer.bufLength);
         CHECK_AND_RETURN_LOG(ret == EOK, "memset converted buffer to 0 failed");
     }
 }
 
-void AudioEndpointInner::ProcessSingleData(const AudioStreamData &srcData, const AudioStreamData &dstData)
+void AudioEndpointInner::ProcessSingleData(const AudioStreamData &srcData, const AudioStreamData &dstData,
+    bool applyVol)
 {
     CHECK_AND_RETURN_LOG(dstData.streamInfo.format == SAMPLE_S16LE && dstData.streamInfo.channels == STEREO,
         "ProcessData failed, streamInfo are not support");
@@ -1471,7 +1480,7 @@ void AudioEndpointInner::ProcessSingleData(const AudioStreamData &srcData, const
     for (size_t offset = 0; dataLength > 0; dataLength--) {
         int32_t vol = srcData.volumeStart; // change to modify volume of each channel
         int16_t *srcPtr = reinterpret_cast<int16_t *>(srcData.bufferDesc.buffer) + offset;
-        int32_t sum = (*srcPtr * static_cast<int64_t>(vol)) >> VOLUME_SHIFT_NUMBER; // 1/65536
+        int32_t sum = applyVol ? (*srcPtr * static_cast<int64_t>(vol)) >> VOLUME_SHIFT_NUMBER : *srcPtr; // 1/65536
         ZeroVolumeCheck(vol);
         offset++;
         *dstPtr++ = sum > INT16_MAX ? INT16_MAX : (sum < INT16_MIN ? INT16_MIN : sum);
@@ -1581,7 +1590,7 @@ bool AudioEndpointInner::ProcessToEndpointDataHandle(uint64_t curWritePos)
     }
 
     if (isInnerCapEnabled_) {
-        MixToDupStream(audioDataList);
+        ProcessToDupStream(audioDataList, dstStreamData);
     }
 
     DumpFileUtil::WriteDumpFile(dumpHdi_, static_cast<void *>(dstStreamData.bufferDesc.buffer),
@@ -1597,6 +1606,25 @@ bool AudioEndpointInner::ProcessToEndpointDataHandle(uint64_t curWritePos)
         dstStreamData.bufferDesc.bufLength);
 
     return true;
+}
+
+void AudioEndpointInner::ProcessToDupStream(std::vector<AudioStreamData> &audioDataList, AudioStreamData &dstStreamData)
+{
+    Trace trace("AudioEndpointInner::ProcessToDupStream");
+    if (endpointType_ == TYPE_VOIP_MMAP) {
+        if (audioDataList.size() == 1 && audioDataList[0].isInnerCaped) {
+            BufferDesc temp;
+            temp.buffer = dupBuffer_.get();
+            temp.bufLength = dupBufferSize_;
+            temp.dataLength = dupBufferSize_;
+
+            dstStreamData.bufferDesc = temp;
+            HandleRendererDataParams(audioDataList[0], dstStreamData, false);
+            dupStream_->EnqueueBuffer(temp);
+        }
+    } else {
+        MixToDupStream(audioDataList);
+    }
 }
 
 void AudioEndpointInner::DfxOperation(BufferDesc &buffer, AudioSampleFormat format, AudioChannel channel) const
@@ -1634,6 +1662,11 @@ float AudioEndpointInner::GetMaxAmplitude()
     lastGetMaxAmplitudeTime_ = ClockTime::GetCurNano();
     startUpdate_ = true;
     return maxAmplitude_;
+}
+
+AudioMode AudioEndpointInner::GetAudioMode() const
+{
+    return clientConfig_.audioMode;
 }
 
 int64_t AudioEndpointInner::GetPredictNextReadTime(uint64_t posInFrame)
@@ -1893,7 +1926,7 @@ int32_t AudioEndpointInner::WriteToSpecialProcBuf(const std::shared_ptr<OHAudioB
     int32_t ret = procBuf->GetWriteBuffer(curWritePos, writeBuf);
     CHECK_AND_RETURN_RET_LOG(ret == SUCCESS, ret, "get write buffer fail, ret %{public}d.", ret);
     if (muteFlag) {
-        memcpy_s(static_cast<void *>(writeBuf.buffer), writeBuf.bufLength, 0, readBuf.bufLength);
+        memset_s(static_cast<void *>(writeBuf.buffer), writeBuf.bufLength, 0, writeBuf.bufLength);
     } else {
         if (endpointType_ == TYPE_VOIP_MMAP) {
             ret = HandleCapturerDataParams(writeBuf, readBuf, convertedBuffer);
@@ -1992,7 +2025,7 @@ int32_t AudioEndpointInner::ReadFromEndpoint(uint64_t curReadPos)
 
 void AudioEndpointInner::RecordEndpointWorkLoopFuc()
 {
-    ScheduleReportData(getpid(), gettid(), "audio_server");
+    SetThreadQosLevel();
     int64_t curTime = 0;
     uint64_t curReadPos = 0;
     int64_t wakeUpTime = ClockTime::GetCurNano();
@@ -2028,11 +2061,12 @@ void AudioEndpointInner::RecordEndpointWorkLoopFuc()
         threadStatus_ = SLEEPING;
         ClockTime::AbsoluteSleep(wakeUpTime);
     }
+    ReSetThreadQosLevel();
 }
 
 void AudioEndpointInner::EndpointWorkLoopFuc()
 {
-    ScheduleReportData(getpid(), gettid(), "audio_server");
+    SetThreadQosLevel();
     int64_t curTime = 0;
     uint64_t curWritePos = 0;
     int64_t wakeUpTime = ClockTime::GetCurNano();
@@ -2085,6 +2119,7 @@ void AudioEndpointInner::EndpointWorkLoopFuc()
         ClockTime::AbsoluteSleep(wakeUpTime);
     }
     AUDIO_DEBUG_LOG("Endpoint work loop fuc end, ret %{public}d", ret);
+    ReSetThreadQosLevel();
 }
 
 void AudioEndpointInner::InitLatencyMeasurement()
@@ -2193,6 +2228,12 @@ void AudioEndpointInner::WriterRenderStreamStandbySysEvent(uint32_t sessionId, i
     bean->Add("STREAMID", static_cast<int32_t>(sessionId));
     bean->Add("STANDBY", standby);
     Media::MediaMonitor::MediaMonitorManager::GetInstance().WriteLogMsg(bean);
+}
+
+uint32_t AudioEndpointInner::GetLinkedProcessCount()
+{
+    std::lock_guard<std::mutex> lock(listLock_);
+    return processList_.size();
 }
 } // namespace AudioStandard
 } // namespace OHOS

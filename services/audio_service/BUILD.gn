@@ -247,6 +247,7 @@ config("audio_service_config") {
     "../../frameworks/native/audioeffect/include",
     "../../frameworks/native/audioinnercall/include",
     "../../frameworks/native/audiopolicy/include",
+    "../../frameworks/native/audioqosmanager/include",
     "../../frameworks/native/audioschedule/include",
     "../../frameworks/native/audioutils/include",
     "../../frameworks/native/playbackcapturer/include",
@@ -320,6 +321,7 @@ ohos_shared_library("audio_process_service") {
   deps = [
     ":audio_common",
     "../../frameworks/native/audioeffect:audio_effect",
+    "../../frameworks/native/audioqosmanager:audio_qosmanager",
     "../../frameworks/native/audioschedule:audio_schedule",
     "../../frameworks/native/audioutils:audio_utils",
     "../../frameworks/native/hdiadapter/sink:audio_renderer_sink",

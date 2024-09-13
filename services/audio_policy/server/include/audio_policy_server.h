@@ -421,6 +421,10 @@ public:
     int32_t TriggerFetchDevice(
         AudioStreamDeviceChangeReasonExt reason = AudioStreamDeviceChangeReason::UNKNOWN) override;
 
+    int32_t SetAudioDeviceAnahsCallback(const sptr<IRemoteObject> &object) override;
+
+    int32_t UnsetAudioDeviceAnahsCallback() override;
+
     int32_t MoveToNewPipe(const uint32_t sessionId, const AudioPipeType pipeType) override;
 
     int32_t SetAudioConcurrencyCallback(const uint32_t sessionID, const sptr<IRemoteObject> &object) override;
@@ -487,7 +491,7 @@ public:
 
 protected:
     void OnAddSystemAbility(int32_t systemAbilityId, const std::string& deviceId) override;
-
+    void OnAddSystemAbilityExtract(int32_t systemAbilityId, const std::string& deviceId);
     void RegisterParamCallback();
 
     void OnRemoveSystemAbility(int32_t systemAbilityId, const std::string& deviceId) override;
@@ -524,7 +528,7 @@ private:
     // offload session
     void OffloadStreamCheck(int64_t activateSessionId, int64_t deactivateSessionId);
     void CheckSubscribePowerStateChange();
-
+    void NotifyProcessStatus(bool isStart);
     void CheckStreamMode(const int64_t activateSessionId);
     bool CheckAudioSessionStrategy(const AudioSessionStrategy &sessionStrategy);
 

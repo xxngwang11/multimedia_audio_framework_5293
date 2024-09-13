@@ -26,7 +26,7 @@
 namespace OHOS {
 namespace AudioStandard {
 const int32_t DEFAULT_ZONE_ID = 0;
-constexpr int32_t MEDIA_SA_UID = 1013;
+constexpr uint32_t MEDIA_SA_UID = 1013;
 static sptr<IStandardAudioService> g_adProxy = nullptr;
 
 static const map<InterruptHint, AudioFocuState> HINT_STATE_MAP = {
@@ -509,7 +509,7 @@ int32_t AudioInterruptService::SetAudioInterruptCallback(const int32_t zoneId, c
 
         std::shared_ptr<AudioInterruptClient> client =
             std::make_shared<AudioInterruptClient>(callback, object, deathRecipient);
-        auto callingUid = IPCSkeleton::GetCallingUid();
+        uint32_t callingUid = IPCSkeleton::GetCallingUid();
         if (callingUid == MEDIA_SA_UID) {
             callingUid = uid;
         }
@@ -1757,6 +1757,7 @@ bool AudioInterruptService::ShouldCallbackToClient(uint32_t uid, int32_t session
     switch (hintType) {
         case INTERRUPT_HINT_RESUME:
             muteFlag = false;
+            [[fallthrough]];
         case INTERRUPT_HINT_PAUSE:
         case INTERRUPT_HINT_STOP:
             AUDIO_INFO_LOG("mute flag is: %{public}d", muteFlag);

@@ -74,12 +74,14 @@
             "libuv",
             "cJSON",
             "opensles",
+            "qos_manager",
             "media_foundation"
             ],
           "third_party": [
             "glib",
             "libsnd",
-            "libxml2"
+            "libxml2",
+            "openssl"
           ]
         },
         "build": {
@@ -164,6 +166,16 @@
               "header": {
                 "header_files": [
                   "./audiocommon/include/audio_effect.h"
+                ],
+                "header_base": "//foundation/multimedia/audio_framework/interfaces/inner_api/native"
+              }
+            },
+            {
+              "type": "none",
+              "name": "//foundation/multimedia/audio_framework/frameworks/native/audioutils:audio_utils",
+              "header": {
+                "header_files": [
+                  "./audiocommon/include/audio_common_utils.h"
                 ],
                 "header_base": "//foundation/multimedia/audio_framework/interfaces/inner_api/native"
               }

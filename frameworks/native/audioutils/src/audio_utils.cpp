@@ -1194,6 +1194,7 @@ const std::string AudioInfoDumpUtils::GetDeviceVolumeTypeName(DeviceVolumeType d
 }
 
 bool VolumeUtils::isPCVlolumeEnable_ = false;
+
 std::unordered_map<AudioStreamType, AudioVolumeType> VolumeUtils::defaultVolumeMap_ = {
     {STREAM_VOICE_CALL, STREAM_VOICE_CALL},
     {STREAM_VOICE_MESSAGE, STREAM_VOICE_CALL},
@@ -1223,7 +1224,7 @@ std::unordered_map<AudioStreamType, AudioVolumeType> VolumeUtils::defaultVolumeM
 
 std::unordered_map<AudioStreamType, AudioVolumeType> VolumeUtils::audioPCVolumeMap_ = {
     {STREAM_VOICE_CALL, STREAM_MUSIC},
-    {STREAM_VOICE_CALL_ASSISTANT, STREAM_VOICE_CALL},
+    {STREAM_VOICE_CALL_ASSISTANT, STREAM_MUSIC},
     {STREAM_VOICE_MESSAGE, STREAM_MUSIC},
     {STREAM_VOICE_ASSISTANT, STREAM_MUSIC},
     {STREAM_VOICE_COMMUNICATION, STREAM_MUSIC},

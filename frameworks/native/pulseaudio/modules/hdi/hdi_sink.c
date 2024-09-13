@@ -1567,6 +1567,8 @@ static char *CheckAndDealEffectZeroVolume(struct Userdata *u, time_t currentTime
             break;
         }
     }
+
+    i = i == SCENE_TYPE_NUM ? SCENE_TYPE_NUM - 1 : i;
     void *state = NULL;
     pa_sink_input *input;
     g_effectAllStreamVolumeZeroMap[i] = true;
@@ -1715,9 +1717,10 @@ static void UpdateSceneToCountMap(pa_hashmap *sceneMap)
     if (sceneMap == NULL) {
         return;
     }
-    uint32_t curNum;
     uint32_t *num = NULL;
+    (void)num;
     for (int32_t i = 0; i < SCENE_TYPE_NUM - 1; i++) {
+        uint32_t curNum;
         if ((curNum = EffectChainManagerGetSceneCount(SCENE_TYPE_SET[i]))) {
             if ((num = (uint32_t *)pa_hashmap_get(sceneMap, SCENE_TYPE_SET[i])) != NULL) {
                 (*num) = curNum;
@@ -3126,7 +3129,8 @@ static void ThreadFuncRendererTimerBus(void *userdata)
         }
 
         if (ret == 0) {
-            AUDIO_INFO_LOG("Thread %s(use timing bus) shutting down, pid %d, tid %d", deviceClass, getpid(), gettid());
+            AUDIO_INFO_LOG("Thread %{public}s(use timing bus) shutting down, pid %{public}d, tid %{public}d",
+                deviceClass, getpid(), gettid());
             pthread_rwlock_unlock(&u->rwlockSleep);
             break;
         }

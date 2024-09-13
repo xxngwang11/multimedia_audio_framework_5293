@@ -22,6 +22,7 @@
 #include "parameter.h"
 #include "parameters.h"
 
+#include "audio_policy_service.h"
 #include "audio_volume_parser.h"
 #include "audio_utils.h"
 #include "audio_policy_server.h"
@@ -190,6 +191,10 @@ void AudioAdapterManager::HandleKvData(bool isFirstBoot)
 
     if (!isNeedCopyVolumeData_ && !isNeedCopyMuteData_ && !isNeedCopyRingerModeData_ && !isNeedCopySystemUrlData_) {
         isAllCopyDone_ = true;
+        if (audioPolicyServerHandler_ != nullptr) {
+            audioPolicyServerHandler_->SendRingerModeUpdatedCallback(ringerMode_);
+            SetVolumeCallbackAfterClone();
+        }
     }
 
     if (isAllCopyDone_ && audioPolicyKvStore_ != nullptr) {
@@ -286,8 +291,10 @@ void AudioAdapterManager::SaveRingtoneVolumeToLocal(AudioVolumeType volumeType, 
 
 int32_t AudioAdapterManager::SetSystemVolumeLevel(AudioStreamType streamType, int32_t volumeLevel)
 {
+    AUDIO_INFO_LOG("SetSystemVolumeLevel: streamType: %{public}d, deviceType: %{public}d, volumeLevel:%{public}d",
+        streamType, currentActiveDevice_, volumeLevel);
     if (GetSystemVolumeLevel(streamType) == volumeLevel && currentActiveDevice_ != DEVICE_TYPE_BLUETOOTH_SCO &&
-        currentActiveDevice_ != DEVICE_TYPE_BLUETOOTH_A2DP) {
+        currentActiveDevice_ != DEVICE_TYPE_BLUETOOTH_A2DP && !VolumeUtils::IsPCVolumeEnable()) {
         AUDIO_INFO_LOG("The volume is the same as before.");
         return SUCCESS;
     }
@@ -624,8 +631,9 @@ void AudioAdapterManager::SetVolumeForSwitchDevice(InternalDeviceType deviceType
 
     // The same device does not set the volume
     // Except for A2dp, because the currentActiveDevice_ has already been set in Activea2dpdevice.
+    bool isRingerModeMute = AudioPolicyService::GetAudioPolicyService().IsRingerModeMute();
     if (GetVolumeGroupForDevice(currentActiveDevice_) == GetVolumeGroupForDevice(deviceType) &&
-        deviceType != DEVICE_TYPE_BLUETOOTH_A2DP && deviceType != DEVICE_TYPE_BLUETOOTH_SCO) {
+        deviceType != DEVICE_TYPE_BLUETOOTH_A2DP && (deviceType != DEVICE_TYPE_BLUETOOTH_SCO || !isRingerModeMute)) {
         AUDIO_INFO_LOG("Old device: %{public}d. New device: %{public}d. No need to update volume",
             currentActiveDevice_, deviceType);
         currentActiveDevice_ = deviceType;
@@ -693,14 +701,18 @@ AudioIOHandle AudioAdapterManager::OpenAudioPort(const AudioModuleInfo &audioMod
 
     CHECK_AND_RETURN_RET_LOG(audioServiceAdapter_ != nullptr, ERR_OPERATION_FAILED, "ServiceAdapter is null");
     curActiveCount_++;
-    return audioServiceAdapter_->OpenAudioPort(audioModuleInfo.lib, moduleArgs.c_str());
+    AudioIOHandle ioHandle = audioServiceAdapter_->OpenAudioPort(audioModuleInfo.lib, moduleArgs.c_str());
+    AUDIO_INFO_LOG("Open %{public}d port end.", static_cast<int32_t>(ioHandle));
+    return ioHandle;
 }
 
 int32_t AudioAdapterManager::CloseAudioPort(AudioIOHandle ioHandle)
 {
     CHECK_AND_RETURN_RET_LOG(audioServiceAdapter_ != nullptr, ERR_OPERATION_FAILED, "ServiceAdapter is null");
     curActiveCount_--;
-    return audioServiceAdapter_->CloseAudioPort(ioHandle);
+    int32_t ret = audioServiceAdapter_->CloseAudioPort(ioHandle);
+    AUDIO_INFO_LOG("Close %{public}d port end.", static_cast<int32_t>(ioHandle));
+    return ret;
 }
 
 int32_t AudioAdapterManager::GetCurActivateCount() const
@@ -1253,6 +1265,21 @@ void  AudioAdapterManager::CheckAndDealMuteStatus(const DeviceType &deviceType, 
     }
 }
 
+void AudioAdapterManager::SetVolumeCallbackAfterClone()
+{
+    for (auto &streamType : VOLUME_TYPE_LIST) {
+        VolumeEvent volumeEvent;
+        volumeEvent.volumeType = streamType;
+        volumeEvent.volume = GetSystemVolumeLevel(streamType);
+        volumeEvent.updateUi = false;
+        volumeEvent.volumeGroupId = 0;
+        volumeEvent.networkId = LOCAL_NETWORK_ID;
+        if (audioPolicyServerHandler_ != nullptr) {
+            audioPolicyServerHandler_->SendVolumeKeyEventCallback(volumeEvent);
+        }
+    }
+}
+
 void AudioAdapterManager::CloneMuteStatusMap(void)
 {
     // read mute status from private Kvstore
@@ -1693,6 +1720,10 @@ void AudioAdapterManager::GetVolumePoints(AudioVolumeType streamType, DeviceVolu
 {
     auto streamVolInfo = streamVolumeInfos_.find(streamType);
     auto deviceVolInfo = streamVolInfo->second->deviceVolumeInfos.find(deviceType);
+    if (deviceVolInfo == streamVolInfo->second->deviceVolumeInfos.end()) {
+        AUDIO_ERR_LOG("Cannot find device type %{public}d", deviceType);
+        return;
+    }
     volumePoints = deviceVolInfo->second->volumePoints;
 }
 

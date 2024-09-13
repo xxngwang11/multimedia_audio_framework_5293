@@ -53,7 +53,7 @@ group("audio_unit_test") {
     "../frameworks/native/playbackcapturer/test/unittest:playback_capturer_manager_unit_test",
     "../frameworks/native/toneplayer/test/unittest:audio_toneplayer_unit_test",
     "../services/audio_service/test/unittest:audio_balance_unit_test",
-    "../services/audio_service/test/unittest:policy_handler_unit_test",
+    "../services/audio_service/test/unittest:audio_service_unit_test",
   ]
 
   if (audio_framework_feature_opensl_es) {
@@ -81,14 +81,22 @@ group("audio_fuzz_test") {
   testonly = true
 
   deps = [
+    "fuzztest/audioadaptorbluetooth_fuzzer:fuzztest",
     "fuzztest/audiobluetoothmanager_fuzzer:fuzztest",
+    "fuzztest/audioeffect_fuzzer:fuzztest",
+    "fuzztest/audioeffectchain_fuzzer:fuzztest",
+    "fuzztest/audiohdiadapterdevicemanager_fuzzer:fuzztest",
     "fuzztest/audiointerruptservice_fuzzer:fuzztest",
     "fuzztest/audiomanager_fuzzer:fuzztest",
     "fuzztest/audiopolicy_fuzzer:fuzztest",
     "fuzztest/audiopolicyanother_fuzzer:fuzztest",
+    "fuzztest/audiopolicymore_fuzzer:fuzztest",
     "fuzztest/audiopolicyservice_fuzzer:fuzztest",
     "fuzztest/audioserver_fuzzer:fuzztest",
     "fuzztest/audioserverbalance_fuzzer:fuzztest",
+    "fuzztest/audioserviceclient_fuzzer:fuzztest",
+    "fuzztest/audioservicecommon_fuzzer:fuzztest",
+    "fuzztest/audioutils_fuzzer:fuzztest",
   ]
 }
 
