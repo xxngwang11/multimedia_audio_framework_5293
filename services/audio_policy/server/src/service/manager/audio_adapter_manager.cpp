@@ -1609,7 +1609,8 @@ float AudioAdapterManager::GetSystemVolumeInDb(AudioVolumeType volumeType, int32
     } else {
         getSystemVolumeInDb_ = CalculateVolumeDb(volumeLevel);
     }
-    AUDIO_DEBUG_LOG("Get system volume in db success %{public}f", getSystemVolumeInDb_);
+
+    AUDIO_DEBUG_LOG("Get system volume in db success %{public}f", getSystemVolumeInDb_.load());
 
     return getSystemVolumeInDb_;
 }

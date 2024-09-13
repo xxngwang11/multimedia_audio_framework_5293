@@ -293,7 +293,7 @@ private:
     VolumeDataMaintainer &volumeDataMaintainer_;
     bool isVolumeUnadjustable_ = false;
     bool testModeOn_ {false};
-    float getSystemVolumeInDb_ = 0.0f;
+    std::atomic<float> getSystemVolumeInDb_  {0.0f};
     bool useNonlinearAlgo_ = false;
     bool isAbsVolumeScene_ = false;
     bool isAbsVolumeMute_ = false;
