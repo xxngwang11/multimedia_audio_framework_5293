@@ -109,6 +109,7 @@ ohos_shared_library("audio") {
     "ets_runtime:libark_jsruntime",
     "eventhandler:libeventhandler",
     "hilog:libhilog",
+    "init:libbegetutil",
     "ipc:ipc_single",
     "libuv:uv",
     "napi:ace_napi",

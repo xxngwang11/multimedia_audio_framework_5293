@@ -929,6 +929,8 @@ AudioStreamType AudioStreamCollector::GetStreamTypeFromSourceType(SourceType sou
             return STREAM_ULTRASONIC;
         case SOURCE_TYPE_WAKEUP:
             return STREAM_WAKEUP;
+        case SOURCE_TYPE_CAMCORDER:
+            return STREAM_CAMCORDER;
         case SOURCE_TYPE_VOICE_RECOGNITION:
         case SOURCE_TYPE_PLAYBACK_CAPTURE:
         case SOURCE_TYPE_REMOTE_CAST:

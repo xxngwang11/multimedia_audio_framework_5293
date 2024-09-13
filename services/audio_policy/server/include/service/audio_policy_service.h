@@ -87,6 +87,13 @@ public:
     void InitKVStore();
     bool ConnectServiceAdapter();
 
+    void OnMicrophoneBlockedUpdate(DeviceType devType, DeviceBlockStatus status);
+
+    void OnBlockedStatusUpdated(DeviceType devType, DeviceBlockStatus status);
+
+    void TriggerMicrophoneBlockedCallback(const std::vector<sptr<AudioDeviceDescriptor>> &desc,
+        DeviceBlockStatus status);
+
     const sptr<IStandardAudioService> GetAudioServerProxy();
 
     int32_t GetMaxVolumeLevel(AudioVolumeType volumeType) const;

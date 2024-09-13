@@ -25,6 +25,7 @@
 #include "napi_audio_manager_callbacks.h"
 #include "napi_audio_rounting_available_devicechange_callback.h"
 #include "napi_audio_routing_manager_callbacks.h"
+#include "parameters.h"
 
 namespace OHOS {
 namespace AudioStandard {
@@ -860,6 +861,8 @@ napi_value NapiAudioRoutingManager::RegisterCallback(napi_env env, napi_value js
         RegisterPreferredInputDeviceChangeCallback(env, argc, args, cbName, napiRoutingMgr);
     } else if (!cbName.compare(AVAILABLE_DEVICE_CHANGE_CALLBACK_NAME)) {
         RegisterAvaiableDeviceChangeCallback(env, argc, args, cbName, napiRoutingMgr);
+    } else if (!cbName.compare(MICROPHONE_BLOCKED_CALLBACK_NAME)) {
+        RegisterMicrophoneBlockedCallback(env, argc, args, cbName, napiRoutingMgr);
     } else {
         AUDIO_ERR_LOG("NapiAudioRoutingManager::No such supported");
         NapiAudioError::ThrowError(env, NAPI_ERR_INVALID_PARAM,
@@ -1021,6 +1024,27 @@ void NapiAudioRoutingManager::RegisterAvaiableDeviceChangeCallback(napi_env env,
     cb->SaveRoutingAvailbleDeviceChangeCbRef(usage, args[PARAM2]);
 }
 
+void NapiAudioRoutingManager::RegisterMicrophoneBlockedCallback(napi_env env, size_t argc, napi_value *args,
+    const std::string &cbName, NapiAudioRoutingManager *napiRoutingMgr)
+{
+    napi_valuetype valueType = napi_undefined;
+    napi_typeof(env, args[PARAM1], &valueType);
+    if (valueType != napi_function) {
+        NapiAudioError::ThrowError(env, NAPI_ERR_INVALID_PARAM,
+            "parameter verification failed: The param of deviceFlag must be enum DeviceFlag");
+    }
+    if (!napiRoutingMgr->microphoneBlockedCallbackNapi_) {
+        napiRoutingMgr->microphoneBlockedCallbackNapi_ = std::make_shared<NapiAudioManagerCallback>(env);
+    }
+    int32_t ret = napiRoutingMgr->audioMngr_->SetMicrophoneBlockedCallback(
+        napiRoutingMgr->microphoneBlockedCallbackNapi_);
+    CHECK_AND_RETURN_RET_LOG(ret == SUCCESS, NapiAudioError::ThrowError(env, ret),
+        "Registering micro phone blocked Callback Failed %{public}d", ret);
+    std::shared_ptr<NapiAudioManagerCallback> cb =
+        std::static_pointer_cast<NapiAudioManagerCallback>(napiRoutingMgr->microphoneBlockedCallbackNapi_);
+    cb->SaveMicrophoneBlockedCallbackReference(args[PARAM1]);
+}
+
 napi_value NapiAudioRoutingManager::On(napi_env env, napi_callback_info info)
 {
     const size_t requireArgc = ARGS_TWO;
@@ -1075,6 +1099,8 @@ napi_value NapiAudioRoutingManager::UnregisterCallback(napi_env env, napi_value 
         UnregisterPreferredInputDeviceChangeCallback(env, callback, napiRoutingMgr);
     } else if (!callbackName.compare(AVAILABLE_DEVICE_CHANGE_CALLBACK_NAME)) {
         UnregisterAvailableDeviceChangeCallback(env, callback, napiRoutingMgr);
+    } else if (!callbackName.compare(MICROPHONE_BLOCKED_CALLBACK_NAME)) {
+        UnregisterMicrophoneBlockedCallback(env, callback, napiRoutingMgr);
     } else {
         AUDIO_ERR_LOG("off no such supported");
         NapiAudioError::ThrowError(env, NAPI_ERR_INVALID_PARAM,
@@ -1174,6 +1200,28 @@ void NapiAudioRoutingManager::UnregisterAvailableDeviceChangeCallback(napi_env e
     }
 }
 
+void NapiAudioRoutingManager::UnregisterMicrophoneBlockedCallback(napi_env env, napi_value callback,
+    NapiAudioRoutingManager *napiRoutingMgr)
+{
+    if (napiRoutingMgr->microphoneBlockedCallbackNapi_ != nullptr) {
+        std::shared_ptr<NapiAudioManagerCallback> cb =
+            std::static_pointer_cast<NapiAudioManagerCallback>(
+            napiRoutingMgr->microphoneBlockedCallbackNapi_);
+        if (callback == nullptr || cb->GetMicrophoneBlockedCbListSize() == 0) {
+            int32_t ret = napiRoutingMgr->audioMngr_->UnsetMicrophoneBlockedCallback(
+                napiRoutingMgr->microphoneBlockedCallbackNapi_);
+            CHECK_AND_RETURN_LOG(ret == SUCCESS, "UnsetMicrophoneBlockedCallback Failed");
+            napiRoutingMgr->microphoneBlockedCallbackNapi_.reset();
+            napiRoutingMgr->microphoneBlockedCallbackNapi_ = nullptr;
+            cb->RemoveAllMicrophoneBlockedCallback();
+            return;
+        }
+        cb->RemoveMicrophoneBlockedCallbackReference(env, callback);
+    } else {
+        AUDIO_ERR_LOG("microphoneBlockedCallbackNapi_ is null");
+    }
+}
+
 napi_value NapiAudioRoutingManager::Off(napi_env env, napi_callback_info info)
 {
     napi_value undefinedResult = nullptr;
@@ -1212,6 +1260,24 @@ napi_value NapiAudioRoutingManager::Off(napi_env env, napi_callback_info info)
     AUDIO_INFO_LOG("Off callbackName: %{public}s", callbackName.c_str());
 
     return UnregisterCallback(env, jsThis, callbackName, args[PARAM1]);
+}
+
+int32_t NapiAudioManagerCallback::GetMicrophoneBlockedCbListSize()
+{
+    std::lock_guard<std::mutex> lock(mutex_);
+    return microphoneBlockedCbList_.size();
+}
+
+bool NapiAudioRoutingManager::IsMicBlockDetectionSupported()
+{
+    bool supported = false;
+    supported = OHOS::system::GetBoolParameter("const.multimedia.audio.mic_block_detection", false);
+    if (supported == true) {
+        AUDIO_INFO_LOG("mic block detection supported");
+    } else {
+        AUDIO_ERR_LOG("mic block detection is not supported");
+    }
+    return supported;
 }
 }  // namespace AudioStandard
 }  // namespace OHOS
