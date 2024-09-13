@@ -51,7 +51,9 @@ private:
         std::vector<sptr<AudioDeviceDescriptor>> inputDeviceDescriptors;
     };
 
+#if !defined(IOS_PLATFORM) && !defined(ANDROID_PLATFORM)
     bool IsMicBlockDetectionSupported();
+#endif
     static napi_value GetDevices(napi_env env, napi_callback_info info);
     static napi_value GetDevicesSync(napi_env env, napi_callback_info info);
     static napi_value On(napi_env env, napi_callback_info info);
