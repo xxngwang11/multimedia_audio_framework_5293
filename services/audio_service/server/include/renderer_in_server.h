@@ -95,7 +95,7 @@ public:
 
     int32_t GetStreamManagerType() const noexcept;
     int32_t SetSilentModeAndMixWithOthers(bool on);
-    int32_t SetClientVolume();
+    int32_t SetClientVolume(bool isStreamVolumeChange, bool isMediaServiceAndOffloadEnable);
     
     void OnDataLinkConnectionUpdate(IOperation operation);
 
@@ -108,10 +108,11 @@ public:
 private:
     void OnStatusUpdateSub(IOperation operation);
     bool IsHighResolution() const noexcept;
-    void DoFadingOut(BufferDesc& bufferDesc);
     void WriteMuteDataSysEvent(uint8_t *buffer, size_t bufferSize);
     void ReportDataToResSched(bool isSilent);
     void OtherStreamEnqueue(const BufferDesc &bufferDesc);
+    void DoFadingOut(BufferDesc& bufferDesc);
+    int32_t SetStreamVolumeInfoForEnhanceChain();
     void StandByCheck();
     bool ShouldEnableStandBy();
 

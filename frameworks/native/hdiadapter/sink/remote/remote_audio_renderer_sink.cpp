@@ -72,7 +72,6 @@ const uint32_t DEEP_BUFFER_RENDER_PERIOD_SIZE = 4096;
 const uint32_t INT_32_MAX = 0x7fffffff;
 const uint32_t PCM_8_BIT = 8;
 const uint32_t PCM_16_BIT = 16;
-const uint32_t REMOTE_OUTPUT_STREAM_ID = 29; // 13 + 2 * 8
 
 const uint16_t GET_MAX_AMPLITUDE_FRAMES_THRESHOLD = 10;
 
@@ -126,6 +125,7 @@ public:
 
     int32_t UpdateAppsUid(const int32_t appsUid[MAX_MIX_CHANNELS], const size_t size) final;
     int32_t UpdateAppsUid(const std::vector<int32_t> &appsUid) final;
+    int32_t GetRenderId(uint32_t &renderId) const override;
 
     std::string GetNetworkId();
     IAudioSinkCallback* GetParamCallback();
@@ -399,7 +399,7 @@ void RemoteAudioRendererSinkInner::InitAttrs(struct AudioSampleAttributes &attrs
     attrs.channelCount = AUDIO_CHANNELCOUNT;
     attrs.sampleRate = AUDIO_SAMPLE_RATE_48K;
     attrs.interleaved = 0;
-    attrs.streamId = REMOTE_OUTPUT_STREAM_ID;
+    attrs.streamId = GenerateUniqueID(AUDIO_HDI_RENDER_ID_BASE, HDI_RENDER_OFFSET_REMOTE);
     attrs.period = DEEP_BUFFER_RENDER_PERIOD_SIZE;
     attrs.isBigEndian = false;
     attrs.isSignedData = true;
@@ -755,7 +755,7 @@ int32_t RemoteAudioRendererSinkInner::OpenOutput(DeviceType outputDevice)
     source.role = AudioPortRole::AUDIO_PORT_SOURCE_ROLE;
     source.type = AudioPortType::AUDIO_PORT_MIX_TYPE;
     source.ext.mix.moduleId = 0;
-    source.ext.mix.streamId = REMOTE_OUTPUT_STREAM_ID;
+    source.ext.mix.streamId = GenerateUniqueID(AUDIO_HDI_RENDER_ID_BASE, HDI_RENDER_OFFSET_REMOTE);
 
     if (audioPortMap_.find(AudioCategory::AUDIO_IN_MEDIA) == audioPortMap_.end()) {
         AUDIO_WARNING_LOG("audioPortMap_ is null, ret %{public}d.", ret);
@@ -967,6 +967,12 @@ void RemoteAudioRendererSinkInner::DfxOperation(BufferDesc &buffer, AudioSampleF
         Trace::Count(logUtilsTag_, (vols.volStart[0] + vols.volStart[1]) / HALF_FACTOR);
     }
     AudioLogUtils::ProcessVolumeData(logUtilsTag_, vols, volumeDataCount_);
+}
+
+int32_t RemoteAudioRendererSinkInner::GetRenderId(uint32_t &renderId) const
+{
+    renderId = GenerateUniqueID(AUDIO_HDI_RENDER_ID_BASE, HDI_RENDER_OFFSET_REMOTE);
+    return SUCCESS;
 }
 } // namespace AudioStandard
 } // namespace OHOS

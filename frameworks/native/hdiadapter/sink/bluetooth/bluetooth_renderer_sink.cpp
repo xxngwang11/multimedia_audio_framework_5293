@@ -123,6 +123,7 @@ public:
     int32_t UpdateAppsUid(const int32_t appsUid[MAX_MIX_CHANNELS],
         const size_t size) final;
     int32_t UpdateAppsUid(const std::vector<int32_t> &appsUid) final;
+    int32_t GetRenderId(uint32_t &renderId) const override;
 
     int32_t SetSinkMuteForSwitchDevice(bool mute) final;
 
@@ -1179,6 +1180,12 @@ int32_t BluetoothRendererSinkInner::SetSinkMuteForSwitchDevice(bool mute)
         muteCount_ = 0;
     }
 
+    return SUCCESS;
+}
+
+int32_t BluetoothRendererSinkInner::GetRenderId(uint32_t &renderId) const
+{
+    renderId = GenerateUniqueID(AUDIO_HDI_RENDER_ID_BASE, HDI_RENDER_OFFSET_BLUETOOTH);
     return SUCCESS;
 }
 } // namespace AudioStandard

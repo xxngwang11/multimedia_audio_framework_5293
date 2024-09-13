@@ -44,7 +44,6 @@
 #include "audio_manager_listener_proxy.h"
 #include "audio_service.h"
 #include "audio_schedule.h"
-#include "audio_utils.h"
 #include "i_audio_capturer_source.h"
 #include "i_audio_renderer_sink.h"
 #include "audio_renderer_sink.h"
@@ -52,7 +51,6 @@
 #include "audio_effect_chain_manager.h"
 #include "audio_enhance_chain_manager.h"
 #include "playback_capturer_manager.h"
-#include "policy_handler.h"
 #include "config/audio_param_parser.h"
 #include "media_monitor_manager.h"
 
@@ -1055,6 +1053,10 @@ int32_t AudioServer::SetMicrophoneMute(bool isMute)
         (*it)->SetMute(isMute);
     }
 
+    int32_t ret = SetMicrophoneMuteForEnhanceChain(isMute);
+    if (ret != SUCCESS) {
+        AUDIO_WARNING_LOG("SetMicrophoneMuteForEnhanceChain failed.");
+    }
     return SUCCESS;
 }
 
@@ -1974,29 +1976,6 @@ int32_t AudioServer::SetCaptureSilentState(bool state)
     return SUCCESS;
 }
 
-int32_t AudioServer::UpdateSpatializationState(AudioSpatializationState spatializationState)
-{
-    int32_t callingUid = IPCSkeleton::GetCallingUid();
-    CHECK_AND_RETURN_RET_LOG(PermissionUtil::VerifyIsAudio(), ERR_NOT_SUPPORTED, "refused for %{public}d", callingUid);
-    AudioEffectChainManager *audioEffectChainManager = AudioEffectChainManager::GetInstance();
-    if (audioEffectChainManager == nullptr) {
-        AUDIO_ERR_LOG("audioEffectChainManager is nullptr");
-        return ERROR;
-    }
-    return audioEffectChainManager->UpdateSpatializationState(spatializationState);
-}
-
-int32_t AudioServer::UpdateSpatialDeviceType(AudioSpatialDeviceType spatialDeviceType)
-{
-    int32_t callingUid = IPCSkeleton::GetCallingUid();
-    CHECK_AND_RETURN_RET_LOG(PermissionUtil::VerifyIsAudio(), ERR_NOT_SUPPORTED, "refused for %{public}d", callingUid);
-
-    AudioEffectChainManager *audioEffectChainManager = AudioEffectChainManager::GetInstance();
-    CHECK_AND_RETURN_RET_LOG(audioEffectChainManager != nullptr, ERROR, "audioEffectChainManager is nullptr");
-
-    return audioEffectChainManager->UpdateSpatialDeviceType(spatialDeviceType);
-}
-
 int32_t AudioServer::NotifyStreamVolumeChanged(AudioStreamType streamType, float volume)
 {
     int32_t callingUid = IPCSkeleton::GetCallingUid();
@@ -2007,50 +1986,15 @@ int32_t AudioServer::NotifyStreamVolumeChanged(AudioStreamType streamType, float
 
     SetSystemVolumeToEffect(streamType, volume);
 
-    return AudioService::GetInstance()->NotifyStreamVolumeChanged(streamType, volume);
-}
-
-int32_t AudioServer::SetSystemVolumeToEffect(const AudioStreamType streamType, float volume)
-{
-    std::string sceneType;
-    switch (streamType) {
-        case STREAM_RING:
-        case STREAM_ALARM:
-            sceneType = "SCENE_RING";
-            break;
-        case STREAM_VOICE_ASSISTANT:
-            sceneType = "SCENE_SPEECH";
-            break;
-        case STREAM_MUSIC:
-            sceneType = "SCENE_MUSIC";
-            break;
-        case STREAM_ACCESSIBILITY:
-            sceneType = "SCENE_OTHERS";
-            break;
-        default:
-            return SUCCESS;
+    int32_t ret = AudioService::GetInstance()->NotifyStreamVolumeChanged(streamType, volume);
+    if (ret != SUCCESS) {
+        AUDIO_WARNING_LOG("NotifyStreamVolumeChanged failed");
     }
-
-    AudioEffectChainManager *audioEffectChainManager = AudioEffectChainManager::GetInstance();
-    CHECK_AND_RETURN_RET_LOG(audioEffectChainManager != nullptr, ERROR, "audioEffectChainManager is nullptr");
-    AUDIO_INFO_LOG("streamType : %{public}d , systemVolume : %{public}f", streamType, volume);
-    audioEffectChainManager->SetSceneTypeSystemVolume(sceneType, volume);
-    
-    std::shared_ptr<AudioEffectVolume> audioEffectVolume = AudioEffectVolume::GetInstance();
-    CHECK_AND_RETURN_RET_LOG(audioEffectVolume != nullptr, ERROR, "null audioEffectVolume");
-    audioEffectChainManager->EffectVolumeUpdate(audioEffectVolume);
-
+    ret = SetVolumeInfoForEnhanceChain(streamType);
+    if (ret != SUCCESS) {
+        AUDIO_WARNING_LOG("SetVolumeInfoForEnhanceChain failed");
+    }
     return SUCCESS;
-}
-
-int32_t AudioServer::SetSpatializationSceneType(AudioSpatializationSceneType spatializationSceneType)
-{
-    int32_t callingUid = IPCSkeleton::GetCallingUid();
-    CHECK_AND_RETURN_RET_LOG(PermissionUtil::VerifyIsAudio(), ERR_NOT_SUPPORTED, "refused for %{public}d", callingUid);
-
-    AudioEffectChainManager *audioEffectChainManager = AudioEffectChainManager::GetInstance();
-    CHECK_AND_RETURN_RET_LOG(audioEffectChainManager != nullptr, ERROR, "audioEffectChainManager is nullptr");
-    return audioEffectChainManager->SetSpatializationSceneType(spatializationSceneType);
 }
 
 int32_t AudioServer::ResetRouteForDisconnect(DeviceType type)
@@ -2068,13 +2012,6 @@ int32_t AudioServer::ResetRouteForDisconnect(DeviceType type)
     // todo reset capturer
 
     return SUCCESS;
-}
-
-uint32_t AudioServer::GetEffectLatency(const std::string &sessionId)
-{
-    AudioEffectChainManager *audioEffectChainManager = AudioEffectChainManager::GetInstance();
-    CHECK_AND_RETURN_RET_LOG(audioEffectChainManager != nullptr, ERROR, "audioEffectChainManager is nullptr");
-    return audioEffectChainManager->GetLatency(sessionId);
 }
 
 float AudioServer::GetMaxAmplitude(bool isOutputDevice, int32_t deviceType)
@@ -2129,16 +2066,6 @@ void AudioServer::UpdateLatencyTimestamp(std::string &timestamp, bool isRenderer
     }
 }
 
-bool AudioServer::GetEffectOffloadEnabled()
-{
-    int32_t callingUid = IPCSkeleton::GetCallingUid();
-    CHECK_AND_RETURN_RET_LOG(PermissionUtil::VerifyIsAudio(), ERR_NOT_SUPPORTED, "refused for %{public}d", callingUid);
-
-    AudioEffectChainManager *audioEffectChainManager = AudioEffectChainManager::GetInstance();
-    CHECK_AND_RETURN_RET_LOG(audioEffectChainManager != nullptr, ERROR, "audioEffectChainManager is nullptr");
-    return audioEffectChainManager->GetOffloadEnabled();
-}
-
 int32_t AudioServer::UpdateDualToneState(bool enable, int32_t sessionId)
 {
     int32_t callingUid = IPCSkeleton::GetCallingUid();
@@ -2177,76 +2104,6 @@ int32_t AudioServer::SetSinkMuteForSwitchDevice(const std::string &devceClass, i
     return audioRendererSinkInstance->SetSinkMuteForSwitchDevice(mute);
 }
 
-void AudioServer::LoadHdiEffectModel()
-{
-    int32_t callingUid = IPCSkeleton::GetCallingUid();
-    CHECK_AND_RETURN_LOG(PermissionUtil::VerifyIsAudio(), "load hdi effect model refused for %{public}d", callingUid);
-
-    AudioEffectChainManager *audioEffectChainManager = AudioEffectChainManager::GetInstance();
-    CHECK_AND_RETURN_LOG(audioEffectChainManager != nullptr, "audioEffectChainManager is nullptr");
-    audioEffectChainManager->InitHdiState();
-}
-
-int32_t AudioServer::SetAudioEffectProperty(const AudioEffectPropertyArray &propertyArray)
-{
-    int32_t callingUid = IPCSkeleton::GetCallingUid();
-    CHECK_AND_RETURN_RET_LOG(PermissionUtil::VerifyIsAudio(), ERR_PERMISSION_DENIED,
-        "SetA udio Effect Property refused for %{public}d", callingUid);
-    AudioEffectChainManager *audioEffectChainManager = AudioEffectChainManager::GetInstance();
-    CHECK_AND_RETURN_RET_LOG(audioEffectChainManager != nullptr, ERROR, "audioEffectChainManager is nullptr");
-    return audioEffectChainManager->SetAudioEffectProperty(propertyArray);
-}
-
-int32_t AudioServer::GetAudioEffectProperty(AudioEffectPropertyArray &propertyArray)
-{
-    int32_t callingUid = IPCSkeleton::GetCallingUid();
-    CHECK_AND_RETURN_RET_LOG(PermissionUtil::VerifyIsAudio(), ERR_PERMISSION_DENIED,
-        "Get Audio Effect Property refused for %{public}d", callingUid);
-    AudioEffectChainManager *audioEffectChainManager = AudioEffectChainManager::GetInstance();
-    CHECK_AND_RETURN_RET_LOG(audioEffectChainManager != nullptr, ERROR, "audioEffectChainManager is nullptr");
-    return audioEffectChainManager->GetAudioEffectProperty(propertyArray);
-}
-
-int32_t AudioServer::SetAudioEnhanceProperty(const AudioEnhancePropertyArray &propertyArray)
-{
-    int32_t callingUid = IPCSkeleton::GetCallingUid();
-    CHECK_AND_RETURN_RET_LOG(PermissionUtil::VerifyIsAudio(), ERR_PERMISSION_DENIED,
-        "Set Audio Enhance Property refused for %{public}d", callingUid);
-    AudioEnhanceChainManager *audioEnhanceChainManager = AudioEnhanceChainManager::GetInstance();
-    CHECK_AND_RETURN_RET_LOG(audioEnhanceChainManager != nullptr, ERROR, "audioEnhanceChainManager is nullptr");
-    return audioEnhanceChainManager->SetAudioEnhanceProperty(propertyArray);
-}
-
-int32_t AudioServer::GetAudioEnhanceProperty(AudioEnhancePropertyArray &propertyArray)
-{
-    int32_t callingUid = IPCSkeleton::GetCallingUid();
-    CHECK_AND_RETURN_RET_LOG(PermissionUtil::VerifyIsAudio(), ERR_PERMISSION_DENIED,
-        "Get Audio Enhance Property refused for %{public}d", callingUid);
-    AudioEnhanceChainManager *audioEnhanceChainManager = AudioEnhanceChainManager::GetInstance();
-    CHECK_AND_RETURN_RET_LOG(audioEnhanceChainManager != nullptr, ERROR, "audioEnhanceChainManager is nullptr");
-    return audioEnhanceChainManager->GetAudioEnhanceProperty(propertyArray);
-}
-
-void AudioServer::UpdateEffectBtOffloadSupported(const bool &isSupported)
-{
-    int32_t callingUid = IPCSkeleton::GetCallingUid();
-    CHECK_AND_RETURN_LOG(PermissionUtil::VerifyIsAudio(), "refused for %{public}d", callingUid);
-
-    AudioEffectChainManager *audioEffectChainManager = AudioEffectChainManager::GetInstance();
-    CHECK_AND_RETURN_LOG(audioEffectChainManager != nullptr, "audioEffectChainManager is nullptr");
-    audioEffectChainManager->UpdateEffectBtOffloadSupported(isSupported);
-}
-
-void AudioServer::SetRotationToEffect(const uint32_t rotate)
-{
-    int32_t callingUid = IPCSkeleton::GetCallingUid();
-    CHECK_AND_RETURN_LOG(PermissionUtil::VerifyIsAudio(), "set rotation to effect refused for %{public}d", callingUid);
-
-    AudioEffectChainManager *audioEffectChainManager = AudioEffectChainManager::GetInstance();
-    CHECK_AND_RETURN_LOG(audioEffectChainManager != nullptr, "audioEffectChainManager is nullptr");
-    audioEffectChainManager->EffectRotationUpdate(rotate);
-}
-
 void AudioServer::UpdateSessionConnectionState(const int32_t &sessionId, const int32_t &state)
 {
     AUDIO_INFO_LOG("Server get sessionID: %{public}d, state: %{public}d", sessionId, state);
@@ -2269,22 +2126,6 @@ void AudioServer::SetNonInterruptMute(const uint32_t sessionId, const bool muteF
     int32_t callingUid = IPCSkeleton::GetCallingUid();
     CHECK_AND_RETURN_LOG(PermissionUtil::VerifyIsAudio(), "Refused for %{public}d", callingUid);
     AudioService::GetInstance()->SetNonInterruptMute(sessionId, muteFlag);
-}
-
-int32_t AudioServer::SetOffloadMode(uint32_t sessionId, int32_t state, bool isAppBack)
-{
-    int32_t callingUid = IPCSkeleton::GetCallingUid();
-    CHECK_AND_RETURN_RET_LOG(PermissionUtil::VerifyIsAudio(), ERR_NOT_SUPPORTED, "refused for %{public}d",
-        callingUid);
-    return AudioService::GetInstance()->SetOffloadMode(sessionId, state, isAppBack);
-}
-
-int32_t AudioServer::UnsetOffloadMode(uint32_t sessionId)
-{
-    int32_t callingUid = IPCSkeleton::GetCallingUid();
-    CHECK_AND_RETURN_RET_LOG(PermissionUtil::VerifyIsAudio(), ERR_NOT_SUPPORTED, "refused for %{public}d",
-        callingUid);
-    return AudioService::GetInstance()->UnsetOffloadMode(sessionId);
 }
 
 void AudioServer::RestoreSession(const int32_t &sessionID, bool isOutput)
@@ -2310,6 +2151,22 @@ void AudioServer::RestoreSession(const int32_t &sessionID, bool isOutput)
         }
         capturer->RestoreSession();
     }
+}
+
+int32_t AudioServer::SetOffloadMode(uint32_t sessionId, int32_t state, bool isAppBack)
+{
+    int32_t callingUid = IPCSkeleton::GetCallingUid();
+    CHECK_AND_RETURN_RET_LOG(PermissionUtil::VerifyIsAudio(), ERR_NOT_SUPPORTED, "refused for %{public}d",
+        callingUid);
+    return AudioService::GetInstance()->SetOffloadMode(sessionId, state, isAppBack);
+}
+
+int32_t AudioServer::UnsetOffloadMode(uint32_t sessionId)
+{
+    int32_t callingUid = IPCSkeleton::GetCallingUid();
+    CHECK_AND_RETURN_RET_LOG(PermissionUtil::VerifyIsAudio(), ERR_NOT_SUPPORTED, "refused for %{public}d",
+        callingUid);
+    return AudioService::GetInstance()->UnsetOffloadMode(sessionId);
 }
 } // namespace AudioStandard
 } // namespace OHOS

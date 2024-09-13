@@ -34,6 +34,8 @@
 #include "i_audio_capturer_source.h"
 #include "audio_effect_server.h"
 #include "audio_asr.h"
+#include "audio_utils.h"
+#include "policy_handler.h"
 
 namespace OHOS {
 namespace AudioStandard {
@@ -205,6 +207,8 @@ private:
     int32_t SetSystemVolumeToEffect(const AudioStreamType streamType, float volume);
     const std::string GetBundleNameFromUid(int32_t uid);
     bool IsFastBlocked(int32_t uid);
+    int32_t SetVolumeInfoForEnhanceChain(const AudioStreamType &streamType);
+    int32_t SetMicrophoneMuteForEnhanceChain(const bool &isMute);
 
 private:
     static constexpr int32_t MEDIA_SERVICE_UID = 1013;

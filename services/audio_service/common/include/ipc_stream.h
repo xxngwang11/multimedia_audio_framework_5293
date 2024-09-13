@@ -93,7 +93,7 @@ public:
 
     virtual int32_t SetSilentModeAndMixWithOthers(bool on) = 0;
 
-    virtual int32_t SetClientVolume() = 0;
+    virtual int32_t SetClientVolume(bool isStreamVolumeChange, bool isMediaServiceAndOffloadEnable) = 0;
 
     virtual int32_t RegisterThreadPriority(uint32_t tid, const std::string &bundleName) = 0;
     // IPC code.
