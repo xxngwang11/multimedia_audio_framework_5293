@@ -764,7 +764,9 @@ int32_t AudioPolicyServer::SetStreamMuteInternal(AudioStreamType streamType, boo
         streamType, mute, isUpdateUi);
 
     if (streamType == STREAM_ALL) {
-        for (auto audioStreamType : GET_STREAM_ALL_VOLUME_TYPES) {
+        const std::vector<AudioStreamType> &streamTypeArray =
+            (VolumeUtils::IsPCVolumeEnable())? GET_PC_STREAM_ALL_VOLUME_TYPES : GET_STREAM_ALL_VOLUME_TYPES;
+        for (auto audioStreamType : streamTypeArray) {
             AUDIO_INFO_LOG("SetMute of STREAM_ALL for StreamType = %{public}d ", audioStreamType);
             int32_t setResult = SetSingleStreamMute(audioStreamType, mute, isUpdateUi);
             if (setResult != SUCCESS) {
@@ -835,7 +837,9 @@ int32_t AudioPolicyServer::SetSystemVolumeLevelInternal(AudioStreamType streamTy
         return ERR_OPERATION_FAILED;
     }
     if (streamType == STREAM_ALL) {
-        for (auto audioSteamType : GET_STREAM_ALL_VOLUME_TYPES) {
+        const std::vector<AudioStreamType> &streamTypeArray =
+            (VolumeUtils::IsPCVolumeEnable())? GET_PC_STREAM_ALL_VOLUME_TYPES : GET_STREAM_ALL_VOLUME_TYPES;
+        for (auto audioSteamType : streamTypeArray) {
             AUDIO_INFO_LOG("SetVolume of STREAM_ALL, SteamType = %{public}d ", audioSteamType);
             int32_t setResult = SetSingleStreamVolume(audioSteamType, volumeLevel, isUpdateUi);
             if (setResult != SUCCESS) {

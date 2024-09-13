@@ -25,6 +25,7 @@
 #include "audio_policy_service.h"
 #include "audio_volume_parser.h"
 #include "audio_utils.h"
+#include "audio_policy_server.h"
 
 using namespace std;
 
@@ -290,14 +291,16 @@ void AudioAdapterManager::SaveRingtoneVolumeToLocal(AudioVolumeType volumeType, 
 
 int32_t AudioAdapterManager::SetSystemVolumeLevel(AudioStreamType streamType, int32_t volumeLevel)
 {
+    AUDIO_INFO_LOG("SetSystemVolumeLevel: streamType: %{public}d, deviceType: %{public}d, volumeLevel:%{public}d",
+        streamType, currentActiveDevice_, volumeLevel);
     if (GetSystemVolumeLevel(streamType) == volumeLevel && currentActiveDevice_ != DEVICE_TYPE_BLUETOOTH_SCO &&
-        currentActiveDevice_ != DEVICE_TYPE_BLUETOOTH_A2DP) {
+        currentActiveDevice_ != DEVICE_TYPE_BLUETOOTH_A2DP && !VolumeUtils::IsPCVolumeEnable()) {
         AUDIO_INFO_LOG("The volume is the same as before.");
         return SUCCESS;
     }
     AUDIO_INFO_LOG("SetSystemVolumeLevel: streamType: %{public}d, deviceType: %{public}d, volumeLevel:%{public}d",
         streamType, currentActiveDevice_, volumeLevel);
-    if (volumeLevel == 0 &&
+    if (volumeLevel == 0 && !VolumeUtils::IsPCVolumeEnable() &&
         (streamType == STREAM_VOICE_ASSISTANT || streamType == STREAM_VOICE_CALL ||
         streamType == STREAM_ALARM || streamType == STREAM_ACCESSIBILITY ||
         streamType == STREAM_VOICE_COMMUNICATION)) {
@@ -308,7 +311,7 @@ int32_t AudioAdapterManager::SetSystemVolumeLevel(AudioStreamType streamType, in
     int32_t mimRet = GetMinVolumeLevel(streamType);
     int32_t maxRet = GetMaxVolumeLevel(streamType);
     CHECK_AND_RETURN_RET_LOG(volumeLevel >= mimRet && volumeLevel <= maxRet, ERR_OPERATION_FAILED,
-        "volumeLevel not in scope.");
+        "volumeLevel not in scope,mimRet:%{public}d maxRet:%{public}d", mimRet, maxRet);
 
     // In case if KvStore didnot connect during bootup
     if (!isLoaded_) {
@@ -392,7 +395,9 @@ int32_t AudioAdapterManager::SetVolumeDb(AudioStreamType streamType)
     } else if (streamType == STREAM_MUSIC) {
         return SetVolumeDbForVolumeTypeGroup(MEDIA_VOLUME_TYPE_LIST, volumeDb);
     } else if (streamType == STREAM_RING || streamType == STREAM_VOICE_RING) {
-        return SetVolumeDbForVolumeTypeGroup(RINGTONE_VOLUME_TYPE_LIST, volumeDb);
+        const std::vector<AudioStreamType> &streamTypeArray =
+            (VolumeUtils::IsPCVolumeEnable())? GET_PC_STREAM_RING_VOLUME_TYPES : RINGTONE_VOLUME_TYPE_LIST;
+        return SetVolumeDbForVolumeTypeGroup(streamTypeArray, volumeDb);
     }
 
     return audioServiceAdapter_->SetVolumeDb(streamType, volumeDb);
@@ -441,7 +446,7 @@ int32_t AudioAdapterManager::SetStreamMuteInternal(AudioStreamType streamType, b
     StreamUsage streamUsage)
 {
     AUDIO_INFO_LOG("stream type %{public}d, mute:%{public}d, streamUsage:%{public}d", streamType, mute, streamUsage);
-    if (mute &&
+    if (mute && !VolumeUtils::IsPCVolumeEnable() &&
         (streamType == STREAM_VOICE_ASSISTANT || streamType == STREAM_VOICE_CALL ||
         streamType == STREAM_ALARM || streamType == STREAM_ACCESSIBILITY ||
         streamType == STREAM_VOICE_COMMUNICATION)) {

@@ -20,7 +20,7 @@
 #ifdef USE_CONFIG_POLICY
 #include "config_policy_utils.h"
 #endif
-
+#include "audio_utils.h"
 #include "media_monitor_manager.h"
 
 namespace OHOS {
@@ -69,6 +69,7 @@ int32_t AudioVolumeParser::ParseVolumeConfig(const char *path, StreamVolumeInfoM
         xmlCleanupParser();
         return ERROR;
     }
+
     if (currNode->children) {
         currNode = currNode->children;
     } else {
@@ -142,42 +143,52 @@ void AudioVolumeParser::ParseStreamInfos(xmlNode *node, StreamVolumeInfoMap &str
         if (currNode->type == XML_ELEMENT_NODE
             && (!xmlStrcmp(currNode->name, reinterpret_cast<const xmlChar*>("volume_type")))) {
             std::shared_ptr<StreamVolumeInfo> streamVolInfo = std::make_shared<StreamVolumeInfo>();
-            ParseStreamVolumeInfoAttr(currNode, streamVolInfo);
-            ParseDeviceVolumeInfos(currNode->children, streamVolInfo);
-            AUDIO_DEBUG_LOG("Parse streamType:%{public}d ", streamVolInfo->streamType);
-            streamVolumeInfoMap[streamVolInfo->streamType] = streamVolInfo;
+            if (ParseStreamVolumeInfoAttr(currNode, streamVolInfo)) {
+                ParseDeviceVolumeInfos(currNode->children, streamVolInfo);
+                AUDIO_DEBUG_LOG("Parse streamType:%{public}d ", streamVolInfo->streamType);
+                streamVolumeInfoMap[streamVolInfo->streamType] = streamVolInfo;
+            }
         }
         currNode = currNode->next;
     }
 }
 
-void AudioVolumeParser::ParseStreamVolumeInfoAttr(xmlNode *node, std::shared_ptr<StreamVolumeInfo> &streamVolInfo)
+bool AudioVolumeParser::ParseStreamVolumeInfoAttr(xmlNode *node, std::shared_ptr<StreamVolumeInfo> &streamVolInfo)
 {
     xmlNode *currNode = node;
     AUDIO_DEBUG_LOG("AudioVolumeParser::ParseStreamVolumeInfoAttr");
-    char *pValue = reinterpret_cast<char*>(xmlGetProp(currNode,
-        reinterpret_cast<xmlChar*>(const_cast<char*>("type"))));
+    char *pValue = reinterpret_cast<char *>(xmlGetProp(currNode,
+        reinterpret_cast<xmlChar *>(const_cast<char *>("type"))));
+    if (pValue != nullptr && !xmlStrcmp(reinterpret_cast<const xmlChar *>(pValue),
+        reinterpret_cast<const xmlChar *>("VOICE_PC"))) {
+        VolumeUtils::SetPCVolumeEnable(true);
+        AUDIO_INFO_LOG("PC Volume is Enable");
+        xmlFree(pValue);
+        return false;
+    }
     streamVolInfo->streamType = audioStreamMap_[pValue];
     AUDIO_DEBUG_LOG("stream type: %{public}s; currNode->name %{public}s;", pValue, currNode->name);
     xmlFree(pValue);
 
-    pValue = reinterpret_cast<char*>(xmlGetProp(currNode,
-        reinterpret_cast<xmlChar*>(const_cast<char*>("minidx"))));
+    pValue = reinterpret_cast<char *>(xmlGetProp(currNode,
+        reinterpret_cast<xmlChar *>(const_cast<char *>("minidx"))));
     streamVolInfo->minLevel = atoi(pValue);
     AUDIO_DEBUG_LOG("minidx: %{public}d", atoi(pValue));
     xmlFree(pValue);
 
-    pValue = reinterpret_cast<char*>(xmlGetProp(currNode,
-        reinterpret_cast<xmlChar*>(const_cast<char*>("maxidx"))));
+    pValue = reinterpret_cast<char *>(xmlGetProp(currNode,
+        reinterpret_cast<xmlChar *>(const_cast<char *>("maxidx"))));
     streamVolInfo->maxLevel = atoi(pValue);
     AUDIO_DEBUG_LOG("minidx: %{public}d", atoi(pValue));
     xmlFree(pValue);
 
-    pValue = reinterpret_cast<char*>(xmlGetProp(currNode,
-        reinterpret_cast<xmlChar*>(const_cast<char*>("defaultidx"))));
+    pValue = reinterpret_cast<char *>(xmlGetProp(currNode,
+        reinterpret_cast<xmlChar *>(const_cast<char *>("defaultidx"))));
     streamVolInfo->defaultLevel = atoi(pValue);
     AUDIO_DEBUG_LOG("defaultidx: %{public}d", atoi(pValue));
     xmlFree(pValue);
+
+    return true;
 }
 
 void AudioVolumeParser::ParseDeviceVolumeInfos(xmlNode *node, std::shared_ptr<StreamVolumeInfo> &streamVolInfo)
