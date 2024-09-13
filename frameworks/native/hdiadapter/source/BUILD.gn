@@ -137,6 +137,7 @@ ohos_shared_library("remote_audio_capturer_source") {
 }
 
 ohos_shared_library("remote_fast_audio_capturer_source") {
+  branch_protector_ret = "pac_ret"
   sanitize = {
     cfi = true
     cfi_cross_dso = true
