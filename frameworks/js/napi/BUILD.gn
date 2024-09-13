@@ -112,6 +112,7 @@ ohos_shared_library("audio") {
     "ipc:ipc_single",
     "libuv:uv",
     "napi:ace_napi",
+    "init:libbegetutil",
   ]
 
   if (audio_framework_feature_hiview_enable) {
