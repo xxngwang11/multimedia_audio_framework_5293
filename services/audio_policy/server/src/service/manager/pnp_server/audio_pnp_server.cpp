@@ -118,7 +118,6 @@ void MicrophoneBlocked::OnMicrophoneBlocked(const std::string &info, AudioPnpSer
     }
 }
 
-
 void AudioPnpServer::OpenAndReadInput()
 {
     int32_t ret = -1;

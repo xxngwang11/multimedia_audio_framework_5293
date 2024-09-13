@@ -51,7 +51,7 @@ private:
         std::vector<sptr<AudioDeviceDescriptor>> inputDeviceDescriptors;
     };
 
-    bool isMicBlockDetectionSupported();
+    bool IsMicBlockDetectionSupported();
     static napi_value GetDevices(napi_env env, napi_callback_info info);
     static napi_value GetDevicesSync(napi_env env, napi_callback_info info);
     static napi_value On(napi_env env, napi_callback_info info);

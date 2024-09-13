@@ -1268,7 +1268,7 @@ int32_t NapiAudioManagerCallback::GetMicrophoneBlockedCbListSize()
     return microphoneBlockedCbList_.size();
 }
 
-bool NapiAudioRoutingManager::isMicBlockDetectionSupported()
+bool NapiAudioRoutingManager::IsMicBlockDetectionSupported()
 {
     bool supported = false;
     supported = OHOS::system::GetBoolParameter("const.multimedia.audio.mic_block_detection", false);

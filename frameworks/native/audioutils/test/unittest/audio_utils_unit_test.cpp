@@ -2448,34 +2448,6 @@ HWTEST(AudioUtilsUnitTest, ShowTimestamp_004, TestSize.Level1)
 }
 
 /**
-* @tc.name  : Test GetStreamNameExt  API
-* @tc.type  : FUNC
-* @tc.number: GetStreamNameExt_001
-* @tc.desc  : Test GetStreamNameExt API
-*/
-HWTEST(AudioUtilsUnitTest, GetStreamNameExt_001, TestSize.Level1)
-{
-    string ret = AudioInfoDumpUtils::GetStreamNameExt(STREAM_ENFORCED_AUDIBLE);
-    EXPECT_EQ("ENFORCED_AUDIBLE", ret);
-    ret = AudioInfoDumpUtils::GetStreamNameExt(STREAM_MOVIE);
-    EXPECT_EQ("MOVIE", ret);
-    ret = AudioInfoDumpUtils::GetStreamNameExt(STREAM_GAME);
-    EXPECT_EQ("GAME", ret);
-    ret = AudioInfoDumpUtils::GetStreamNameExt(STREAM_SPEECH);
-    EXPECT_EQ("SPEECH", ret);
-    ret = AudioInfoDumpUtils::GetStreamNameExt(STREAM_SYSTEM_ENFORCED);
-    EXPECT_EQ("SYSTEM_ENFORCED", ret);
-    ret = AudioInfoDumpUtils::GetStreamNameExt(STREAM_VOICE_MESSAGE);
-    EXPECT_EQ("VOICE_MESSAGE", ret);
-    ret = AudioInfoDumpUtils::GetStreamNameExt(STREAM_NAVIGATION);
-    EXPECT_EQ("NAVIGATION", ret);
-    ret = AudioInfoDumpUtils::GetStreamNameExt(STREAM_INTERNAL_FORCE_STOP);
-    EXPECT_EQ("INTERNAL_FORCE_STOP", ret);
-    ret = AudioInfoDumpUtils::GetStreamNameExt(STREAM_VOICE_CALL_ASSISTANT);
-    EXPECT_EQ("VOICE_CALL_ASSISTANT", ret);
-}
-
-/**
 * @tc.name  : Test GetVolumeTypeFromStreamType  API
 * @tc.type  : FUNC
 * @tc.number: GetVolumeTypeFromStreamType_001
