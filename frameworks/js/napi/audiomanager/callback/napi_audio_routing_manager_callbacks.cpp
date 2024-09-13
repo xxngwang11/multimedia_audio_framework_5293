@@ -71,10 +71,6 @@ void NapiAudioPreferredOutputDeviceChangeCallback::RemoveCallbackReference(napi_
     for (auto it = preferredOutputDeviceCbList_.begin(); it != preferredOutputDeviceCbList_.end(); ++it) {
         bool isSameCallback = NapiAudioManagerCallback::IsSameCallback(env_, callback, (*it).first->cb_);
         if (isSameCallback) {
-            AUDIO_INFO_LOG("RemoveCallbackReference: find js callback, delete it");
-            napi_status status = napi_delete_reference(env, (*it).first->cb_);
-            (*it).first->cb_ = nullptr;
-            CHECK_AND_RETURN_LOG(status == napi_ok, "RemoveCallbackReference: delete reference for callback fail");
             preferredOutputDeviceCbList_.erase(it);
             return;
         }
@@ -84,10 +80,6 @@ void NapiAudioPreferredOutputDeviceChangeCallback::RemoveCallbackReference(napi_
 
 void NapiAudioPreferredOutputDeviceChangeCallback::RemoveAllCallbacks()
 {
-    for (auto it = preferredOutputDeviceCbList_.begin(); it != preferredOutputDeviceCbList_.end(); ++it) {
-        napi_delete_reference(env_, (*it).first->cb_);
-        (*it).first->cb_ = nullptr;
-    }
     preferredOutputDeviceCbList_.clear();
     AUDIO_INFO_LOG("RemoveAllCallbacks: remove all js callbacks success");
 }
@@ -207,10 +199,7 @@ void NapiAudioPreferredInputDeviceChangeCallback::RemoveCallbackReference(napi_e
     for (auto it = preferredInputDeviceCbList_.begin(); it != preferredInputDeviceCbList_.end(); ++it) {
         bool isSameCallback = NapiAudioManagerCallback::IsSameCallback(env_, callback, (*it).first->cb_);
         if (isSameCallback) {
-            AUDIO_INFO_LOG("RemoveCallbackReference: find js callback, delete it");
-            napi_status status = napi_delete_reference(env, (*it).first->cb_);
-            (*it).first->cb_ = nullptr;
-            CHECK_AND_RETURN_LOG(status == napi_ok, "RemoveCallbackReference: delete reference for callback fail");
+            AUDIO_INFO_LOG("RemoveCallbackReference: find js callback, erase it");
             preferredInputDeviceCbList_.erase(it);
             return;
         }
@@ -220,10 +209,6 @@ void NapiAudioPreferredInputDeviceChangeCallback::RemoveCallbackReference(napi_e
 
 void NapiAudioPreferredInputDeviceChangeCallback::RemoveAllCallbacks()
 {
-    for (auto it = preferredInputDeviceCbList_.begin(); it != preferredInputDeviceCbList_.end(); ++it) {
-        napi_delete_reference(env_, (*it).first->cb_);
-        (*it).first->cb_ = nullptr;
-    }
     preferredInputDeviceCbList_.clear();
 }
 

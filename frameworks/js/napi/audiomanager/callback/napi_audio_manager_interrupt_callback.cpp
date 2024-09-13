@@ -67,9 +67,6 @@ void NapiAudioManagerInterruptCallback::RemoveCallbackReference(const std::strin
     for (auto it = audioManagerInterruptCallbackList_.begin(); it != audioManagerInterruptCallbackList_.end(); ++it) {
         bool isSameCallback = NapiAudioManagerCallback::IsSameCallback(env_, args, (*it)->cb_);
         if (isSameCallback) {
-            napi_status status = napi_delete_reference(env_, (*it)->cb_);
-            (*it)->cb_ = nullptr;
-            CHECK_AND_RETURN_LOG(status == napi_ok, "RemoveCallbackReference: delete reference for callback fail");
             audioManagerInterruptCallbackList_.erase(it);
             AUDIO_INFO_LOG("RemoveCallbackReference success, list size [%{public}zu]",
                 audioManagerInterruptCallbackList_.size());
@@ -85,13 +82,6 @@ void NapiAudioManagerInterruptCallback::RemoveAllCallbackReferences(const std::s
         "RemoveCallbackReference: Unknown callback type: %{public}s", callbackName.c_str());
 
     std::lock_guard<std::mutex> lock(mutex_);
-    for (auto it = audioManagerInterruptCallbackList_.begin(); it != audioManagerInterruptCallbackList_.end(); ++it) {
-        napi_status ret = napi_delete_reference(env_, (*it)->cb_);
-        if (ret != napi_ok) {
-            AUDIO_ERR_LOG("RemoveAllCallbackReferences: napi_delete_reference err.");
-        }
-        (*it)->cb_ = nullptr;
-    }
     audioManagerInterruptCallbackList_.clear();
     AUDIO_INFO_LOG("RemoveAllCallbackReference: remove all js callbacks success");
 }
