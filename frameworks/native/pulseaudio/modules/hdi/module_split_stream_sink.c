@@ -119,14 +119,10 @@ struct userdata {
     pa_channel_map map;
     int32_t deviceType;
     size_t bytesDropped;
-    int32_t sinkSceneType;
-    int32_t sinkSceneMode;
-    bool hdiEffectEnabled;
     uint32_t writeCount;
     uint32_t renderCount;
     uint32_t fixed_latency;
     pa_usec_t lastProcessDataTime;
-    int64_t timestampSleep;
     uint32_t renderInIdleState;
 };
 
@@ -304,7 +300,7 @@ static void ProcessRewind(struct userdata *u, pa_usec_t now)
     pa_assert(u);
 
     rewindNbytes = u->sink->thread_info.rewind_nbytes;
-    if (!PA_SINK_IS_OPENED(u->sink->thread_info.state) || rewindNbytes <= 0) {
+    if (!PA_SINK_IS_OPENED(u->sink->thread_info.state) || rewindNbytes == 0) {
         goto do_nothing;
     }
     AUDIO_DEBUG_LOG("Requested to rewind %lu bytes.", (unsigned long) rewindNbytes);
@@ -315,7 +311,7 @@ static void ProcessRewind(struct userdata *u, pa_usec_t now)
 
     delay = u->timestamp - now;
     inBuffer = pa_usec_to_bytes(delay, &u->sink->sample_spec);
-    if (inBuffer <= 0) {
+    if (inBuffer == 0) {
         goto do_nothing;
     }
 
@@ -524,7 +520,7 @@ static unsigned SplitPaSinkRender(pa_sink *s, size_t length, pa_memchunk *result
     pa_sink_ref(s);
 
     AUDIO_DEBUG_LOG("module_split_stream_sink, splitSinkRender in  length = %{public}zu", length);
-    if (length <= 0) {
+    if (length == 0) {
         length = pa_frame_align(MIX_BUFFER_LENGTH, &s->sample_spec);
     }
 
@@ -984,11 +980,6 @@ static int32_t InitRemoteSink(struct userdata *u, const char *filePath)
     ret = u->sinkAdapter->RendererSinkInit(u->sinkAdapter, &sample_attrs);
     if (ret != 0) {
         AUDIO_ERR_LOG("audiorenderer Init failed!");
-        return -1;
-    }
-
-    if (ret != 0) {
-        AUDIO_ERR_LOG("audiorenderer control start failed!");
         u->sinkAdapter->RendererSinkDeInit(u->sinkAdapter);
         return -1;
     }
