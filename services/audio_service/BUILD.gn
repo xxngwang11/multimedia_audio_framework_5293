@@ -27,6 +27,7 @@ group("audio_service_packages") {
 }
 
 ohos_shared_library("audio_common") {
+  branch_protector_ret = "pac_ret"
   sanitize = {
     cfi = true
     cfi_cross_dso = true
@@ -149,7 +150,7 @@ config("audio_sasdk_public_config") {
 }
 
 ohos_shared_library("audio_client") {
-  stack_protector_ret = false
+  branch_protector_ret = "pac_ret"
   install_enable = true
   sources = [
     "client/src/audio_device_descriptor.cpp",
@@ -284,6 +285,7 @@ config("audio_service_config") {
 }
 
 ohos_shared_library("audio_process_service") {
+  branch_protector_ret = "pac_ret"
   sanitize = {
     cfi = true
     cfi_cross_dso = true
