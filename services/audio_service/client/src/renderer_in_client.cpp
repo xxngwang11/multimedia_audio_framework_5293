@@ -195,15 +195,13 @@ int32_t RendererInClientInner::UpdatePlaybackCaptureConfig(const AudioPlaybackCa
 void RendererInClientInner::SetRendererInfo(const AudioRendererInfo &rendererInfo)
 {
     rendererInfo_ = rendererInfo;
-    if (rendererInfo_.streamUsage == STREAM_USAGE_SYSTEM ||
-        rendererInfo_.streamUsage == STREAM_USAGE_DTMF ||
-        rendererInfo_.streamUsage == STREAM_USAGE_ENFORCED_TONE ||
-        rendererInfo_.streamUsage == STREAM_USAGE_ULTRASONIC ||
-        rendererInfo_.streamUsage == STREAM_USAGE_NAVIGATION ||
-        rendererInfo_.streamUsage == STREAM_USAGE_NOTIFICATION) {
+
+    rendererInfo_.sceneType = GetEffectSceneName(rendererInfo_.streamUsage);
+
+    if (rendererInfo_.sceneType == AUDIO_SUPPORTED_SCENE_TYPES.find(SCENE_OTHERS)->second) {
         effectMode_ = EFFECT_NONE;
     }
-    rendererInfo_.sceneType = GetEffectSceneName(rendererInfo_.streamUsage);
+
     AUDIO_PRERELEASE_LOGI("SetRendererInfo with flag %{public}d, sceneType %{public}s", rendererInfo_.rendererFlags,
         rendererInfo_.sceneType.c_str());
     AudioSpatializationState spatializationState =

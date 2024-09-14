@@ -110,7 +110,6 @@ AudioStreamType IAudioStream::GetStreamType(ContentType contentType, StreamUsage
 
 const std::string IAudioStream::GetEffectSceneName(const StreamUsage &streamUsage)
 {
-    // return AudioPolicyManager::GetInstance().GetEffectSceneName(streamUsage);
     SupportedEffectConfig supportedEffectConfig;
     AudioPolicyManager::GetInstance().QueryEffectSceneMode(supportedEffectConfig);
     std::string streamUsageString = "";
@@ -122,18 +121,18 @@ const std::string IAudioStream::GetEffectSceneName(const StreamUsage &streamUsag
     }
     if (supportedEffectConfig.postProcessNew.stream.empty()) {
         AUDIO_WARNING_LOG("empty scene type set!");
-        return "";
+        return AUDIO_SUPPORTED_SCENE_TYPES.find(SCENE_OTHERS)->second;
     }
     if (streamUsageString == "") {
         AUDIO_WARNING_LOG("Find streamUsage string failed, not in the parser's string-enum map.");
-        return supportedEffectConfig.postProcessNew.stream.back().scene;
+        return AUDIO_SUPPORTED_SCENE_TYPES.find(SCENE_OTHERS)->second;
     }
     for (const SceneMappingItem &item: supportedEffectConfig.postProcessSceneMap) {
         if (item.name == streamUsageString) {
             return item.sceneType;
         }
     }
-    return supportedEffectConfig.postProcessNew.stream.back().scene;
+    return AUDIO_SUPPORTED_SCENE_TYPES.find(SCENE_OTHERS)->second;
 }
 
 int32_t IAudioStream::GetByteSizePerFrame(const AudioStreamParams &params, size_t &result)
