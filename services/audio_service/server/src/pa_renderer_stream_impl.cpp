@@ -215,8 +215,8 @@ int32_t PaRendererStreamImpl::Pause(bool isStandby)
 
     if (effectMode_ == EFFECT_DEFAULT) {
         AudioEffectChainManager *audioEffectChainManager = AudioEffectChainManager::GetInstance();
-        if (audioEffectChainManager != nullptr){
-           audioEffectChainManager->InitAudioEffectChainDynamic(effectSceneName_); 
+        if (audioEffectChainManager != nullptr) {
+            audioEffectChainManager->InitAudioEffectChainDynamic(effectSceneName_);
         }
     }
 
@@ -253,8 +253,8 @@ int32_t PaRendererStreamImpl::Flush()
 
     if (effectMode_ == EFFECT_DEFAULT) {
         AudioEffectChainManager *audioEffectChainManager = AudioEffectChainManager::GetInstance();
-        if (audioEffectChainManager != nullptr){
-           audioEffectChainManager->InitAudioEffectChainDynamic(effectSceneName_); 
+        if (audioEffectChainManager != nullptr) {
+            audioEffectChainManager->InitAudioEffectChainDynamic(effectSceneName_);
         }
     }
 
@@ -300,8 +300,8 @@ int32_t PaRendererStreamImpl::Stop()
 
     if (effectMode_ == EFFECT_DEFAULT) {
         AudioEffectChainManager *audioEffectChainManager = AudioEffectChainManager::GetInstance();
-        if (audioEffectChainManager != nullptr){
-           audioEffectChainManager->InitAudioEffectChainDynamic(effectSceneName_); 
+        if (audioEffectChainManager != nullptr) {
+            audioEffectChainManager->InitAudioEffectChainDynamic(effectSceneName_);
         }
     }
 
@@ -336,8 +336,8 @@ int32_t PaRendererStreamImpl::Release()
 
     if (effectMode_ == EFFECT_DEFAULT) {
         AudioEffectChainManager *audioEffectChainManager = AudioEffectChainManager::GetInstance();
-        if (audioEffectChainManager != nullptr){
-           audioEffectChainManager->InitAudioEffectChainDynamic(effectSceneName_); 
+        if (audioEffectChainManager != nullptr) {
+            audioEffectChainManager->InitAudioEffectChainDynamic(effectSceneName_);
         }
     }
 
