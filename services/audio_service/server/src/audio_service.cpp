@@ -822,10 +822,12 @@ void AudioService::SetNonInterruptMute(const uint32_t sessionId, const bool mute
         std::shared_ptr<RendererInServer> renderer = allRendererMap_[sessionId].lock();
         if (renderer == nullptr) {
             AUDIO_ERR_LOG("rendererinserver is null");
+            rendererLock.unlock();
             return;
         }
         renderer->SetNonInterruptMute(muteFlag);
         AUDIO_INFO_LOG("allRendererMap_ has sessionId");
+        rendererLock.unlock();
         return;
     }
     rendererLock.unlock();
