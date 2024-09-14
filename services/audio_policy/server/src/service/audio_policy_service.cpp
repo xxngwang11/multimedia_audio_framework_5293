@@ -2524,7 +2524,11 @@ int32_t AudioPolicyService::HandleDeviceChangeForFetchOutputDevice(unique_ptr<Au
         !NeedRehandleA2DPDevice(desc) && desc->connectState_ != DEACTIVE_CONNECTED &&
         lastAudioScene_ == audioScene_ && !shouldUpdateDeviceDueToDualTone_)) {
         AUDIO_INFO_LOG("stream %{public}d device not change, no need move device", rendererChangeInfo->sessionId);
-        if (!IsSameDevice(desc, currentActiveDevice_)) {
+        unique_ptr<AudioDeviceDescriptor> preferredDesc =
+            audioAffinityManager_.GetRendererDevice(rendererChangeInfo->clientUID);
+        if (((preferredDesc->deviceType_ != DEVICE_TYPE_NONE) && !IsSameDevice(desc, currentActiveDevice_)
+            && desc->deviceType_ != preferredDesc->deviceType_)
+            || ((preferredDesc->deviceType_ == DEVICE_TYPE_NONE) && !IsSameDevice(desc, currentActiveDevice_))) {
             currentActiveDevice_ = AudioDeviceDescriptor(*desc);
             SetVolumeForSwitchDevice(currentActiveDevice_.deviceType_);
             UpdateActiveDeviceRoute(currentActiveDevice_.deviceType_, DeviceFlag::OUTPUT_DEVICES_FLAG);
@@ -2538,7 +2542,11 @@ int32_t AudioPolicyService::HandleDeviceChangeForFetchOutputDevice(unique_ptr<Au
 bool AudioPolicyService::UpdateDevice(unique_ptr<AudioDeviceDescriptor> &desc,
     const AudioStreamDeviceChangeReasonExt reason, const std::unique_ptr<AudioRendererChangeInfo> &rendererChangeInfo)
 {
-    if (!IsSameDevice(desc, currentActiveDevice_)) {
+    unique_ptr<AudioDeviceDescriptor> preferredDesc =
+        audioAffinityManager_.GetRendererDevice(rendererChangeInfo->clientUID);
+    if (((preferredDesc->deviceType_ != DEVICE_TYPE_NONE) && !IsSameDevice(desc, currentActiveDevice_)
+        && desc->deviceType_ != preferredDesc->deviceType_)
+        || ((preferredDesc->deviceType_ == DEVICE_TYPE_NONE) && !IsSameDevice(desc, currentActiveDevice_))) {
         WriteOutputRouteChangeEvent(desc, reason);
         currentActiveDevice_ = AudioDeviceDescriptor(*desc);
         AUDIO_DEBUG_LOG("currentActiveDevice update %{public}d", currentActiveDevice_.deviceType_);
@@ -2583,7 +2591,7 @@ void AudioPolicyService::FetchOutputDevice(vector<unique_ptr<AudioRendererChange
         }
         if (needUpdateActiveDevice) {
             isUpdateActiveDevice = UpdateDevice(descs.front(), reason, rendererChangeInfo);
-            needUpdateActiveDevice = false;
+            needUpdateActiveDevice = (isUpdateActiveDevice)? false : true;
         }
         if (!hasDirectChangeDevice && isUpdateActiveDevice && NotifyRecreateDirectStream(rendererChangeInfo, reason)) {
             hasDirectChangeDevice = true;
@@ -2835,7 +2843,11 @@ void AudioPolicyService::FetchInputDevice(vector<unique_ptr<AudioCapturerChangeI
             BluetoothScoFetch(desc, capturerChangeInfos, sourceType);
         }
         if (needUpdateActiveDevice) {
-            if (!IsSameDevice(desc, currentActiveInputDevice_)) {
+            unique_ptr<AudioDeviceDescriptor> preferredDesc =
+                audioAffinityManager_.GetCapturerDevice(capturerChangeInfo->clientUID);
+            if (((preferredDesc->deviceType_ != DEVICE_TYPE_NONE) && !IsSameDevice(desc, currentActiveDevice_)
+                && desc->deviceType_ != preferredDesc->deviceType_)
+                || ((preferredDesc->deviceType_ == DEVICE_TYPE_NONE) && !IsSameDevice(desc, currentActiveDevice_))) {
                 WriteInputRouteChangeEvent(desc, reason);
                 currentActiveInputDevice_ = AudioDeviceDescriptor(*desc);
                 AUDIO_DEBUG_LOG("currentActiveInputDevice update %{public}d", currentActiveInputDevice_.deviceType_);
@@ -2862,7 +2874,11 @@ int32_t AudioPolicyService::HandleDeviceChangeForFetchInputDevice(unique_ptr<Aud
     if (desc->deviceType_ == DEVICE_TYPE_NONE ||
         (IsSameDevice(desc, capturerChangeInfo->inputDeviceInfo) && desc->connectState_ != DEACTIVE_CONNECTED)) {
         AUDIO_INFO_LOG("stream %{public}d device not change, no need move device", capturerChangeInfo->sessionId);
-        if (!IsSameDevice(desc, currentActiveInputDevice_)) {
+        unique_ptr<AudioDeviceDescriptor> preferredDesc =
+            audioAffinityManager_.GetCapturerDevice(capturerChangeInfo->clientUID);
+        if (((preferredDesc->deviceType_ != DEVICE_TYPE_NONE) && !IsSameDevice(desc, currentActiveDevice_)
+            && desc->deviceType_ != preferredDesc->deviceType_)
+            || ((preferredDesc->deviceType_ == DEVICE_TYPE_NONE) && !IsSameDevice(desc, currentActiveDevice_))) {
             currentActiveInputDevice_ = AudioDeviceDescriptor(*desc);
             OnPreferredInputDeviceUpdated(currentActiveInputDevice_.deviceType_, currentActiveInputDevice_.networkId_);
             UpdateActiveDeviceRoute(currentActiveInputDevice_.deviceType_, DeviceFlag::INPUT_DEVICES_FLAG);
