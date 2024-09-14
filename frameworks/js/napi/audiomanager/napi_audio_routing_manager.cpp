@@ -25,7 +25,9 @@
 #include "napi_audio_manager_callbacks.h"
 #include "napi_audio_rounting_available_devicechange_callback.h"
 #include "napi_audio_routing_manager_callbacks.h"
+#if !defined(IOS_PLATFORM) && !defined(ANDROID_PLATFORM)
 #include "parameters.h"
+#endif
 
 namespace OHOS {
 namespace AudioStandard {
@@ -1268,6 +1270,7 @@ int32_t NapiAudioManagerCallback::GetMicrophoneBlockedCbListSize()
     return microphoneBlockedCbList_.size();
 }
 
+#if !defined(IOS_PLATFORM) && !defined(ANDROID_PLATFORM)
 bool NapiAudioRoutingManager::IsMicBlockDetectionSupported()
 {
     bool supported = false;
@@ -1279,5 +1282,6 @@ bool NapiAudioRoutingManager::IsMicBlockDetectionSupported()
     }
     return supported;
 }
+#endif
 }  // namespace AudioStandard
 }  // namespace OHOS

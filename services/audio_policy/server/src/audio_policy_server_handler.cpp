@@ -1103,8 +1103,6 @@ void AudioPolicyServerHandler::HandleServiceEvent(const uint32_t &eventId,
         case EventAudioServerCmd::PIPE_STREAM_CLEAN_EVENT:
             HandlePipeStreamCleanEvent(event);
             break;
-        case EventAudioServerCmd::MICROPHONE_BLOCKED:
-            HandleMicrophoneBlockedCallback(event);
         default:
             break;
     }
@@ -1125,6 +1123,9 @@ void AudioPolicyServerHandler::HandleOtherServiceEvent(const uint32_t &eventId,
             break;
         case EventAudioServerCmd::AUDIO_SESSION_DEACTIVE_EVENT:
             HandleAudioSessionDeactiveCallback(event);
+            break;
+        case EventAudioServerCmd::MICROPHONE_BLOCKED:
+            HandleMicrophoneBlockedCallback(event);
             break;
         default:
             break;
