@@ -8979,12 +8979,16 @@ void AudioA2dpOffloadManager::OnA2dpPlayingStateChanged(const std::string &devic
         "currentStatus:%{public}d, incommingState:%{public}d", GetEncryptAddr(a2dpOffloadDeviceAddress_).c_str(),
         GetEncryptAddr(deviceAddress).c_str(), currentOffloadConnectionState_, playingState);
     if (deviceAddress != a2dpOffloadDeviceAddress_) {
+        if (playingState == A2DP_STOPPED && currentOffloadConnectionState_ == CONNECTION_STATUS_CONNECTED) {
+            return;
+        }
+        // below is A2dp(not offload scenario)
         currentOffloadConnectionState_ = CONNECTION_STATUS_DISCONNECTED;
         return;
     }
-    if (playingState == A2DP_PLAYING) {
-        currentOffloadConnectionState_ = CONNECTION_STATUS_CONNECTED;
 
+    // deviceAddress matched
+    if (playingState == A2DP_PLAYING) {
         if (currentOffloadConnectionState_ == CONNECTION_STATUS_CONNECTING) {
             AUDIO_INFO_LOG("OnA2dpPlayingStateChanged currentOffloadConnectionState_ change "
                 "from %{public}d to %{public}d", currentOffloadConnectionState_, CONNECTION_STATUS_CONNECTED);
@@ -8995,6 +8999,7 @@ void AudioA2dpOffloadManager::OnA2dpPlayingStateChanged(const std::string &devic
             std::vector<int32_t>().swap(connectionTriggerSessionIds_);
             connectionCV_.notify_all();
         }
+        currentOffloadConnectionState_ = CONNECTION_STATUS_CONNECTED;
     } else if (playingState == A2DP_STOPPED) {
         AUDIO_INFO_LOG("OnA2dpPlayingStateChanged currentOffloadConnectionState_ change "
             "from %{public}d to %{public}d", currentOffloadConnectionState_, CONNECTION_STATUS_DISCONNECTED);
