@@ -211,7 +211,7 @@ int32_t ProRendererStreamImpl::Pause(bool isStandby)
 int32_t ProRendererStreamImpl::Flush()
 {
     Trace trace("ProRendererStreamImpl::Flush");
-    AUDIO_INFO_LOG("Enter");
+    AUDIO_INFO_LOG("reset total bytes");
     {
         std::lock_guard lock(enqueueMutex);
         while (!readQueue_.empty()) {
@@ -226,6 +226,7 @@ int32_t ProRendererStreamImpl::Flush()
     for (auto &buffer : sinkBuffer_) {
         memset_s(buffer.data(), buffer.size(), 0, buffer.size());
     }
+    totalBytesWritten_ = 0;
     std::shared_ptr<IStatusCallback> statusCallback = statusCallback_.lock();
     if (statusCallback != nullptr) {
         statusCallback->OnStatusUpdate(OPERATION_FLUSHED);
