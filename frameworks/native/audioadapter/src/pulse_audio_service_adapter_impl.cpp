@@ -733,7 +733,7 @@ void PulseAudioServiceAdapterImpl::PaContextStateCb(pa_context *c, void *userdat
 
         case PA_CONTEXT_FAILED:
         case PA_CONTEXT_TERMINATED:
-+           AUDIO_ERR_LOG("state is PA_CONTEXT_FAILED or PA_CONTEXT_TERMINATED");
+            AUDIO_ERR_LOG("state is PA_CONTEXT_FAILED or PA_CONTEXT_TERMINATED");
             pa_threaded_mainloop_signal(thiz->mMainLoop, 0);
             return;
 
