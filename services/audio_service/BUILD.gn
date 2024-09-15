@@ -237,7 +237,11 @@ ohos_prebuilt_etc("audio_server_init") {
 
 config("audio_service_config") {
   visibility = [ ":*" ]
-  visibility += [ "../../test/fuzztest/*" ]
+  visibility += [
+    "../../services/audio_service/test/unittest/audio_endpoint_unit_test",
+    "../../services/audio_service/test/unittest/audio_server_unit_test",
+    "../../test/fuzztest/*",
+  ]
 
   include_dirs = [
     "common/include",

@@ -54,6 +54,7 @@ group("audio_unit_test") {
     "../frameworks/native/toneplayer/test/unittest:audio_toneplayer_unit_test",
     "../services/audio_service/test/unittest:audio_balance_unit_test",
     "../services/audio_service/test/unittest:audio_service_unit_test",
+    "../services/audio_service/test/unittest/audio_server_unit_test:audio_server_unit_test",
   ]
 
   if (audio_framework_feature_opensl_es) {
@@ -67,6 +68,7 @@ group("audio_unit_test") {
     deps += [
       "../services/audio_service/test/unittest:audio_direct_sink_unit_test",
       "../services/audio_service/test/unittest:none_mix_engine_unit_test",
+      "../services/audio_service/test/unittest/audio_endpoint_unit_test:audio_endpoint_unit_test",
     ]
   }
 }
