@@ -79,6 +79,8 @@ struct Userdata {
     // todo resampler map
     uint64_t lastRecodedLatency;
     uint32_t continuesGetLatencyErrCount;
+    uint32_t streamAvailable;
+    uint32_t lastStreamAvailable;
     struct {
         int32_t sessionID;
         bool firstWrite;
