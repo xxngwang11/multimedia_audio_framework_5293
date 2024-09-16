@@ -1191,6 +1191,11 @@ static unsigned SinkRenderPrimaryCluster(pa_sink *si, size_t *length, pa_mix_inf
             PreparePrimaryFading(sinkIn, infoIn, si);
             CheckPrimaryFadeinIsDone(si, sinkIn);
 
+            const char *sinkFadeoutPause = pa_proplist_gets(sinkIn->proplist, "fadeoutPause");
+            if (pa_safe_streq(sinkFadeoutPause, "0")) {
+                u->streamAvailable++;
+            }
+
             infoIn++;
             n++;
             maxInfo--;
@@ -1534,6 +1539,21 @@ static void SinkRenderPrimaryAfterProcess(pa_sink *si, size_t length, pa_memchun
     chunkIn->index = 0;
     chunkIn->length = length;
     pa_memblock_release(chunkIn->memblock);
+
+    int fadeDirection = (u->streamAvailable != 0) && (u->lastStreamAvailable == 0) ? 0 :
+                        (u->streamAvailable == 0 && u->lastStreamAvailable != 0) ? 1 : -1;
+
+    if (fadeDirection != -1) {
+        AUDIO_INFO_LOG("do %{public}s for MIXED DATA", fadeDirection ? "fade-out" : "fade-in");
+        pa_memchunk_make_writable(chunkIn, 0);
+        void *data = pa_memblock_acquire_chunk(chunkIn);
+        DoFading(data, chunkIn->length, u, fadeDirection);
+        pa_memblock_release(chunkIn->memblock);
+    }
+    if (u->streamAvailable == 0 && u->lastStreamAvailable == 0) {
+        pa_silence_memchunk(chunkIn, &si->sample_spec);
+    }
+    u->lastStreamAvailable = u->streamAvailable;
 }
 
 static char *HandleSinkSceneType(struct Userdata *u, time_t currentTime, int32_t i)
@@ -1767,6 +1787,7 @@ static void SinkRenderPrimaryProcess(pa_sink *si, size_t length, pa_memchunk *ch
     UpdateSceneToCountMap(u->sceneToCountMap);
     // to do update resampler when output device change
     void *state = NULL;
+    u->streamAvailable = 0;
     while ((pa_hashmap_iterate(u->sceneToCountMap, &state, &sceneType))) {
         uint32_t processChannels = DEFAULT_NUM_CHANNEL;
         uint64_t processChannelLayout = DEFAULT_CHANNELLAYOUT;
@@ -3956,6 +3977,8 @@ static int32_t PaHdiSinkNewInitUserDataAndSink(pa_module *m, pa_modargs *ma, con
 
     u->lastRecodedLatency = 0;
     u->continuesGetLatencyErrCount = 0;
+    u->lastStreamAvailable = 0;
+    u->streamAvailable = 0;
 
     if (u->fixed_latency) {
         pa_sink_set_fixed_latency(u->sink, u->block_usec);
