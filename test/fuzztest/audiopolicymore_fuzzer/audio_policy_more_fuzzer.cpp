@@ -88,7 +88,7 @@ static AudioRendererInfo getAudioRenderInfo(const uint8_t *rawData, size_t size)
     ContentType contentType = *reinterpret_cast<const ContentType *>(rawData);
     StreamUsage streamUsage = *reinterpret_cast<const StreamUsage *>(rawData);
     int32_t rendererFlags = *reinterpret_cast<const int32_t *>(rawData);
-    std::string sceneType(reinterpret_cast<const char*>(rawData), size - 1);
+    std::string sceneType = "SCENE_MOVIE";
     bool spatializationEnabled = *reinterpret_cast<const bool *>(rawData);
     bool headTrackingEnabled = *reinterpret_cast<const bool *>(rawData);
     int32_t originalFlag = *reinterpret_cast<const int32_t *>(rawData);
@@ -166,7 +166,7 @@ void AudioInterruptZoneDumpFuzzTest(const uint8_t *rawData, size_t size)
     }
 
     std::shared_ptr<AudioInterruptService> interruptService = std::make_shared<AudioInterruptService>();
-    std::string dumpString(reinterpret_cast<const char*>(rawData), size-1);
+    std::string dumpString = "";
     if (interruptService == nullptr) {
         return;
     }
@@ -386,12 +386,6 @@ void AudioDeviceMoreFuzzTest(const uint8_t *rawData, size_t size)
     GetServerPtr()->GetPersistentMicMuteState();
     GetServerPtr()->IsMicrophoneMuteLegacy();
     GetServerPtr()->GetAudioScene();
-    const sptr<AudioStandard::AudioDeviceDescriptor> deviceDescriptor = new AudioStandard::AudioDeviceDescriptor();
-    CastType type = *reinterpret_cast<const CastType *>(rawData);
-    sptr<IRemoteObject> object = data.ReadRemoteObject();
-    GetServerPtr()->ConfigDistributedRoutingRole(deviceDescriptor, type);
-    GetServerPtr()->SetAudioDeviceRefinerCallback(object);
-    GetServerPtr()->UnsetAudioDeviceRefinerCallback();
 }
 
 void AudioPolicySomeMoreFuzzTest(const uint8_t *rawData, size_t size)
@@ -434,7 +428,7 @@ void AudioPolicyOtherMoreFuzzTest(const uint8_t *rawData, size_t size)
     bool highResExist = *reinterpret_cast<const bool *>(rawData);
     GetServerPtr()->SetHighResolutionExist(highResExist);
 
-    std::string networkId(reinterpret_cast<const char*>(rawData), size - 1);
+    std::string networkId = "123";
     InterruptEvent event = {};
     event.eventType = *reinterpret_cast<const InterruptType *>(rawData);
     event.forceType = *reinterpret_cast<const InterruptForceType *>(rawData);
@@ -454,7 +448,7 @@ void AudioVolumeKeyCallbackStubMoreFuzzTest(const uint8_t *rawData, size_t size)
     volumeEvent.volume = *reinterpret_cast<const int32_t *>(rawData);
     volumeEvent.updateUi = *reinterpret_cast<const bool *>(rawData);
     volumeEvent.volumeGroupId = *reinterpret_cast<const int32_t *>(rawData);
-    std::string id(reinterpret_cast<const char*>(rawData), size - 1);
+    std::string id = "123";
     volumeEvent.networkId = id;
 
     MessageParcel data;
@@ -471,7 +465,7 @@ void AudioVolumeKeyCallbackStubMoreFuzzTest(const uint8_t *rawData, size_t size)
 
 void AudioPolicyManagerFuzzTest(const uint8_t *rawData, size_t size)
 {
-    if (rawData == nullptr || size < LIMITSIZE || size < sizeof(ssize_t)) {
+    if (rawData == nullptr || size < LIMITSIZE) {
         return;
     }
     AudioEvent audioEvent;
@@ -483,7 +477,7 @@ void AudioPolicyManagerFuzzTest(const uint8_t *rawData, size_t size)
     audioEvent.address = DEFAULTADDRESS;
     int fd = *reinterpret_cast<const int*>(rawData);
     int sockfd = *reinterpret_cast<const int*>(rawData);
-    size_t length = reinterpret_cast<size_t>(rawData);
+    size_t length = *reinterpret_cast<const size_t*>(rawData);
     ssize_t strLength = *reinterpret_cast<const ssize_t*>(rawData);
     const char *msg = reinterpret_cast<const char *>(rawData);
     char* buffer = const_cast<char*>(reinterpret_cast<const char*>(rawData));

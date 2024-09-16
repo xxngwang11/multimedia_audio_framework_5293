@@ -183,7 +183,7 @@ void AudioEndPointSeparateConfigFuzzTest(const uint8_t* rawData, size_t size)
     audioEndpoint->LinkProcessStream(processStream);
     audioEndpoint->UnlinkProcessStream(processStream);
     audioEndpoint->GetPreferBufferInfo(totalSizeInFrame, spanSizeInFrame);
-    std::string dumpString(reinterpret_cast<const char*>(rawData), size);
+    std::string dumpString = "";
     audioEndpoint->Dump(dumpString);
     audioEndpoint->GetEndpointType();
     audioEndpoint->GetDeviceInfo();

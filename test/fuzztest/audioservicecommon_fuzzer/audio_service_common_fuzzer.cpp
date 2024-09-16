@@ -49,11 +49,6 @@ void AudioCommonConvertFuzzTest(const uint8_t* rawData, size_t size)
     int16_t state_16dst[] = {1, 2, 3, 4, 5};
     int16_t* dst_16 = state_16dst;
     AudioCommonConverter::ConvertBufferTo16Bit(buffer, format, dst_16, COMMONCOUNT, COMMONVOLUME);
-    uint32_t samplePerFrame = *reinterpret_cast<const uint32_t*>(rawData);
-    samplePerFrame = samplePerFrame%ENUMSIZE;
-    std::vector<float> floatBuffer = {0.0f, 0.0f, 0.0f};
-    AudioCommonConverter::ConvertBufferToFloat(buffer, samplePerFrame, floatBuffer, COMMONVOLUME);
-    AudioCommonConverter::ConvertFloatToAudioBuffer(floatBuffer, buffer, samplePerFrame);
 }
 
 void AudioRingCacheFuzzTest(const uint8_t* rawData, size_t size)

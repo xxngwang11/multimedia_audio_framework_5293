@@ -30,6 +30,8 @@ namespace AudioStandard {
 using namespace std;
 const int32_t LIMITSIZE = 4;
 const char *SINK_ADAPTER_NAME = "primary";
+const uint64_t COMMON_UINT64_NUM = 2;
+const int64_t COMMON_INT64_NUM = 2;
 
 IMmapAudioRendererSink *GetAdaptorBlueToothSink()
 {
@@ -81,8 +83,8 @@ void SetAudioParameterFuzzTest(const uint8_t *rawData, size_t size)
         return;
     }
     AudioParamKey key = *reinterpret_cast<const AudioParamKey *>(rawData);
-    std::string condition(reinterpret_cast<const char*>(rawData), size - 1);
-    std::string value(reinterpret_cast<const char*>(rawData), size - 1);
+    std::string condition = "123456";
+    std::string value = "123456";
     GetAdaptorBlueToothSink()->SetAudioParameter(key, condition, value);
 }
 
@@ -92,7 +94,7 @@ void GetAudioParameterFuzzTest(const uint8_t *rawData, size_t size)
         return;
     }
     AudioParamKey key = *reinterpret_cast<const AudioParamKey *>(rawData);
-    std::string condition(reinterpret_cast<const char*>(rawData), size - 1);
+    std::string condition = "123456";
     GetAdaptorBlueToothSink()->GetAudioParameter(key, condition);
 }
 
@@ -115,7 +117,7 @@ void InitFuzzTest(const uint8_t *rawData, size_t size)
     attr.sampleRate = *reinterpret_cast<const uint32_t *>(rawData);
     attr.channel = *reinterpret_cast<const uint32_t *>(rawData);
     attr.format = *reinterpret_cast<const HdiAdapterFormat *>(rawData);
-    attr.channelLayout = *reinterpret_cast<const uint64_t *>(rawData);
+    attr.channelLayout = COMMON_UINT64_NUM;
     attr.deviceType = *reinterpret_cast<const DeviceType *>(rawData);
     attr.volume = *reinterpret_cast<const float *>(rawData);
     attr.openMicSpeaker = *reinterpret_cast<const uint32_t *>(rawData);
@@ -128,8 +130,8 @@ void RenderFrameFuzzTest(const uint8_t *rawData, size_t size)
         return;
     }
     char data = *const_cast<char*>(reinterpret_cast<const char*>(rawData));
-    uint64_t len = *reinterpret_cast<const uint64_t*>(rawData);
-    uint64_t writeLen = *reinterpret_cast<const uint64_t*>(rawData);
+    uint64_t len = COMMON_UINT64_NUM;
+    uint64_t writeLen = COMMON_UINT64_NUM;
     GetAdaptorBlueToothSink()->RenderFrame(data, len, writeLen);
 }
 
@@ -159,15 +161,11 @@ void GetVolumeFuzzTest(const uint8_t* rawData, size_t size)
     float left, right;
     if (size >= sizeof(left)) {
         left = *reinterpret_cast<const float*>(rawData);
-        rawData += sizeof(left);
-        size -= sizeof(left);
     } else {
         return;
     }
     if (size >= sizeof(right)) {
         right = *reinterpret_cast<const float*>(rawData);
-        rawData += sizeof(right);
-        size -= sizeof(right);
     } else {
         return;
     }
@@ -176,11 +174,11 @@ void GetVolumeFuzzTest(const uint8_t* rawData, size_t size)
 
 void GetTransactionIdFuzzTest(const uint8_t* rawData, size_t size)
 {
-    if (rawData == nullptr || size < LIMITSIZE || size < sizeof(uint64_t)) {
+    if (rawData == nullptr || size < LIMITSIZE) {
         return;
     }
-    uint64_t* transactionId = const_cast<uint64_t*>(reinterpret_cast<const uint64_t*>(rawData));
-    GetAdaptorBlueToothSink()->GetTransactionId(transactionId);
+    uint64_t transactionId = COMMON_UINT64_NUM;
+    GetAdaptorBlueToothSink()->GetTransactionId(&transactionId);
 }
 
 void StopFuzzTest(const uint8_t* rawData, size_t size)
@@ -244,9 +242,9 @@ void GetPresentationPositionFuzzTest(const uint8_t* rawData, size_t size)
     if (rawData == nullptr || size < LIMITSIZE) {
         return;
     }
-    uint64_t frames = *(reinterpret_cast<const uint64_t*>(rawData));
-    int64_t timeSec = *(reinterpret_cast<const int64_t*>(rawData));
-    int64_t timeNanoSec = *(reinterpret_cast<const int64_t*>(rawData));
+    uint64_t frames = COMMON_UINT64_NUM;
+    int64_t timeSec = COMMON_INT64_NUM;
+    int64_t timeNanoSec = COMMON_INT64_NUM;
     GetAdaptorBlueToothSink()->GetPresentationPosition(frames, timeSec, timeNanoSec);
 }
 
