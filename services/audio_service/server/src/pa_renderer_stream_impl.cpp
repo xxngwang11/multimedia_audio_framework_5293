@@ -338,6 +338,11 @@ int32_t PaRendererStreamImpl::GetCurrentTimeStamp(uint64_t &timestamp)
     if (CheckReturnIfStreamInvalid(paStream_, ERR_ILLEGAL_STATE) < 0) {
         return ERR_ILLEGAL_STATE;
     }
+    int32_t XcollieFlag = (1 | 2); // flag 1 generate log file, flag 2 die when timeout, restart server
+    AudioXCollie audioXCollie("PaRendererStreamImpl::GetCurrentTimeStamp", PA_STREAM_IMPL_TIMEOUT,
+        [](void *) {
+            AUDIO_ERR_LOG("pulseAudio timeout");
+        }, nullptr, XcollieFlag);
 
     UpdatePaTimingInfo();
 
@@ -359,6 +364,9 @@ int32_t PaRendererStreamImpl::GetCurrentPosition(uint64_t &framePosition, uint64
     if (CheckReturnIfStreamInvalid(paStream_, ERR_ILLEGAL_STATE) < 0) {
         return ERR_ILLEGAL_STATE;
     }
+    int32_t XcollieFlag = (1 | 2); // flag 1 generate log file, flag 2 die when timeout, restart server
+    AudioXCollie audioXCollie("PaRendererStreamImpl::GetCurrentPosition", PA_STREAM_IMPL_TIMEOUT,
+        [](void *) { AUDIO_ERR_LOG("pulseAudio timeout"); }, nullptr, XcollieFlag);
 
     pa_usec_t curTimeGetLatency = pa_rtclock_now();
     if (curTimeGetLatency - preTimeGetPaLatency_ > AUDIO_CYCLE_TIME_US || firstGetPaLatency_) { // 20000 cycle time
@@ -369,17 +377,12 @@ int32_t PaRendererStreamImpl::GetCurrentPosition(uint64_t &framePosition, uint64
 
     pa_usec_t paLatency {0};
     int32_t negative {0};
-    if (pa_stream_get_latency(paStream_, &paLatency, &negative) >= 0) {
-        if (negative) {
-            return ERR_OPERATION_FAILED;
-        }
+    if (pa_stream_get_latency(paStream_, &paLatency, &negative) >= 0 && negative) {
+        return ERR_OPERATION_FAILED;
     }
 
     const pa_timing_info *info = pa_stream_get_timing_info(paStream_);
-    if (info == nullptr) {
-        AUDIO_WARNING_LOG("pa_stream_get_timing_info failed");
-        return ERR_OPERATION_FAILED;
-    }
+    CHECK_AND_RETURN_RET_LOG(info != nullptr, ERR_OPERATION_FAILED, "pa_stream_get_timing_info failed");
     const pa_sample_spec *sampleSpec = pa_stream_get_sample_spec(paStream_);
     uint64_t readIndex = pa_bytes_to_usec(info->read_index, sampleSpec);
     uint64_t writeIndex = pa_bytes_to_usec(info->write_index, sampleSpec);
@@ -425,9 +428,8 @@ int32_t PaRendererStreamImpl::GetLatency(uint64_t &latency)
     Trace trace("PaRendererStreamImpl::GetLatency");
     int32_t XcollieFlag = (1 | 2); // flag 1 generate log file, flag 2 die when timeout, restart server
     AudioXCollie audioXCollie("PaRendererStreamImpl::GetLatency", PA_STREAM_IMPL_TIMEOUT,
-        [this](void *) {
-            AUDIO_ERR_LOG("Connect timeout, trigger signal");
-            pa_threaded_mainloop_signal(this->mainloop_, 0);
+        [](void *) {
+            AUDIO_ERR_LOG("pulseAudio timeout");
         }, nullptr, XcollieFlag);
     pa_usec_t curTimeGetLatency = pa_rtclock_now();
     if (curTimeGetLatency - preTimeGetLatency_ < AUDIO_CYCLE_TIME_US && !firstGetLatency_) { // 20000 cycle time
@@ -978,10 +980,10 @@ int32_t PaRendererStreamImpl::GetOffloadApproximatelyCacheTime(uint64_t &timesta
     if (!offloadEnable_) {
         return ERR_OPERATION_FAILED;
     }
+    PaLockGuard lock(mainloop_);
     if (CheckReturnIfStreamInvalid(paStream_, ERR_ILLEGAL_STATE) < 0) {
         return ERR_ILLEGAL_STATE;
     }
-    PaLockGuard lock(mainloop_);
 
     pa_operation *operation = pa_stream_update_timing_info(paStream_, NULL, NULL);
     if (operation != nullptr) {
@@ -1147,9 +1149,6 @@ int32_t PaRendererStreamImpl::SetOffloadMode(int32_t state, bool isAppBack)
     if (OffloadUpdatePolicy(statePolicy, false) != SUCCESS) {
         return ERR_OPERATION_FAILED;
     }
-    if (statePolicy == OFFLOAD_ACTIVE_FOREGROUND) {
-        pa_threaded_mainloop_signal(mainloop_, 0);
-    }
 #else
     AUDIO_INFO_LOG("SetStreamOffloadMode not available, FEATURE_POWER_MANAGER no define");
 #endif
@@ -1240,8 +1239,8 @@ void PaRendererStreamImpl::UpdatePaTimingInfo()
     if (operation != nullptr) {
         auto start_time = std::chrono::steady_clock::now();
         while (pa_operation_get_state(operation) == PA_OPERATION_RUNNING) {
-            if ((std::chrono::steady_clock::now() - start_time) > std::chrono::seconds(PA_STREAM_IMPL_TIMEOUT)) {
-                AUDIO_ERR_LOG("pa_stream_update_timing_info time out");
+            if ((std::chrono::steady_clock::now() - start_time) > std::chrono::seconds(PA_STREAM_IMPL_TIMEOUT + 1)) {
+                AUDIO_ERR_LOG("pa_stream_update_timing_info timeout");
                 break;
             }
             pa_threaded_mainloop_wait(mainloop_);
