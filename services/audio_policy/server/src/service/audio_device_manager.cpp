@@ -58,11 +58,13 @@ static int64_t GetCurrentTimeMS()
 
 void AudioDeviceManager::ParseDeviceXml()
 {
+    AUDIO_INFO_LOG("In");
     unique_ptr<AudioDeviceParser> audioDeviceParser = make_unique<AudioDeviceParser>(this);
     if (audioDeviceParser->LoadConfiguration()) {
         AUDIO_INFO_LOG("Audio device manager load configuration successfully.");
         audioDeviceParser->Parse();
     }
+    AUDIO_INFO_LOG("Out");
 }
 
 void AudioDeviceManager::OnXmlParsingCompleted(
