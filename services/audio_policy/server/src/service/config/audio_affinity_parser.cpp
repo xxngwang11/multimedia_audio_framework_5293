@@ -69,7 +69,6 @@ void audioAffinityParser::Destroy()
 {
     if (mDoc_ != nullptr) {
         xmlFreeDoc(mDoc_);
-        xmlCleanupParser();
     }
 }
 
