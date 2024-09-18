@@ -56,6 +56,7 @@ ProRendererStreamImpl::ProRendererStreamImpl(AudioProcessConfig processConfig, b
       byteSizePerFrame_(0),
       spanSizeInFrame_(0),
       totalBytesWritten_(0),
+      sinkBytesWritten_(0),
       minBufferSize_(0),
       powerVolumeFactor_(1.f),
       status_(I_STATUS_INVALID),
@@ -227,7 +228,7 @@ int32_t ProRendererStreamImpl::Flush()
     for (auto &buffer : sinkBuffer_) {
         memset_s(buffer.data(), buffer.size(), 0, buffer.size());
     }
-    totalBytesWritten_ = 0;
+    sinkBytesWritten_ = 0;
     std::shared_ptr<IStatusCallback> statusCallback = statusCallback_.lock();
     if (statusCallback != nullptr) {
         statusCallback->OnStatusUpdate(OPERATION_FLUSHED);
@@ -263,6 +264,7 @@ int32_t ProRendererStreamImpl::Stop()
     if (isFirstFrame_) {
         firstFrameSync_.notify_all();
     }
+    totalBytesWritten_ = 0;
     std::shared_ptr<IStatusCallback> statusCallback = statusCallback_.lock();
     if (statusCallback != nullptr) {
         statusCallback->OnStatusUpdate(OPERATION_STOPPED);
@@ -313,8 +315,8 @@ int32_t ProRendererStreamImpl::GetCurrentPosition(uint64_t &framePosition, uint6
 
 int32_t ProRendererStreamImpl::GetLatency(uint64_t &latency)
 {
-    uint64_t framePos;
-    GetStreamFramesWritten(framePos);
+    CHECK_AND_RETURN_RET_LOG(byteSizePerFrame_ != 0, ERR_ILLEGAL_STATE, "Error frame size");
+    uint64_t framePos = sinkBytesWritten_ / byteSizePerFrame_;
     latency = ((framePos / byteSizePerFrame_) * AUDIO_US_PER_S) / processConfig_.streamInfo.samplingRate;
     return SUCCESS;
 }
@@ -440,6 +442,7 @@ int32_t ProRendererStreamImpl::EnqueueBuffer(const BufferDesc &bufferDesc)
     AUDIO_DEBUG_LOG("buffer length:%{public}zu ,sink buffer length:%{public}zu,volume:%{public}f", bufferDesc.bufLength,
         sinkBuffer_[0].size(), volume);
     totalBytesWritten_ += bufferDesc.bufLength;
+    sinkBytesWritten_ += bufferDesc.bufLength;
     return SUCCESS;
 }
 
