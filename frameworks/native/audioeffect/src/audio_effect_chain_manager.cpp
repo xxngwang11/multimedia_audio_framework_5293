@@ -388,6 +388,7 @@ int32_t AudioEffectChainManager::SetAudioEffectChainDynamic(const std::string &s
         descriptor.effectName = effect;
         int32_t ret = effectToLibraryEntryMap_[effect]->audioEffectLibHandle->createEffect(descriptor, &handle);
         CHECK_AND_CONTINUE_LOG(ret == 0, "EffectToLibraryEntryMap[%{public}s] createEffect fail", effect.c_str());
+
         AUDIO_INFO_LOG("createEffect, EffectToLibraryEntryMap [%{public}s], effectChainKey [%{public}s]",
             effect.c_str(), effectChainKey.c_str());
         AudioEffectScene currSceneType;
@@ -438,7 +439,7 @@ int32_t AudioEffectChainManager::ReleaseAudioEffectChainDynamic(const std::strin
             sceneTypeToEffectChainCountMap_[sceneTypeAndDeviceKey], defaultEffectChainCount_);
         return SUCCESS;
     }
-    
+
     sceneTypeToSpecialEffectSet_.erase(sceneType);
     sceneTypeToEffectChainCountMap_.erase(sceneTypeAndDeviceKey);
     CheckAndReleaseCommonEffectChain(sceneType);
@@ -489,7 +490,6 @@ bool AudioEffectChainManager::ExistAudioEffectChain(const std::string &sceneType
     }
 
     std::string effectChainKey = sceneType + "_&_" + effectMode + "_&_" + GetDeviceTypeName();
-
     if (!sceneTypeAndModeToEffectChainNameMap_.count(effectChainKey)) {
         return false;
     }
@@ -588,7 +588,6 @@ int32_t AudioEffectChainManager::EffectApVolumeUpdate(std::shared_ptr<AudioEffec
         if (static_cast<int32_t>(audioEffectChain->GetFinalVolume() * MAX_UINT_VOLUME_NUM) !=
             static_cast<int32_t>(volumeMax * MAX_UINT_VOLUME_NUM)) {
             audioEffectChain->SetFinalVolume(volumeMax);
-            AudioEffectScene currSceneType;
             int32_t ret = audioEffectChain->UpdateEffectParam();
             CHECK_AND_RETURN_RET_LOG(ret == 0, ERROR, "set ap volume failed");
             AUDIO_INFO_LOG("The delay of SceneType %{public}s is %{public}u, finalVolume changed to %{public}f",
@@ -650,7 +649,7 @@ int32_t AudioEffectChainManager::EffectDspRotationUpdate(std::shared_ptr<AudioEf
     AUDIO_INFO_LOG("set hdi rotation: %{public}d", effectHdiInput_[1]);
     int32_t ret = audioEffectHdiParam_->UpdateHdiState(effectHdiInput_);
     CHECK_AND_RETURN_RET_LOG(ret == 0, ERROR, "set hdi rotation failed");
-    
+
     return SUCCESS;
 }
 
@@ -676,7 +675,7 @@ int32_t AudioEffectChainManager::EffectApRotationUpdate(std::shared_ptr<AudioEff
         AUDIO_INFO_LOG("The delay of SceneType %{public}s is %{public}u, rotation changed to %{public}u",
             it->first.c_str(), audioEffectChain->GetLatency(), rotationState);
         }
-    
+
     return SUCCESS;
 }
 
@@ -690,6 +689,7 @@ int32_t AudioEffectChainManager::EffectRotationUpdate(const uint32_t rotationSta
         EffectDspRotationUpdate(audioEffectRotation, rotationState);
         EffectApRotationUpdate(audioEffectRotation, rotationState);
     }
+
     return SUCCESS;
 }
 #endif
@@ -955,7 +955,7 @@ void AudioEffectChainManager::DeleteAllChains()
         sceneTypeToEffectChainCountBackupMap.insert(
             std::make_pair(it->first.substr(0, static_cast<size_t>(it->first.find("_&_"))), it->second));
     }
-    
+
     for (auto it = sceneTypeToEffectChainCountBackupMap.begin(); it != sceneTypeToEffectChainCountBackupMap.end();
         ++it) {
         for (int32_t k = 0; k < it->second; ++k) {
@@ -1224,7 +1224,6 @@ std::shared_ptr<AudioEffectChain> AudioEffectChainManager::CreateAudioEffectChai
 #endif
         return audioEffectChain;
     }
-
     if ((maxEffectChainCount_ - static_cast<int32_t>(sceneTypeToSpecialEffectSet_.size())) > 1) {
         AUDIO_INFO_LOG("max audio effect chain count not reached, create special effect chain: %{public}s",
             sceneType.c_str());

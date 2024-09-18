@@ -238,6 +238,7 @@ void AudioEffectChain::AddEffectHandle(AudioEffectHandle handle, AudioEffectLibr
     ret = (*handle)->command(handle, EFFECT_CMD_GET_CONFIG, &cmdInfo, &cmdInfo);
     CHECK_AND_RETURN_LOG(ret == 0, "[%{public}s] with mode [%{public}s], %{public}s effect EFFECT_CMD_GET_CONFIG fail",
         sceneType_.c_str(), effectMode_.c_str(), effectName.c_str());
+
     Swap(ioBufferConfig_.inputCfg, ioBufferConfig_.outputCfg); // pass outputCfg to next algo as inputCfg
 
     standByEffectHandles_.emplace_back(handle);

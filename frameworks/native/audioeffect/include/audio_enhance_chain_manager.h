@@ -54,7 +54,7 @@ public:
     int32_t SetVolumeInfo(const AudioVolumeType &volumeType, const float &systemVol);
     int32_t SetMicrophoneMuteInfo(const bool &isMute);
     int32_t SetStreamVolumeInfo(const uint32_t &sessionId, const float &streamVol);
-	
+
     int32_t SetAudioEnhanceProperty(const AudioEnhancePropertyArray &propertyArray);
     int32_t GetAudioEnhanceProperty(AudioEnhancePropertyArray &propertyArray);
     void ResetInfo();  // use for unit test
@@ -75,7 +75,7 @@ private:
     void ConstructEnhanceChainMgrMaps(std::vector<EffectChain> &enhanceChains,
         const EffectChainManagerParam &managerParam,
         std::vector<std::shared_ptr<AudioEffectLibEntry>> &enhanceLibraryList);
-    
+
     std::map<uint32_t, std::shared_ptr<AudioEnhanceChain>> sceneTypeToEnhanceChainMap_;
     std::map<uint32_t, int32_t> sceneTypeToEnhanceChainCountMap_;
     std::unordered_map<std::string, std::string> sceneTypeAndModeToEnhanceChainNameMap_;

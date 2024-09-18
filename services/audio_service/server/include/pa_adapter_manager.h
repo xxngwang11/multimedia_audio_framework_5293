@@ -112,7 +112,7 @@ private:
 
     int32_t GetDeviceNameForConnect(AudioProcessConfig processConfig,
         uint32_t sessionId, std::string &deviceName);
-    
+
     void SetHighResolution(pa_proplist *propList, AudioProcessConfig &processConfig, uint32_t sessionId);
     bool CheckHighResolution(const AudioProcessConfig &processConfig);
     void SetRecordProplist(pa_proplist *propList, AudioProcessConfig &processConfig);

@@ -104,6 +104,7 @@ int32_t EnhanceChainManagerGetAlgoConfig(const uint32_t sceneKeyCode, pa_sample_
     AudioBufferConfig micConfig = {};
     AudioBufferConfig ecConfig = {};
     AudioBufferConfig micRefConfig = {};
+
     uint32_t ret = audioEnhanceChainMananger->AudioEnhanceChainGetAlgoConfig(sceneKeyCode, micConfig, ecConfig,
         micRefConfig);
     if (ret != 0 || micConfig.samplingRate == 0) {
@@ -121,6 +122,7 @@ int32_t EnhanceChainManagerGetAlgoConfig(const uint32_t sceneKeyCode, pa_sample_
     micRefSpec->rate = micRefConfig.samplingRate;
     micRefSpec->channels = static_cast<uint8_t>(micRefConfig.channels);
     micRefSpec->format = ConvertFormat(micRefConfig.format);
+
     return SUCCESS;
 }
 
@@ -185,6 +187,7 @@ int32_t EnhanceChainManagerProcess(const uint32_t sceneKeyCode, uint32_t length)
     AudioEnhanceChainManager *audioEnhanceChainMananger = AudioEnhanceChainManager::GetInstance();
     CHECK_AND_RETURN_RET_LOG(audioEnhanceChainMananger != nullptr,
         ERR_INVALID_HANDLE, "null audioEnhanceChainManager");
+
     CHECK_AND_RETURN_RET_LOG(audioEnhanceChainMananger->ApplyAudioEnhanceChain(sceneKeyCode, length) == SUCCESS,
         ERROR, "%{public}u process failed", sceneKeyCode);
     return SUCCESS;

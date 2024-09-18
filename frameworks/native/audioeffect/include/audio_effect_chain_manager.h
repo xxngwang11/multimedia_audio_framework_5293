@@ -143,7 +143,6 @@ public:
 
     int32_t SetAudioEffectProperty(const AudioEffectPropertyArray &propertyArray);
     int32_t GetAudioEffectProperty(AudioEffectPropertyArray &propertyArray);
-
 private:
     int32_t SetAudioEffectChainDynamic(const std::string &sceneType, const std::string &effectMode);
     void UpdateSensorState();
