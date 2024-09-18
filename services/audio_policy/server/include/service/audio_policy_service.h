@@ -1199,12 +1199,6 @@ private:
 
     // sourceType is SOURCE_TYPE_PLAYBACK_CAPTURE, SOURCE_TYPE_WAKEUP or SOURCE_TYPE_VIRTUAL_CAPTURE
     std::unordered_map<uint32_t, SessionInfo> sessionWithSpecialSourceType_;
-    static inline const std::unordered_set<SourceType> specialSourceTypeSet_ = {
-        SOURCE_TYPE_PLAYBACK_CAPTURE,
-        SOURCE_TYPE_WAKEUP,
-        SOURCE_TYPE_VIRTUAL_CAPTURE,
-        SOURCE_TYPE_REMOTE_CAST
-    };
 
     static std::map<std::string, std::string> sinkPortStrToClassStrMap_;
     static std::map<std::string, uint32_t> formatStrToEnum;

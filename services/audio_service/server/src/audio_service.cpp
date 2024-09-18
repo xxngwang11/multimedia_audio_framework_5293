@@ -902,6 +902,11 @@ int32_t AudioService::UnsetOffloadMode(uint32_t sessionId)
 
 int32_t AudioService::UpdateSourceType(SourceType sourceType)
 {
+    // specialSourceType need not updateaudioroute
+    if (specialSourceTypeSet_.contains(sourceType)) {
+        return SUCCESS;
+    }
+
     AudioCapturerSource *audioCapturerSourceInstance = AudioCapturerSource::GetInstance("primary");
     CHECK_AND_RETURN_RET_LOG(audioCapturerSourceInstance != nullptr, ERROR, "source is null");
 
