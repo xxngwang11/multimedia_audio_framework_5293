@@ -880,7 +880,7 @@ int32_t AudioCapturerSourceInner::SetInputRoute(DeviceType inputDevice)
 int32_t AudioCapturerSourceInner::SetInputRoute(DeviceType inputDevice, AudioPortPin &inputPortPin)
 {
     if (inputDevice == currentActiveDevice_) {
-        if (inputDevice == currentActiveDevice_) {
+        if (inputDevice == DEVICE_TYPE_MIC) {
             int32_t ret = SetAudioRouteInfoForEnhanceChain(currentActiveDevice_);
             if (ret != SUCCESS) {
                 AUDIO_WARNING_LOG("Set device %{public}d failed.", currentActiveDevice_);
