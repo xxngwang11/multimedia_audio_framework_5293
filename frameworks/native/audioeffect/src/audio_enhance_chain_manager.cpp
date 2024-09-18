@@ -346,7 +346,7 @@ int32_t AudioEnhanceChainManager::CreateEnhanceChainInner(std::shared_ptr<AudioE
                 audioEnhanceChain = std::make_shared<AudioEnhanceChain>(defaultScene_, algoParam, deviceAttr, 1);
                 captureId2DefaultChain_[captureId] = audioEnhanceChain;
                 AUDIO_INFO_LOG("captureId %{public}u defaultScene chain not exsist, create it", captureId);
-                chainNum++;
+                chainNum_++;
             }
             captureId2DefaultChainCount_[captureId]++;
             defaultFlag = true;
@@ -356,14 +356,14 @@ int32_t AudioEnhanceChainManager::CreateEnhanceChainInner(std::shared_ptr<AudioE
             audioEnhanceChain = std::make_shared<AudioEnhanceChain>(sceneType, algoParam, deviceAttr, 0);
             captureId2SceneCount_[captureId]++;
             AUDIO_INFO_LOG("captureId %{public}u create normalScene %{public}s chain", captureId, sceneType.c_str());
-            chainNum++;
+            chainNum_++;
         }
     } else {
         AudioEnhanceParamAdapter algoParam = {(uint32_t)isMute_, (uint32_t)(systemVol_ * VOLUME_FACTOR),
             capturerDevice, rendererDeivce, sceneType};
         audioEnhanceChain = std::make_shared<AudioEnhanceChain>(sceneType, algoParam, deviceAttr, 0);
         AUDIO_INFO_LOG("priorScene %{public}s chain created", sceneType.c_str());
-        chainNum++;
+        chainNum_++;
     }
     CHECK_AND_RETURN_RET_LOG(audioEnhanceChain != nullptr, ERROR, "AudioEnhanceChain construct failed.");
     sceneTypeToEnhanceChainMap_[sceneKeyCode] = audioEnhanceChain;

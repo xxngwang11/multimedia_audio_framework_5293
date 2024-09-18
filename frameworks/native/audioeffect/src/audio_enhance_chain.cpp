@@ -92,11 +92,11 @@ void AudioEnhanceChain::InitDump()
     DumpFileUtil::OpenDumpFile(DUMP_SERVER_PARA, dumpFileOutName, &dumpFileOut_);
     umpFileUtil::OpenDumpFile(DUMP_SERVER_PARA, dumpFileDeInterleaverName, &dumpFileDeinterLeaver_);
 
-    if (deviceAttr_.needEc) {
+    if (needEcFlag_) {
         std::string dumpFileEcName = dumpFileName + sceneType_ + "_" + GetTime() + "_EC.pcm";
         DumpFileUtil::OpenDumpFile(DUMP_SERVER_PARA, dumpFileEcName, &dumpFileEc_);
     }
-    if (deviceAttr_.needMicRef) {
+    if (needMicRefFlag_) {
         std::string dumpFileMicRefName = dumpFileName + sceneType_ + "_" + GetTime() + "_MicRef.pcm";
         DumpFileUtil::OpenDumpFile(DUMP_SERVER_PARA, dumpFileMicRefName, &dumpFileMicRef_);
     }
@@ -247,12 +247,6 @@ void AudioEnhanceChain::GetAlgoConfig(AudioBufferConfig &micConfig, AudioBufferC
     return;
 }
 
-void AudioEnhanceChain::GetEcAndMicRefFlag(bool &needEcFlag, bool &needMicRefFlag)
-{
-    needEcFlag = needEcFlag_;
-    needMicRefFlag = needMicRefFlag_;
-}
-
 uint32_t AudioEnhanceChain::GetAlgoBufferSize()
 {
     uint32_t byteLenPerFrame = DEFAULT_FRAMELENGTH * (algoSupportedConfig_.sampleRate / MILLISECOND) *
@@ -298,7 +292,7 @@ int32_t AudioEnhanceChain::GetOneFrameInputData(std::unique_ptr<EnhanceBuffer> &
 
     uint32_t offset = 0;
     int32_t ret = 0;
-    if (enhanceBuffer->ecBuffer.size() != 0 && needEcFlag_) {
+    if ((enhanceBuffer->ecBuffer.size() != 0) && needEcFlag_) {
         ret = DeinterleaverData(enhanceBuffer->ecBuffer.data(), deviceAttr_.ecChannels,
             &algoCache_.input[offset], offset);
         CHECK_AND_RETURN_RET_LOG(ret == 0, ERROR, "memcpy error in ec channel memcpy");
@@ -312,7 +306,7 @@ int32_t AudioEnhanceChain::GetOneFrameInputData(std::unique_ptr<EnhanceBuffer> &
         offset += algoAttr_.byteLenPerFrame * deviceAttr_.micChannels;
     }
 
-    if (enhanceBuffer->micRefBuffer.size() != 0  && needMicRefFlag_) {
+    if ((enhanceBuffer->micRefBuffer.size() != 0)  && needMicRefFlag_) {
         ret = DeinterleaverData(enhanceBuffer->micRefBuffer.data(), deviceAttr_.micRefChannels,
             &algoCache_.input[offset], offset);
         CHECK_AND_RETURN_RET_LOG(ret == 0, ERROR, "memcpy error in mic ref channel memcpy");

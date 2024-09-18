@@ -463,7 +463,7 @@ int AudioManagerStub::HandleRequestThreadPriority(MessageParcel &data, MessagePa
 
 static bool UnmarshallEffectChainMgrParam(EffectChainManagerParam &effectChainMgrParam, MessageParcel &data)
 {
-    effectChainMgrParam.maxExtraNum = data.ReadInt32();
+    effectChainMgrParam.maxExtraNum = static_cast<uint32_t>(data.ReadInt32());
     effectChainMgrParam.defaultSceneName = data.ReadString();
 
     int32_t containSize = data.ReadInt32();

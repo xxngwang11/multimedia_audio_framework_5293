@@ -172,15 +172,14 @@ HWTEST_F(AudioEnhanceChainManagerUnitTest, ExistAudioEnhanceChain_002, TestSize.
  */
 HWTEST_F(AudioEnhanceChainManagerUnitTest, AudioEnhanceChainGetAlgoConfig_001, TestSize.Level1)
 {
-    AudioBufferConfig config;
-    bool needEcFlag;
-    bool needMicRefFlag;
+    AudioBufferConfig micConfig = {};
+    AudioBufferConfig ecConfig = {};
+    AudioBufferConfig micRefConfig = {};
     uint32_t validKeyCode = VALID_SCENEKEY_CODE;
     uint32_t invalidKeyCode = INVALID_SCENEKEY_CODE;
     manager_->CreateAudioEnhanceChainDynamic(validKeyCode, deviceAttr);
 
-    int32_t result = manager_->AudioEnhanceChainGetAlgoConfig(invalidKeyCode, config, needEcFlag,
-        needMicRefFlag);
+    int32_t result = manager_->AudioEnhanceChainGetAlgoConfig(invalidKeyCode, micConfig, ecConfig, micRefConfig);
     EXPECT_EQ(result, ERROR);
 }
 
@@ -191,13 +190,12 @@ HWTEST_F(AudioEnhanceChainManagerUnitTest, AudioEnhanceChainGetAlgoConfig_001, T
  */
 HWTEST_F(AudioEnhanceChainManagerUnitTest, AudioEnhanceChainGetAlgoConfig_002, TestSize.Level1)
 {
-    AudioBufferConfig config;
-    bool needEcFlag;
-    bool needMicRefFlag;
+    AudioBufferConfig micConfig = {};
+    AudioBufferConfig ecConfig = {};
+    AudioBufferConfig micRefConfig = {};
     uint32_t validKeyCode = VALID_SCENEKEY_CODE;
     manager_->CreateAudioEnhanceChainDynamic(validKeyCode, deviceAttr);
-    manager_->AudioEnhanceChainGetAlgoConfig(VALID_SCENEKEY_CODE, config, needEcFlag,
-        needMicRefFlag);
+    manager_->AudioEnhanceChainGetAlgoConfig(validKeyCode, micConfig, ecConfig, micRefConfig);
 }
 
 /*

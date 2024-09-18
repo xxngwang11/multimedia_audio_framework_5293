@@ -39,7 +39,8 @@ const std::map<int32_t, pa_sample_format_t> FORMAT_CONVERT_MAP {
     {SAMPLE_FORMAT_S32LE, PA_SAMPLE_S32LE},
 };
 
-static pa_sample_format_t ConvertFormat(uint8_t format) {
+static pa_sample_format_t ConvertFormat(uint8_t format)
+{
     auto item = FORMAT_CONVERT_MAP.find(format);
     if (item != FORMAT_CONVERT_MAP.end()) {
         return item->second;
