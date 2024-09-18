@@ -2885,8 +2885,6 @@ int32_t AudioPolicyServer::GetSupportedAudioEffectProperty(AudioEffectPropertyAr
 {
     bool ret = PermissionUtil::VerifySystemPermission();
     CHECK_AND_RETURN_RET_LOG(ret, ERR_SYSTEM_PERMISSION_DENIED, "No system permission");
-    ret = PermissionUtil::VerifySelfPermission();
-    CHECK_AND_RETURN_RET_LOG(ret, ERR_PERMISSION_DENIED, "No Self permission");
     return audioPolicyService_.GetSupportedAudioEffectProperty(propertyArray);
 }
 
@@ -2894,8 +2892,6 @@ int32_t AudioPolicyServer::GetSupportedAudioEnhanceProperty(AudioEnhanceProperty
 {
     bool ret = PermissionUtil::VerifySystemPermission();
     CHECK_AND_RETURN_RET_LOG(ret, ERR_SYSTEM_PERMISSION_DENIED, "No system permission");
-    ret = PermissionUtil::VerifySelfPermission();
-    CHECK_AND_RETURN_RET_LOG(ret, ERR_PERMISSION_DENIED, "No Self permission");
     return audioPolicyService_.GetSupportedAudioEnhanceProperty(propertyArray);
 }
 
@@ -2903,8 +2899,6 @@ int32_t AudioPolicyServer::GetAudioEnhanceProperty(AudioEnhancePropertyArray &pr
 {
     bool ret = PermissionUtil::VerifySystemPermission();
     CHECK_AND_RETURN_RET_LOG(ret, ERR_SYSTEM_PERMISSION_DENIED, "No system permission");
-    ret = PermissionUtil::VerifySelfPermission();
-    CHECK_AND_RETURN_RET_LOG(ret, ERR_PERMISSION_DENIED, "No Self permission");
     return audioPolicyService_.GetAudioEnhanceProperty(propertyArray);
 }
 
@@ -2912,8 +2906,6 @@ int32_t AudioPolicyServer::SetAudioEnhanceProperty(const AudioEnhancePropertyArr
 {
     bool ret = PermissionUtil::VerifySystemPermission();
     CHECK_AND_RETURN_RET_LOG(ret, ERR_SYSTEM_PERMISSION_DENIED, "No system permission");
-    ret = PermissionUtil::VerifySelfPermission();
-    CHECK_AND_RETURN_RET_LOG(ret, ERR_PERMISSION_DENIED, "No Self permission");
     return audioPolicyService_.SetAudioEnhanceProperty(propertyArray);
 }
 
@@ -2921,8 +2913,6 @@ int32_t AudioPolicyServer::SetAudioEffectProperty(const AudioEffectPropertyArray
 {
     bool ret = PermissionUtil::VerifySystemPermission();
     CHECK_AND_RETURN_RET_LOG(ret, ERR_SYSTEM_PERMISSION_DENIED, "No system permission");
-    ret = PermissionUtil::VerifySelfPermission();
-    CHECK_AND_RETURN_RET_LOG(ret, ERR_PERMISSION_DENIED, "No Self permission");
     return audioPolicyService_.SetAudioEffectProperty(propertyArray);
 }
 
@@ -2930,8 +2920,6 @@ int32_t AudioPolicyServer::GetAudioEffectProperty(AudioEffectPropertyArray &prop
 {
     bool ret = PermissionUtil::VerifySystemPermission();
     CHECK_AND_RETURN_RET_LOG(ret, ERR_SYSTEM_PERMISSION_DENIED, "No system permission");
-    ret = PermissionUtil::VerifySelfPermission();
-    CHECK_AND_RETURN_RET_LOG(ret, ERR_PERMISSION_DENIED, "No Self permission");
     return audioPolicyService_.GetAudioEffectProperty(propertyArray);
 }
 
