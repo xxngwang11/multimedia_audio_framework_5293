@@ -267,7 +267,7 @@ void AudioEffectManager::UpdateAvailableAEConfig(OriginalEffectConfig &aeConfig)
     for (Stream &ss: supportedEffectConfig_.postProcessNew.stream) {
         postSceneTypeSet_.push_back(ss.scene);
     }
-    AUDIO_INFO_LOG("postSceneTypeSet_ size is %{public}zu", supportedEffectConfig_.postProcessNew.stream.size());
+    AUDIO_INFO_LOG("postSceneTypeSet_ size is %{public}lu", supportedEffectConfig_.postProcessNew.stream.size());
     std::vector<SceneMappingItem> postSceneMap;
     for (SceneMappingItem &item: aeConfig.postProcess.sceneMap) {
         if (!VerifySceneMappingItem(item)) {
@@ -384,7 +384,7 @@ void AudioEffectManager::UpdateDuplicateDefaultScene(ProcessNew &processNew)
     // erase duplicate default scene
     bool flag = false;
     for (auto it = processNew.stream.begin(); it != processNew.stream.end();) {
-        auto &stream = *it;
+        const auto &stream = *it;
         if (stream.priority == DEFAULT_SCENE) {
             if (flag) {
                 it = processNew.stream.erase(it);
@@ -601,6 +601,33 @@ void AddKeyValueIntoMap(std::unordered_map<T, std::string> &map, std::string &ke
     map[key] = value;
 }
 
+void AudioEffectManager::ConstructEffectChainMode(StreamEffectMode &mode, std::string sceneType,
+                                                  EffectChainManagerParam &effectChainMgrParam)
+{
+    std::unordered_map<std::string, std::string> &map = effectChainMgrParam.sceneTypeToChainNameMap;
+    std::string sceneMode = mode.mode;
+    std::unordered_map<std::string, std::string> &effectDefaultProperty = effectChainMgrParam.effectDefaultProperty;
+    std::string key;
+    std::string defaultChain;
+    bool defaultFlag = false;
+    for (auto &device : mode.devicePort) {
+        ConstructDefaultEffectProperty(device.chain, effectDefaultProperty);
+        if (device.type == "DEVICE_TYPE_DEFAULT") {
+            defaultFlag = true;
+            defaultChain = device.chain;
+        } else {
+            key = sceneType + "_&_" + sceneMode + "_&_" + device.type;
+            AddKeyValueIntoMap(map, key, device.chain);
+        }
+    }
+    if (defaultFlag) {
+        for (auto &deviceType : SUPPORTED_DEVICE_TYPE) {
+            key = sceneType + "_&_" + sceneMode + "_&_" + deviceType.second;
+            AddKeyValueIntoMap(map, key, defaultChain);
+        }
+    }
+}
+
 void AudioEffectManager::ConstructDefaultEffectProperty(const std::string &chainName,
     std::unordered_map<std::string, std::string> &effectDefaultProperty)
 {
@@ -633,39 +660,10 @@ void AudioEffectManager::ConstructDefaultEffectProperty(const std::string &chain
     }
 }
 
-void AudioEffectManager::ConstructEffectChainMode(StreamEffectMode &mode, std::string sceneType,
-                                                  EffectChainManagerParam &effectChainMgrParam)
-{
-    std::unordered_map<std::string, std::string> &map = effectChainMgrParam.sceneTypeToChainNameMap;
-    std::string sceneMode = mode.mode;
-    std::unordered_map<std::string, std::string> &effectDefaultProperty = effectChainMgrParam.effectDefaultProperty;
-    std::string key;
-    std::string defaultChain;
-    bool defaultFlag = false;
-    for (auto &device : mode.devicePort) {
-        ConstructDefaultEffectProperty(device.chain, effectDefaultProperty);
-        if (device.type == "DEVICE_TYPE_DEFAULT") {
-            defaultFlag = true;
-            defaultChain = device.chain;
-        } else {
-            key = sceneType + "_&_" + sceneMode + "_&_" + device.type;
-            AddKeyValueIntoMap(map, key, device.chain);
-        }
-    }
-    if (defaultFlag) {
-        for (auto &deviceType : SUPPORTED_DEVICE_TYPE) {
-            key = sceneType + "_&_" + sceneMode + "_&_" + deviceType.second;
-            AddKeyValueIntoMap(map, key, defaultChain);
-        }
-    }
-}
-
 void AudioEffectManager::ConstructEffectChainManagerParam(EffectChainManagerParam &effectChainMgrParam)
 {
-    std::unordered_map<std::string, std::string> &map = effectChainMgrParam.sceneTypeToChainNameMap;
     effectChainMgrParam.maxExtraNum = oriEffectConfig_.postProcess.maxExtSceneNum;
     std::string sceneType;
-    std::string key;
 
     for (auto &scene: supportedEffectConfig_.postProcessNew.stream) {
         sceneType = scene.scene;
@@ -680,7 +678,7 @@ void AudioEffectManager::ConstructEffectChainManagerParam(EffectChainManagerPara
         }
     }
     AUDIO_INFO_LOG("Constructed SceneTypeAndModeToEffectChainNameMap at policy, size is %{public}d",
-        (int32_t)map.size());
+        (int32_t)effectChainMgrParam.sceneTypeToChainNameMap.size());
 }
 
 void AudioEffectManager::ConstructEnhanceChainManagerParam(EffectChainManagerParam &enhanceChainMgrParam)
@@ -708,6 +706,7 @@ void AudioEffectManager::ConstructEnhanceChainManagerParam(EffectChainManagerPar
                 ConstructDefaultEffectProperty(device.chain, enhanceDefaultProperty);
                 key = sceneType + "_&_" + sceneMode;
                 AddKeyValueIntoMap(map, key, device.chain);
+                ConstructDefaultEffectProperty(device.chain, enhanceDefaultProperty);
             }
         }
     }
@@ -724,7 +723,7 @@ int32_t AudioEffectManager::AddSupportedPropertyByDeviceInner(const DeviceType& 
         AUDIO_ERR_LOG("device not supported.");
         return -1;
     }
-    auto deviceStr = deviceType == DEVICE_TYPE_INVALID ? "" : deviceIter->second;
+    auto deviceStr = deviceType == DEVICE_TYPE_INVALID ? "DEVICE_TYPE_DEFAULT" : deviceIter->second;
     auto propertySetIter = device2PropertySet.find(deviceStr);
     if (propertySetIter != device2PropertySet.end()) {
         mergedSet.insert(propertySetIter->second.begin(), propertySetIter->second.end());

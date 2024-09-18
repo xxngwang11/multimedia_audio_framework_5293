@@ -187,7 +187,7 @@ enum AudioEffectScene {
     SCENE_GAME = 3,
     SCENE_SPEECH = 4,
     SCENE_RING = 5,
-    SCENE_VOIP_DOWN = 6
+    SCENE_VOIP_DOWN = 6,
 };
 
 /**
@@ -197,7 +197,7 @@ enum AudioEnhanceScene {
     SCENE_VOIP_UP = 0,
     SCENE_RECORD = 1,
     SCENE_PRE_ENHANCE = 2,
-    SCENE_ASR = 4
+    SCENE_ASR = 4,
 };
 
 /**
@@ -235,7 +235,7 @@ const std::unordered_map<AudioEffectScene, std::string> AUDIO_SUPPORTED_SCENE_TY
     {SCENE_GAME, "SCENE_GAME"},
     {SCENE_SPEECH, "SCENE_SPEECH"},
     {SCENE_RING, "SCENE_RING"},
-    {SCENE_VOIP_DOWN, "SCENE_VOIP_DOWN"}
+    {SCENE_VOIP_DOWN, "SCENE_VOIP_DOWN"},
 };
 
 const std::unordered_map<AudioEnhanceScene, std::string> AUDIO_ENHANCE_SUPPORTED_SCENE_TYPES {
@@ -437,7 +437,7 @@ const std::unordered_map<DeviceType, std::vector<std::string>> HDI_EFFECT_LIB_MA
 const std::unordered_map<std::string, uint8_t> EFFECT_CHAIN_TYPE_MAP {
     {"UNKNOWN", 0},
     {"NONE", 1},
-    {"SCENE_OTHERS", 2}
+    {"SCENE_OTHERS", 2},
     {"SCENE_MUSIC", 3},
     {"SCENE_MOVIE", 4},
     {"SCENE_GAME", 5},

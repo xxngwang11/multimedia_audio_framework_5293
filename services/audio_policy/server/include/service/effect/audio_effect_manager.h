@@ -40,8 +40,8 @@ public:
     void SetMasterSinkAvailable();
     void SetEffectChainManagerAvailable();
     bool CanLoadEffectSinks();
-    void ConstructSceneTypeToEffectChainNameMap(std::unordered_map<std::string, std::string> &map);
-    void ConstructSceneTypeToEnhanceChainNameMap(std::unordered_map<std::string, std::string> &map);
+    void ConstructEffectChainManagerParam(EffectChainManagerParam &effectChainMgrParam);
+    void ConstructEnhanceChainManagerParam(EffectChainManagerParam &enhanceChainMgrParam);
     int32_t QueryEffectManagerSceneMode(SupportedEffectConfig &supportedEffectConfig);
     int32_t AddSupportedAudioEffectPropertyByDevice(const DeviceType& deviceType,
         std::set<std::pair<std::string, std::string>> &mergedSet);
@@ -63,11 +63,11 @@ private:
                                   EffectChainManagerParam &effectChainMgrParam);
     void UpdateAvailableAEConfig(OriginalEffectConfig &aeConfig);
     void UpdateEffectChains(std::vector<std::string> &availableLayout);
-    void UpdateDuplicateBypassMode(ProcessNew &preProcessNew);
-    void UpdateDuplicateMode(ProcessNew &preProcessNew);
+    void UpdateDuplicateBypassMode(ProcessNew &processNew);
+    void UpdateDuplicateMode(ProcessNew &processNew);
     void UpdateDuplicateDefaultScene(ProcessNew &processNew);
     void UpdateDuplicateScene(ProcessNew &processNew);
-    void UpdateDuplicateDevice(ProcessNew &preProcessNew);
+    void UpdateDuplicateDevice(ProcessNew &processNew);
     int32_t UpdateUnavailableEffectChains(std::vector<std::string> &availableLayout, ProcessNew &processNew);
     bool VerifySceneMappingItem(const SceneMappingItem &item);
     void UpdateSupportedEffectProperty(const Device &device,

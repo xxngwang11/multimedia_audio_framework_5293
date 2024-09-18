@@ -86,9 +86,9 @@ private:
     FILE *dumpFileInput_ = nullptr;
     FILE *dumpFileOutput_ = nullptr;
     float finalVolume_ = 1.0f;
+    AudioSpatialDeviceType spatialDeviceType_{ EARPHONE_TYPE_OTHERS };
     std::string dumpNameIn_ = "";
     std::string dumpNameOut_ = "";
-    AudioSpatialDeviceType spatialDeviceType_{ EARPHONE_TYPE_OTHERS };
 
 #ifdef SENSOR_ENABLE
     std::shared_ptr<HeadTracker> headTracker_;

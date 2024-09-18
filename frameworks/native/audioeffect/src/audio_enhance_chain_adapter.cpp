@@ -18,6 +18,9 @@
 
 #include "audio_enhance_chain_adapter.h"
 
+#include <algorithm>
+#include <map>
+
 #include "audio_log.h"
 #include "audio_errors.h"
 #include "audio_enhance_chain_manager.h"
@@ -36,26 +39,38 @@ const std::map<int32_t, pa_sample_format_t> FORMAT_CONVERT_MAP {
     {SAMPLE_FORMAT_S32LE, PA_SAMPLE_S32LE},
 };
 
-int32_t EnhanceChainManagerCreateCb(const uint32_t sceneKeyCode, struct DeviceAttrAdapter adapter)
+static pa_sample_format_t ConvertFormat(uint8_t format) {
+    auto item = FORMAT_CONVERT_MAP.find(format);
+    if (item != FORMAT_CONVERT_MAP.end()) {
+        return item->second;
+    }
+    return PA_SAMPLE_INVALID;
+}
+
+int32_t EnhanceChainManagerCreateCb(const uint32_t sceneKeyCode, const struct DeviceAttrAdapter *adapter)
 {
     AudioEnhanceChainManager *audioEnhanceChainMananger = AudioEnhanceChainManager::GetInstance();
     CHECK_AND_RETURN_RET_LOG(audioEnhanceChainMananger != nullptr,
         ERR_INVALID_HANDLE, "null audioEnhanceChainManager");
     AudioEnhanceDeviceAttr deviceAttr = {};
-    deviceAttr.micRate = adapter.micRate;
-    deviceAttr.micChannels = adapter.micChannels;
-    deviceAttr.micFormat = adapter.micFormat;
-    if (adapter.needEc) {
-        deviceAttr.needEc = adapter.needEc;
-        deviceAttr.ecRate = adapter.ecRate;
-        deviceAttr.ecChannels = adapter.ecChannels;
-        deviceAttr.ecFormat = adapter.ecFormat;
+    deviceAttr.micRate = adapter->micRate;
+    deviceAttr.micChannels = adapter->micChannels;
+    deviceAttr.micFormat = adapter->micFormat;
+    if (adapter->needEc) {
+        deviceAttr.needEc = adapter->needEc;
+        deviceAttr.ecRate = adapter->ecRate;
+        deviceAttr.ecChannels = adapter->ecChannels;
+        deviceAttr.ecFormat = adapter->ecFormat;
+    } else {
+        deviceAttr.needEc = false;
     }
-    if (adapter.needMicRef) {
-        deviceAttr.needMicRef = adapter.needMicRef;
-        deviceAttr.micRefRate = adapter.micRefRate;
-        deviceAttr.micRefChannels = adapter.micRefChannels;
-        deviceAttr.micRefFormat = adapter.micRefFormat;
+    if (adapter->needMicRef) {
+        deviceAttr.needMicRef = adapter->needMicRef;
+        deviceAttr.micRefRate = adapter->micRefRate;
+        deviceAttr.micRefChannels = adapter->micRefChannels;
+        deviceAttr.micRefFormat = adapter->micRefFormat;
+    } else {
+        deviceAttr.needMicRef = false;
     }
     return audioEnhanceChainMananger->CreateAudioEnhanceChainDynamic(sceneKeyCode, deviceAttr);
 }
@@ -79,40 +94,36 @@ bool EnhanceChainManagerExist(const uint32_t sceneKeyCode)
     return audioEnhanceChainMananger->ExistAudioEnhanceChain(sceneKeyCode);
 }
 
-int32_t EnhanceChainManagerGetAlgoConfig(const uint32_t sceneKeyCode, pa_sample_spec *spec,
-    bool *needEcFlag, bool *needMicRefFlag)
+int32_t EnhanceChainManagerGetAlgoConfig(const uint32_t sceneKeyCode, pa_sample_spec *micSpec,
+    pa_sample_spec *ecSpec, pa_sample_spec *micRefSpec)
 {
     AudioEnhanceChainManager *audioEnhanceChainMananger = AudioEnhanceChainManager::GetInstance();
     CHECK_AND_RETURN_RET_LOG(audioEnhanceChainMananger != nullptr,
         ERROR, "null audioEnhanceChainManager");
-    AudioBufferConfig config = {};
-    bool needEcFlagValue = false;
-    bool needMicRefFlagValue = false;
-    uint32_t ret = audioEnhanceChainMananger->AudioEnhanceChainGetAlgoConfig(sceneKeyCode, config,
-        needEcFlagValue, needMicRefFlagValue);
-    if (ret != 0 || config.samplingRate == 0) {
+    AudioBufferConfig micConfig = {};
+    AudioBufferConfig ecConfig = {};
+    AudioBufferConfig micRefConfig = {};
+    uint32_t ret = audioEnhanceChainMananger->AudioEnhanceChainGetAlgoConfig(sceneKeyCode, micConfig, ecConfig,
+        micRefConfig);
+    if (ret != 0 || micConfig.samplingRate == 0) {
         return ERROR;
     }
-    if (needEcFlag) {
-        *needEcFlag = needEcFlagValue;
-    }
-    if (needMicRefFlag) {
-        *needMicRefFlag = needMicRefFlagValue;
-    }
-    spec->rate = config.samplingRate;
-    spec->channels = static_cast<uint8_t>(config.channels);
 
-    auto item = FORMAT_CONVERT_MAP.find(config.format);
-    if (item != FORMAT_CONVERT_MAP.end()) {
-        spec->format = item->second;
-    } else {
-        spec->format = PA_SAMPLE_INVALID;
-        return ERROR;
-    }
+    micSpec->rate = micConfig.samplingRate;
+    micSpec->channels = static_cast<uint8_t>(micConfig.channels);
+    micSpec->format = ConvertFormat(micConfig.format);
+
+    ecSpec->rate = ecConfig.samplingRate;
+    ecSpec->channels = static_cast<uint8_t>(ecConfig.channels);
+    ecSpec->format = ConvertFormat(ecConfig.format);
+
+    micRefSpec->rate = micRefConfig.samplingRate;
+    micRefSpec->channels = static_cast<uint8_t>(micRefConfig.channels);
+    micRefSpec->format = ConvertFormat(micRefConfig.format);
     return SUCCESS;
 }
 
-bool EnhanceChainManagerIsEmptyEnhanceChain()
+bool EnhanceChainManagerIsEmptyEnhanceChain(void)
 {
     AudioEnhanceChainManager *audioEnhanceChainMananger = AudioEnhanceChainManager::GetInstance();
     CHECK_AND_RETURN_RET_LOG(audioEnhanceChainMananger != nullptr,
@@ -120,7 +131,7 @@ bool EnhanceChainManagerIsEmptyEnhanceChain()
     return audioEnhanceChainMananger->IsEmptyEnhanceChain();
 }
 
-int32_t EnhanceChainManagerInitEnhanceBuffer()
+int32_t EnhanceChainManagerInitEnhanceBuffer(void)
 {
     AudioEnhanceChainManager *audioEnhanceChainMananger = AudioEnhanceChainManager::GetInstance();
     CHECK_AND_RETURN_RET_LOG(audioEnhanceChainMananger != nullptr,
@@ -138,11 +149,7 @@ int32_t CopyToEnhanceBufferAdapter(void *data, uint32_t length)
     CHECK_AND_RETURN_RET_LOG(audioEnhanceChainMananger != nullptr,
         ERROR, "null audioEnhanceChainManager");
     CHECK_AND_RETURN_RET_LOG(data != nullptr, ERROR, "data null");
-    uint32_t ret = audioEnhanceChainMananger->CopyToEnhanceBuffer(data, length);
-    if (ret != 0) {
-        return ERROR;
-    }
-    return SUCCESS;
+    return audioEnhanceChainMananger->CopyToEnhanceBuffer(data, length);
 }
 
 int32_t CopyEcdataToEnhanceBufferAdapter(void *data, uint32_t length)
@@ -151,11 +158,7 @@ int32_t CopyEcdataToEnhanceBufferAdapter(void *data, uint32_t length)
     CHECK_AND_RETURN_RET_LOG(audioEnhanceChainMananger != nullptr,
         ERROR, "null audioEnhanceChainManager");
     CHECK_AND_RETURN_RET_LOG(data != nullptr, ERROR, "data null");
-    uint32_t ret = audioEnhanceChainMananger->CopyEcToEnhanceBuffer(data, length);
-    if (ret != 0) {
-        return ERROR;
-    }
-    return SUCCESS;
+    return audioEnhanceChainMananger->CopyEcToEnhanceBuffer(data, length);
 }
 
 int32_t CopyMicRefdataToEnhanceBufferAdapter(void *data, uint32_t length)
@@ -164,11 +167,7 @@ int32_t CopyMicRefdataToEnhanceBufferAdapter(void *data, uint32_t length)
     CHECK_AND_RETURN_RET_LOG(audioEnhanceChainMananger != nullptr,
         ERROR, "null audioEnhanceChainManager");
     CHECK_AND_RETURN_RET_LOG(data != nullptr, ERROR, "data null");
-    uint32_t ret = audioEnhanceChainMananger->CopyMicRefToEnhanceBuffer(data, length);
-    if (ret != 0) {
-        return ERROR;
-    }
-    return SUCCESS;
+    return audioEnhanceChainMananger->CopyMicRefToEnhanceBuffer(data, length);
 }
 
 int32_t CopyFromEnhanceBufferAdapter(void *data, uint32_t length)
@@ -177,11 +176,7 @@ int32_t CopyFromEnhanceBufferAdapter(void *data, uint32_t length)
     CHECK_AND_RETURN_RET_LOG(audioEnhanceChainMananger != nullptr,
         ERROR, "null audioEnhanceChainManager");
     CHECK_AND_RETURN_RET_LOG(data != nullptr, ERROR, "data null");
-    uint32_t ret = audioEnhanceChainMananger->CopyFromEnhanceBuffer(data, length);
-    if (ret != 0) {
-        return ERROR;
-    }
-    return SUCCESS;
+    return audioEnhanceChainMananger->CopyFromEnhanceBuffer(data, length);
 }
 
 int32_t EnhanceChainManagerProcess(const uint32_t sceneKeyCode, uint32_t length)
@@ -189,11 +184,8 @@ int32_t EnhanceChainManagerProcess(const uint32_t sceneKeyCode, uint32_t length)
     AudioEnhanceChainManager *audioEnhanceChainMananger = AudioEnhanceChainManager::GetInstance();
     CHECK_AND_RETURN_RET_LOG(audioEnhanceChainMananger != nullptr,
         ERR_INVALID_HANDLE, "null audioEnhanceChainManager");
-    if (audioEnhanceChainMananger->ApplyAudioEnhanceChain(sceneKeyCode, length) != SUCCESS) {
-        AUDIO_ERR_LOG("%{public}u process failed", sceneKeyCode);
-        return ERROR;
-    }
-    AUDIO_DEBUG_LOG("%{public}u process success", sceneKeyCode);
+    CHECK_AND_RETURN_RET_LOG(audioEnhanceChainMananger->ApplyAudioEnhanceChain(sceneKeyCode, length) == SUCCESS,
+        ERROR, "%{public}u process failed", sceneKeyCode);
     return SUCCESS;
 }
 
@@ -216,11 +208,13 @@ int32_t GetSceneTypeCode(const char *sceneType, uint32_t *sceneTypeCode)
     if (sceneType) {
         sceneTypeString = sceneType;
     }
-    for (auto &item : AUDIO_ENHANCE_SUPPORTED_SCENE_TYPES) {
-        if (item.second == sceneTypeString) {
-            *sceneTypeCode = static_cast<uint32_t>(item.first);
-            return SUCCESS;
-        }
+    auto item = std::find_if(AUDIO_ENHANCE_SUPPORTED_SCENE_TYPES.begin(), AUDIO_ENHANCE_SUPPORTED_SCENE_TYPES.end(),
+        [&sceneTypeString](const std::pair<AudioEnhanceScene, std::string>& element) -> bool {
+            return element.second == sceneTypeString;
+        });
+    if (item == AUDIO_ENHANCE_SUPPORTED_SCENE_TYPES.end()) {
+        return ERROR;
     }
-    return ERROR;
+    *sceneTypeCode = static_cast<uint32_t>(item->first);
+    return SUCCESS;
 }

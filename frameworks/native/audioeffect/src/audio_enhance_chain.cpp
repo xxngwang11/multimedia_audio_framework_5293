@@ -32,6 +32,9 @@ const uint32_t BITLENGTH = 8;
 const uint32_t MILLISECOND = 1000;
 const uint32_t DEFAULT_FRAMELENGTH = 20;
 const uint32_t DEFAULT_SAMPLE_RATE = 48000;
+const uint32_t DEFAULT_FORMAT = 2;
+const uint32_t DEFAULT_ECNUM = 0;
+const uint32_t DEFAULT_MICREFNUM = 0;
 
 AudioEnhanceChain::AudioEnhanceChain(const std::string &scene, const AudioEnhanceParamAdapter &algoParam,
     const AudioEnhanceDeviceAttr &deviceAttr, const bool defaultFlag)
@@ -42,9 +45,6 @@ AudioEnhanceChain::AudioEnhanceChain(const std::string &scene, const AudioEnhanc
     deviceAttr_ = deviceAttr;
     
     InitAudioEnhanceChain();
-    if (deviceAttr_.needEc) {
-        UpdateAlgoConfig();
-    }
     InitDump();
 }
 
@@ -56,24 +56,30 @@ void AudioEnhanceChain::InitAudioEnhanceChain()
     enhanceLibHandles_.clear();
     standByEnhanceHandles_.clear();
 
-    algoSupportedConfig_ = {DEFAULT_FRAMELENGTH, deviceAttr_.micRate, deviceAttr_.micFormat * BITLENGTH,
-        deviceAttr_.micChannels, deviceAttr_.ecChannels, deviceAttr_.micRefChannels, deviceAttr_.micChannels};
+    algoSupportedConfig_ = {DEFAULT_FRAMELENGTH, DEFAULT_SAMPLE_RATE, DEFAULT_FORMAT * BITLENGTH,
+        deviceAttr_.micChannels, DEFAULT_ECNUM, DEFAULT_MICREFNUM, deviceAttr_.micChannels};
     
-    uint32_t byteLenPerFrame = DEFAULT_FRAMELENGTH * (deviceAttr_.micRate / MILLISECOND) * deviceAttr_.micFormat;
-    algoAttr_ = {deviceAttr_.micFormat, deviceAttr_.micChannels, byteLenPerFrame};
-
-    algoCache_.input.resize(algoAttr_.byteLenPerFrame * algoAttr_.batchLen);
-    algoCache_.output.resize(algoAttr_.byteLenPerFrame * deviceAttr_.micChannels);
-    AUDIO_INFO_LOG("micNum: %{public}u byteLenPerFrame: %{public}u inputsize:%{public}zu outputsize:%{public}zu",
-        algoSupportedConfig_.micNum, byteLenPerFrame, algoCache_.input.size(), algoCache_.output.size());
+    uint32_t byteLenPerFrame = DEFAULT_FRAMELENGTH * (DEFAULT_SAMPLE_RATE / MILLISECOND) * DEFAULT_FORMAT;
+    algoAttr_ = {DEFAULT_FORMAT, deviceAttr_.micChannels, byteLenPerFrame};
     
     if (count(NEED_EC_SCENE.begin(), NEED_EC_SCENE.end(), sceneType_)) {
         needEcFlag_ = true;
+        algoSupportedConfig_.ecNum = deviceAttr_.ecChannels;
+        algoAttr_.batchLen = deviceAttr_.micChannels + deviceAttr_.ecChannels;
     }
 
     if (count(NEED_MICREF_SCENE.begin(), NEED_MICREF_SCENE.end(), sceneType_)) {
         needMicRefFlag_ = true;
+        algoSupportedConfig_.micRefNum = deviceAttr_.micRefChannels;
+        algoAttr_.batchLen += deviceAttr_.micRefChannels;
     }
+
+    algoCache_.input.resize(algoAttr_.byteLenPerFrame * algoAttr_.batchLen);
+    algoCache_.output.resize(algoAttr_.byteLenPerFrame * deviceAttr_.micChannels);
+    AUDIO_INFO_LOG("micNum: %{public}u ecNum: %{public}u micRefNum: %{public}u outNum: %{public}u \
+        byteLenPerFrame: %{public}u inputsize:%{public}zu outputsize:%{public}zu",
+        algoSupportedConfig_.micNum, algoSupportedConfig_.ecNum, algoSupportedConfig_.micRefNum,
+        algoSupportedConfig_.outNum, byteLenPerFrame, algoCache_.input.size(), algoCache_.output.size());
 }
 
 void AudioEnhanceChain::InitDump()
@@ -81,8 +87,10 @@ void AudioEnhanceChain::InitDump()
     std::string dumpFileName = "Enhance_";
     std::string dumpFileInName = dumpFileName + sceneType_ + "_" + GetTime() + "_In.pcm";
     std::string dumpFileOutName = dumpFileName + sceneType_ + "_" + GetTime() + "_Out.pcm";
+    std::string dumpFileDeInterleaverName = dumpFileName + sceneType_ + "_" + GetTime() + "_DeInterLeaver.pcm";
     DumpFileUtil::OpenDumpFile(DUMP_SERVER_PARA, dumpFileInName, &dumpFileIn_);
     DumpFileUtil::OpenDumpFile(DUMP_SERVER_PARA, dumpFileOutName, &dumpFileOut_);
+    umpFileUtil::OpenDumpFile(DUMP_SERVER_PARA, dumpFileDeInterleaverName, &dumpFileDeinterLeaver_);
 
     if (deviceAttr_.needEc) {
         std::string dumpFileEcName = dumpFileName + sceneType_ + "_" + GetTime() + "_EC.pcm";
@@ -101,6 +109,7 @@ AudioEnhanceChain::~AudioEnhanceChain()
     DumpFileUtil::CloseDumpFile(&dumpFileOut_);
     DumpFileUtil::CloseDumpFile(&dumpFileEc_);
     DumpFileUtil::CloseDumpFile(&dumpFileMicRef_);
+    DumpFileUtil::CloseDumpFile(&dumpFileDeinterLeaver_);
 }
 
 void AudioEnhanceChain::ReleaseEnhanceChain()
@@ -176,7 +185,16 @@ void AudioEnhanceChain::AddEnhanceHandle(AudioEffectHandle handle, AudioEffectLi
     if (ret) {
         AUDIO_ERR_LOG("get algo maxSampleRate failed!");
     }
-    algoSupportedConfig_.sampleRate = maxSampleRate;
+    if (algoSupportedConfig_.sampleRate != maxSampleRate) {
+        algoSupportedConfig_.sampleRate = maxSampleRate;
+        uint32_t byteLenPerFrame = DEFAULT_FRAMELENGTH * (maxSampleRate / MILLISECOND) * deviceAttr_.micFormat;
+        algoAttr_.byteLenPerFrame = byteLenPerFrame;
+
+        algoCache_.input.resize(algoAttr_.byteLenPerFrame * algoAttr_.batchLen);
+        algoCache_.output.resize(algoAttr_.byteLenPerFrame * deviceAttr_.micChannels);
+        AUDIO_INFO_LOG("algo rate: %{public}u byteLenPerFrame: %{public}u inputsize:%{public}zu outputsize:%{public}zu",
+            maxSampleRate, byteLenPerFrame, algoCache_.input.size(), algoCache_.output.size());
+    }
 
     cmdInfo.data = static_cast<void *>(&algoSupportedConfig_);
     cmdInfo.size = sizeof(algoSupportedConfig_);
@@ -207,34 +225,25 @@ bool AudioEnhanceChain::IsEmptyEnhanceHandles()
     return standByEnhanceHandles_.size() == 0;
 }
 
-int32_t AudioEnhanceChain::UpdateAlgoConfig()
+void AudioEnhanceChain::GetAlgoConfig(AudioBufferConfig &micConfig, AudioBufferConfig &ecConfig,
+    AudioBufferConfig &micRefConfig)
 {
-    algoSupportedConfig_.dataFormat = deviceAttr_.micFormat * BITLENGTH;
-    algoSupportedConfig_.micNum = deviceAttr_.micChannels;
-    algoSupportedConfig_.ecNum = deviceAttr_.ecChannels;
-    algoSupportedConfig_.micRefNum = deviceAttr_.micRefChannels;
-    algoSupportedConfig_.outNum = deviceAttr_.micChannels;
+    uint8_t configDataFormat = static_cast<uint8_t>(algoSupportedConfig_.dataFormat);
+    micConfig.samplingRate = algoSupportedConfig_.sampleRate;
+    micConfig.channels = algoSupportedConfig_.micNum;
+    micConfig.format = configDataFormat;
 
-    uint32_t batchLen = deviceAttr_.micChannels + deviceAttr_.ecChannels + deviceAttr_.micRefChannels;
-    uint32_t bitDepth = deviceAttr_.micFormat;
-    uint32_t byteLenPerFrame = algoSupportedConfig_.frameLength * (algoSupportedConfig_.sampleRate / MILLISECOND)
-        * bitDepth;
-    algoAttr_ = {bitDepth, batchLen, byteLenPerFrame};
+    if (needEcFlag_) {
+        ecConfig.samplingRate = algoSupportedConfig_.sampleRate;
+        ecConfig.channels = algoSupportedConfig_.ecNum;
+        ecConfig.format = configDataFormat;
+    }
 
-    algoCache_.input.resize(algoAttr_.byteLenPerFrame * algoAttr_.batchLen);
-    algoCache_.output.resize(algoAttr_.byteLenPerFrame * algoSupportedConfig_.outNum);
-    AUDIO_INFO_LOG("micNum: %{public}u ecNum: %{public}u micRefNum: %{public}u outNum: %{public}u \
-        byteLenPerFrame: %{public}u inputsize:%{public}zu outputsize:%{public}zu",
-        algoSupportedConfig_.micNum, algoSupportedConfig_.ecNum, algoSupportedConfig_.micRefNum,
-        algoSupportedConfig_.outNum, byteLenPerFrame, algoCache_.input.size(), algoCache_.output.size());
-    return SUCCESS;
-}
-
-void AudioEnhanceChain::GetAlgoConfig(AudioBufferConfig &algoConfig)
-{
-    algoConfig.samplingRate = algoSupportedConfig_.sampleRate;
-    algoConfig.channels = algoSupportedConfig_.micNum;
-    algoConfig.format = static_cast<uint8_t>(algoSupportedConfig_.dataFormat);
+    if (needMicRefFlag_) {
+        micRefConfig.samplingRate = algoSupportedConfig_.sampleRate;
+        micRefConfig.channels = algoSupportedConfig_.micRefNum;
+        micRefConfig.format = configDataFormat;
+    }
     return;
 }
 
@@ -289,7 +298,7 @@ int32_t AudioEnhanceChain::GetOneFrameInputData(std::unique_ptr<EnhanceBuffer> &
 
     uint32_t offset = 0;
     int32_t ret = 0;
-    if (enhanceBuffer->ecBuffer.size() != 0) {
+    if (enhanceBuffer->ecBuffer.size() != 0 && needEcFlag_) {
         ret = DeinterleaverData(enhanceBuffer->ecBuffer.data(), deviceAttr_.ecChannels,
             &algoCache_.input[offset], offset);
         CHECK_AND_RETURN_RET_LOG(ret == 0, ERROR, "memcpy error in ec channel memcpy");
@@ -303,7 +312,7 @@ int32_t AudioEnhanceChain::GetOneFrameInputData(std::unique_ptr<EnhanceBuffer> &
         offset += algoAttr_.byteLenPerFrame * deviceAttr_.micChannels;
     }
 
-    if (enhanceBuffer->micRefBuffer.size() != 0) {
+    if (enhanceBuffer->micRefBuffer.size() != 0  && needMicRefFlag_) {
         ret = DeinterleaverData(enhanceBuffer->micRefBuffer.data(), deviceAttr_.micRefChannels,
             &algoCache_.input[offset], offset);
         CHECK_AND_RETURN_RET_LOG(ret == 0, ERROR, "memcpy error in mic ref channel memcpy");
@@ -315,19 +324,21 @@ int32_t AudioEnhanceChain::ApplyEnhanceChain(std::unique_ptr<EnhanceBuffer> &enh
 {
     std::lock_guard<std::mutex> lock(chainMutex_);
     CHECK_AND_RETURN_RET_LOG(enhanceBuffer != nullptr, ERROR, "enhance buffer is null");
-    DumpFileUtil::WriteDumpFile(dumpFileIn_, enhanceBuffer->micBufferIn.data(), (uint64_t)length);
+    DumpFileUtil::WriteDumpFile(dumpFileIn_, enhanceBuffer->micBufferIn.data(), static_cast<uint64_t>(length));
     if (deviceAttr_.needEc) {
-        DumpFileUtil::WriteDumpFile(dumpFileEc_, enhanceBuffer->ecBuffer.data(),
-            (uint64_t)enhanceBuffer->ecBuffer.size());
+        DumpFileUtil::WriteDumpFile(dumpFileEc_, enhanceBuffer->ecBuffer.data(), enhanceBuffer->ecBuffer.size());
     }
     if (deviceAttr_.needMicRef) {
         DumpFileUtil::WriteDumpFile(dumpFileMicRef_, enhanceBuffer->micRefBuffer.data(),
-            (uint64_t)enhanceBuffer->micRefBuffer.size());
+            enhanceBuffer->micRefBuffer.size());
     }
 
     uint32_t inputLen = algoAttr_.byteLenPerFrame * algoAttr_.batchLen;
     uint32_t outputLen = algoAttr_.byteLenPerFrame * algoSupportedConfig_.outNum;
-    AUDIO_DEBUG_LOG("inputLen = %{public}u outputLen = %{public}u", inputLen, outputLen);
+    CHECK_AND_RETURN_RET_LOG(algoCache_.input.size() == inputLen, ERROR, 
+        "algo cache input size:%{public}zu != inputLen:%{public}u", algoCache_.input.size(), inputLen);
+    CHECK_AND_RETURN_RET_LOG(algoCache_.output.size() == outputLen, ERROR, 
+        "algo cache output size:%{public}zu != outputLen:%{public}u", algoCache_.output.size(), outputLen);
 
     if (standByEnhanceHandles_.size() == 0) {
         AUDIO_DEBUG_LOG("audioEnhanceChain->standByEnhanceHandles is empty");
@@ -341,10 +352,11 @@ int32_t AudioEnhanceChain::ApplyEnhanceChain(std::unique_ptr<EnhanceBuffer> &enh
             enhanceBuffer->micBufferIn.data(), length) == 0, ERROR, "memcpy error in GetOneFrameInputData");
         return ERROR;
     }
+    DumpFileUtil::WriteDumpFile(dumpFileDeinterLeaver_, algoCache_.input.data(), algoCache_.input.size());
     AudioBuffer audioBufIn_ = {};
     AudioBuffer audioBufOut_ = {};
-    audioBufIn_.frameLength = inputLen;
-    audioBufOut_.frameLength = outputLen;
+    audioBufIn_.frameLength = algoCache_.input.size();
+    audioBufOut_.frameLength = algoCache_.output.size();
     audioBufIn_.raw = static_cast<void *>(algoCache_.input.data());
     audioBufOut_.raw = static_cast<void *>(algoCache_.output.data());
 
@@ -353,9 +365,9 @@ int32_t AudioEnhanceChain::ApplyEnhanceChain(std::unique_ptr<EnhanceBuffer> &enh
         CHECK_AND_CONTINUE_LOG(ret == 0, "[%{publc}s] either one of libs process fail", sceneType_.c_str());
     }
     CHECK_AND_RETURN_RET_LOG(memcpy_s(enhanceBuffer->micBufferOut.data(), enhanceBuffer->micBufferOut.size(),
-        audioBufOut_.raw, outputLen) == 0,
+        audioBufOut_.raw, audioBufOut_.frameLength) == 0,
         ERROR, "memcpy error in audioBufOut_ to enhanceBuffer->output");
-    DumpFileUtil::WriteDumpFile(dumpFileOut_, enhanceBuffer->micBufferOut.data(), (uint64_t)length);
+    DumpFileUtil::WriteDumpFile(dumpFileOut_, enhanceBuffer->micBufferOut.data(), static_cast<uint64_t>(length));
     return SUCCESS;
 }
 

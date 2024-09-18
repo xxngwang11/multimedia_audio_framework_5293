@@ -40,8 +40,8 @@ public:
     int32_t CreateAudioEnhanceChainDynamic(const uint32_t sceneKeyCode, const AudioEnhanceDeviceAttr &deviceAttr);
     int32_t ReleaseAudioEnhanceChainDynamic(const uint32_t sceneKeyCode);
     bool ExistAudioEnhanceChain(const uint32_t sceneKeyCode);
-    int32_t AudioEnhanceChainGetAlgoConfig(const uint32_t sceneKeyCode, AudioBufferConfig &config,
-        bool &needEcFlag, bool &needMicRefFlag);
+    int32_t AudioEnhanceChainGetAlgoConfig(const uint32_t sceneKeyCode, AudioBufferConfig &micConfig,
+        AudioBufferConfig &ecConfig, AudioBufferConfig &micRefConfig);
     bool IsEmptyEnhanceChain();
     int32_t InitEnhanceBuffer();
     int32_t CopyToEnhanceBuffer(void *data, uint32_t length);
@@ -94,6 +94,7 @@ private:
     std::string defaultScene_;
     std::unordered_set<std::string> priorSceneSet_;
     uint32_t normalSceneLimit_;
+    uint32_t chainNum_;
 
     std::unique_ptr<EnhanceBuffer> enhanceBuffer_ = nullptr;
     std::mutex chainManagerMutex_;

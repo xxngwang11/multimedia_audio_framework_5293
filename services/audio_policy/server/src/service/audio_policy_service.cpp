@@ -8831,7 +8831,7 @@ int32_t AudioPolicyService::SetAudioEffectProperty(const AudioEffectPropertyArra
 {
     AudioEffectPropertyArray supportPropertyArray;
     std::vector<AudioEffectProperty>::iterator oIter;
-    int32_t ret = GetSupportedAudioEffectProperty(supportPropertyArray);
+    (void)GetSupportedAudioEffectProperty(supportPropertyArray);
     for (auto &item : propertyArray.property) {
         oIter = std::find(supportPropertyArray.property.begin(), supportPropertyArray.property.end(), item);
         CHECK_AND_RETURN_RET_LOG(oIter != supportPropertyArray.property.end(),
@@ -8841,7 +8841,7 @@ int32_t AudioPolicyService::SetAudioEffectProperty(const AudioEffectPropertyArra
     const sptr<IStandardAudioService> gsp = GetAudioServerProxy();
     CHECK_AND_RETURN_RET_LOG(gsp != nullptr, ERR_INVALID_HANDLE, "set audio effect property: gsp null");
     std::string identity = IPCSkeleton::ResetCallingIdentity();
-    ret = gsp->SetAudioEffectProperty(propertyArray);
+    int32_t ret = gsp->SetAudioEffectProperty(propertyArray);
     IPCSkeleton::SetCallingIdentity(identity);
     return ret;
 }
@@ -8860,7 +8860,7 @@ int32_t AudioPolicyService::SetAudioEnhanceProperty(const AudioEnhancePropertyAr
 {
     AudioEnhancePropertyArray supportPropertyArray;
     std::vector<AudioEnhanceProperty>::iterator oIter;
-    int32_t ret = GetSupportedAudioEnhanceProperty(supportPropertyArray);
+    (void)GetSupportedAudioEnhanceProperty(supportPropertyArray);
     for (auto &item : propertyArray.property) {
         oIter = std::find(supportPropertyArray.property.begin(), supportPropertyArray.property.end(), item);
         CHECK_AND_RETURN_RET_LOG(oIter != supportPropertyArray.property.end(),
@@ -8870,7 +8870,7 @@ int32_t AudioPolicyService::SetAudioEnhanceProperty(const AudioEnhancePropertyAr
     const sptr<IStandardAudioService> gsp = GetAudioServerProxy();
     CHECK_AND_RETURN_RET_LOG(gsp != nullptr, ERR_INVALID_HANDLE, "set audio enhance property: gsp null");
     std::string identity = IPCSkeleton::ResetCallingIdentity();
-    ret = gsp->SetAudioEnhanceProperty(propertyArray);
+    int32_t ret = gsp->SetAudioEnhanceProperty(propertyArray);
     IPCSkeleton::SetCallingIdentity(identity);
     return ret;
 }

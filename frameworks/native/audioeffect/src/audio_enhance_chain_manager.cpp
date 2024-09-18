@@ -18,6 +18,8 @@
 
 #include "audio_enhance_chain_manager.h"
 
+#include <algorithm>
+
 #include "securec.h"
 #include "audio_log.h"
 #include "audio_errors.h"
@@ -40,12 +42,13 @@ static int32_t FindEnhanceLib(const std::string &enhance,
     std::shared_ptr<AudioEffectLibEntry> &libEntry, std::string &libName)
 {
     for (const std::shared_ptr<AudioEffectLibEntry> &lib : enhanceLibraryList) {
-        for (const auto &effectName : lib->effectName) {
-            if (effectName == enhance) {
-                libName = lib->libraryName;
-                libEntry = lib;
-                return SUCCESS;
-            }
+        if (std::any_of(lib->effectName.begin(), lib->effectName.end(),
+            [&enhance](const std::string &effectName) {
+                return effectName == enhance;
+            })) {
+            libName = lib->libraryName;
+            libEntry = lib;
+            return SUCCESS;
         }
     }
     return ERROR;
@@ -154,11 +157,12 @@ void AudioEnhanceChainManager::InitAudioEnhanceChainManager(std::vector<EffectCh
 {
     std::lock_guard<std::mutex> lock(chainManagerMutex_);
     normalSceneLimit_ = managerParam.maxExtraNum;
+    chainNum_ = 0;
     priorSceneSet_.insert(managerParam.priorSceneList.begin(), managerParam.priorSceneList.end());
     defaultScene_ = managerParam.defaultSceneName;
     AUDIO_INFO_LOG("defaultSceneName is %{public}s", defaultScene_.c_str());
     for (const auto &priorScene : priorSceneSet_) {
-        AUDIO_INFO_LOG("prioScene contains %{public}s", priorScene.c_str());
+        AUDIO_INFO_LOG("priorScene contains %{public}s", priorScene.c_str());
     }
     AUDIO_INFO_LOG("normalSceneLimit is %{public}u", normalSceneLimit_);
     ConstructEnhanceChainMgrMaps(enhanceChains, managerParam, enhanceLibraryList);
@@ -231,7 +235,12 @@ int32_t AudioEnhanceChainManager::ParseSceneKeyCode(const uint32_t sceneKeyCode,
 
     auto deviceItem = SUPPORTED_DEVICE_TYPE.find(capturerDevice);
     if (deviceItem != SUPPORTED_DEVICE_TYPE.end()) {
-        capturerDeviceStr = deviceItem->second;
+        if ((capturerDevice == DEVICE_TYPE_INVALID) || (capturerDevice == DEVICE_TYPE_NONE)) {
+            capturerDeviceStr = "DEVICE_TYPE_MIC";
+            AUDIO_ERR_LOG("capturerDevice not availd");
+        } else {
+            capturerDeviceStr = deviceItem->second;
+        }
     } else {
         return ERROR;
     }
@@ -252,6 +261,7 @@ int32_t AudioEnhanceChainManager::CreateAudioEnhanceChainDynamic(const uint32_t 
     std::shared_ptr<AudioEnhanceChain> audioEnhanceChain = nullptr;
     auto it = sceneTypeToEnhanceChainMap_.find(sceneKeyCode);
     if (it != sceneTypeToEnhanceChainMap_.end() && it->second != nullptr) {
+        AUDIO_INFO_LOG("Now enhanceChain num is : %{public}u", chainNum_);
         sceneTypeToEnhanceChainCountMap_[sceneKeyCode]++;
         audioEnhanceChain = it->second;
         if (audioEnhanceChain->IsEmptyEnhanceHandles()) {
@@ -284,7 +294,7 @@ std::string AudioEnhanceChainManager::GetEnhanceChainNameBySceneCode(const uint3
     std::string sceneType = "";
     std::string capturerDevice = "";
     std::string rendererDeivce = "";
-    if (ParseSceneKeyCode(sceneKeyCode, sceneType, capturerDevice, rendererDeivce)) {
+    if (ParseSceneKeyCode(sceneKeyCode, sceneType, capturerDevice, rendererDeivce) != SUCCESS) {
         return enhanceNone;
     }
     if (defaultFlag) {
@@ -315,7 +325,7 @@ int32_t AudioEnhanceChainManager::CreateEnhanceChainInner(std::shared_ptr<AudioE
     std::string sceneType = "";
     std::string capturerDevice = "";
     std::string rendererDeivce = "";
-    if (ParseSceneKeyCode(sceneKeyCode, sceneType, capturerDevice, rendererDeivce)) {
+    if (ParseSceneKeyCode(sceneKeyCode, sceneType, capturerDevice, rendererDeivce) != SUCCESS) {
         return ERROR;
     }
     uint32_t captureId = (sceneKeyCode & CAPTURER_ID_MASK) >> 8;
@@ -335,7 +345,8 @@ int32_t AudioEnhanceChainManager::CreateEnhanceChainInner(std::shared_ptr<AudioE
                     capturerDevice, rendererDeivce, defaultScene_};
                 audioEnhanceChain = std::make_shared<AudioEnhanceChain>(defaultScene_, algoParam, deviceAttr, 1);
                 captureId2DefaultChain_[captureId] = audioEnhanceChain;
-                AUDIO_INFO_LOG("captureId %{public}u defaultChain not exsist, create it", captureId);
+                AUDIO_INFO_LOG("captureId %{public}u defaultScene chain not exsist, create it", captureId);
+                chainNum++;
             }
             captureId2DefaultChainCount_[captureId]++;
             defaultFlag = true;
@@ -344,17 +355,20 @@ int32_t AudioEnhanceChainManager::CreateEnhanceChainInner(std::shared_ptr<AudioE
                 capturerDevice, rendererDeivce, sceneType};
             audioEnhanceChain = std::make_shared<AudioEnhanceChain>(sceneType, algoParam, deviceAttr, 0);
             captureId2SceneCount_[captureId]++;
-            AUDIO_INFO_LOG("captureId %{public}u create normal scene %{public}s", captureId, sceneType.c_str());
+            AUDIO_INFO_LOG("captureId %{public}u create normalScene %{public}s chain", captureId, sceneType.c_str());
+            chainNum++;
         }
     } else {
         AudioEnhanceParamAdapter algoParam = {(uint32_t)isMute_, (uint32_t)(systemVol_ * VOLUME_FACTOR),
             capturerDevice, rendererDeivce, sceneType};
         audioEnhanceChain = std::make_shared<AudioEnhanceChain>(sceneType, algoParam, deviceAttr, 0);
         AUDIO_INFO_LOG("priorScene %{public}s chain created", sceneType.c_str());
+        chainNum++;
     }
     CHECK_AND_RETURN_RET_LOG(audioEnhanceChain != nullptr, ERROR, "AudioEnhanceChain construct failed.");
     sceneTypeToEnhanceChainMap_[sceneKeyCode] = audioEnhanceChain;
     sceneTypeToEnhanceChainCountMap_[sceneKeyCode] = 1;
+    AUDIO_INFO_LOG("Now enhanceChain num is : %{public}u", chainNum_);
     return SUCCESS;
 }
 
@@ -404,6 +418,7 @@ int32_t AudioEnhanceChainManager::ReleaseAudioEnhanceChainDynamic(const uint32_t
 
     auto chainMapIter = sceneTypeToEnhanceChainMap_.find(sceneKeyCode);
     if (chainMapIter == sceneTypeToEnhanceChainMap_.end() || chainMapIter->second == nullptr) {
+        AUDIO_INFO_LOG("Now enhanceChain num is : %{public}u", chainNum_);
         sceneTypeToEnhanceChainCountMap_.erase(sceneKeyCode);
         sceneTypeToEnhanceChainMap_.erase(sceneKeyCode);
         return SUCCESS;
@@ -411,6 +426,7 @@ int32_t AudioEnhanceChainManager::ReleaseAudioEnhanceChainDynamic(const uint32_t
     auto chainCountIter = sceneTypeToEnhanceChainCountMap_.find(sceneKeyCode);
     if (chainCountIter->second > 1) {
         chainCountIter->second--;
+        AUDIO_INFO_LOG("Now enhanceChain num is : %{public}u", chainNum_);
         return SUCCESS;
     }
     if (DeleteEnhanceChainInner(chainMapIter->second, sceneKeyCode) != SUCCESS) {
@@ -429,12 +445,10 @@ int32_t AudioEnhanceChainManager::DeleteEnhanceChainInner(std::shared_ptr<AudioE
     std::string sceneType = "";
     std::string capturerDevice = "";
     std::string rendererDeivce = "";
-    if (ParseSceneKeyCode(sceneKeyCode, sceneType, capturerDevice, rendererDeivce)) {
+    if (ParseSceneKeyCode(sceneKeyCode, sceneType, capturerDevice, rendererDeivce) != SUCCESS) {
         return ERROR;
     }
     uint32_t captureId = (sceneKeyCode & CAPTURER_ID_MASK) >> 8;
-    sceneTypeToEnhanceChainCountMap_.erase(sceneKeyCode);
-    sceneTypeToEnhanceChainMap_.erase(sceneKeyCode);
     // not prior scene
     if (priorSceneSet_.find(sceneType) == priorSceneSet_.end()) {
         // default chain
@@ -444,12 +458,21 @@ int32_t AudioEnhanceChainManager::DeleteEnhanceChainInner(std::shared_ptr<AudioE
             // delete default chain
             if (!defaultChainCount) {
                 captureId2DefaultChain_[captureId] = nullptr;
-                AUDIO_INFO_LOG("captureId %{public}u default chain release", captureId);
+                chainNum_--;
+                AUDIO_INFO_LOG("captureId %{public}u defaultScene chain release", captureId);
             }
         } else {
             captureId2SceneCount_[captureId]--;
+            chainNum_--;
+            AUDIO_INFO_LOG("captureId %{public}u normalScene %{public}s chain release", captureId, sceneType.c_str());
         }
+    } else {
+        chainNum_--;
+        AUDIO_INFO_LOG("priorScene %{public}s chain release", sceneType.c_str());
     }
+    sceneTypeToEnhanceChainCountMap_.erase(sceneKeyCode);
+    sceneTypeToEnhanceChainMap_.erase(sceneKeyCode);
+    AUDIO_INFO_LOG("Now enhanceChain num is : %{public}u", chainNum_);
     return SUCCESS;
 }
 
@@ -468,7 +491,7 @@ bool AudioEnhanceChainManager::ExistAudioEnhanceChain(const uint32_t sceneKeyCod
 }
 
 int32_t AudioEnhanceChainManager::AudioEnhanceChainGetAlgoConfig(const uint32_t sceneKeyCode,
-    AudioBufferConfig &config, bool &needEcFlag, bool &needMicRefFlag)
+    AudioBufferConfig &micConfig, AudioBufferConfig &ecConfig, AudioBufferConfig &micRefConfig)
 {
     std::lock_guard<std::mutex> lock(chainManagerMutex_);
     CHECK_AND_RETURN_RET_LOG(isInitialized_, ERROR, "has not been initialized");
@@ -479,8 +502,7 @@ int32_t AudioEnhanceChainManager::AudioEnhanceChainGetAlgoConfig(const uint32_t 
     auto audioEnhanceChain = sceneTypeToEnhanceChainMap_[sceneKeyCode];
     CHECK_AND_RETURN_RET_LOG(audioEnhanceChain != nullptr, ERROR, "[%{public}u] get config faild",
         sceneKeyCode);
-    audioEnhanceChain->GetAlgoConfig(config);
-    audioEnhanceChain->GetEcAndMicRefFlag(needEcFlag, needMicRefFlag);
+    audioEnhanceChain->GetAlgoConfig(micConfig, ecConfig, micRefConfig);
     return SUCCESS;
 }
 

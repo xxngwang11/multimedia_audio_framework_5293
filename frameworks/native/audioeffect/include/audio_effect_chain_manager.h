@@ -137,11 +137,12 @@ public:
     void UpdateSpatializationEnabled(AudioSpatializationState spatializationState);
     void UpdateExtraSceneType(const std::string &mainkey, const std::string &subkey, const std::string &extraSceneType);
     void InitHdiState();
-    int32_t SetAudioEffectProperty(const AudioEffectPropertyArray &propertyArray);
-    int32_t GetAudioEffectProperty(AudioEffectPropertyArray &propertyArray);
     void UpdateEffectBtOffloadSupported(const bool &isSupported);
     void UpdateSceneTypeList(const std::string &sceneType, SceneTypeOperation operation);
     uint32_t GetSceneTypeToChainCount(const std::string &sceneType);
+
+    int32_t SetAudioEffectProperty(const AudioEffectPropertyArray &propertyArray);
+    int32_t GetAudioEffectProperty(AudioEffectPropertyArray &propertyArray);
 
 private:
     int32_t SetAudioEffectChainDynamic(const std::string &sceneType, const std::string &effectMode);
@@ -180,7 +181,7 @@ private:
     std::map<std::string, int32_t> sceneTypeToEffectChainCountBackupMap_;
     std::set<std::string> sceneTypeToSpecialEffectSet_;
     std::vector<std::string> priorSceneList_;
-    std::unorderer_map<std::string, std::string> effectPropertyMap_;
+    std::unordered_map<std::string, std::string> effectPropertyMap_;
     std::vector<std::pair<std::string, int32_t>> sceneTypeCountList_;
     DeviceType deviceType_ = DEVICE_TYPE_SPEAKER;
     std::string deviceSink_ = DEFAULT_DEVICE_SINK;

@@ -39,13 +39,13 @@ struct DeviceAttrAdapter {
     uint32_t micRefFormat;
 };
 
-int32_t EnhanceChainManagerCreateCb(const uint32_t sceneKeyCode, struct DeviceAttrAdapter adapter);
+int32_t EnhanceChainManagerCreateCb(const uint32_t sceneKeyCode, const struct DeviceAttrAdapter *adapter);
 int32_t EnhanceChainManagerReleaseCb(const uint32_t sceneKeyCode);
 bool EnhanceChainManagerExist(const uint32_t sceneKeyCode);
-int32_t EnhanceChainManagerGetAlgoConfig(const uint32_t sceneKeyCode, pa_sample_spec *spec,
-    bool *needEcFlag, bool *needMicRefFlag);
-bool EnhanceChainManagerIsEmptyEnhanceChain();
-int32_t EnhanceChainManagerInitEnhanceBuffer();
+int32_t EnhanceChainManagerGetAlgoConfig(const uint32_t sceneKeyCode, pa_sample_spec *micSpec,
+    pa_sample_spec *ecSpec, pa_sample_spec *micRefSpec);
+bool EnhanceChainManagerIsEmptyEnhanceChain(void);
+int32_t EnhanceChainManagerInitEnhanceBuffer(void);
 int32_t CopyToEnhanceBufferAdapter(void *data, uint32_t length);
 int32_t CopyEcdataToEnhanceBufferAdapter(void *data, uint32_t length);
 int32_t CopyMicRefdataToEnhanceBufferAdapter(void *data, uint32_t length);

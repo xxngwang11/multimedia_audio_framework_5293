@@ -83,8 +83,7 @@ public:
     void AddEnhanceHandle(AudioEffectHandle handle, AudioEffectLibrary *libHandle, const std::string &enhance,
         const std::string &property);
     bool IsEmptyEnhanceHandles();
-    void GetAlgoConfig(AudioBufferConfig &algoConfig);
-    void GetEcAndMicRefFlag(bool &needEcFlag, bool &needMicRefFlag);
+    void GetAlgoConfig(AudioBufferConfig &micConfig, AudioBufferConfig &ecConfig, AudioBufferConfig &micRefConfig);
     uint32_t GetAlgoBufferSize();
     uint32_t GetAlgoBufferSizeEc();
     uint32_t GetAlgoBufferSizeMicRef();
@@ -101,7 +100,6 @@ private:
     int32_t GetOneFrameInputData(std::unique_ptr<EnhanceBuffer> &enhanceBuffer);
     int32_t DeinterleaverData(uint8_t *src, uint32_t channel, uint8_t *dst, uint32_t offset);
     int32_t SetPropertyToHandle(AudioEffectHandle handle, const std::string &property);
-    int32_t UpdateAlgoConfig();
 
     bool setConfigFlag_;
     std::mutex chainMutex_;
