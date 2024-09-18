@@ -583,8 +583,8 @@ protected:
 
 enum AudioHdiUniqueIDBase : uint32_t {
     // 0-4 is reserved for other modules
-    AUDIO_HDI_CAPTURE_ID_BASE = 5,
-    AUDIO_HDI_RENDER_ID_BASE = 6,
+    AUDIO_HDI_RENDER_ID_BASE = 5,
+    AUDIO_HDI_CAPTURE_ID_BASE = 6,
 };
 
 enum HdiCaptureOffset : uint32_t {
@@ -611,9 +611,6 @@ enum HdiRenderOffset : uint32_t {
     HDI_RENDER_OFFSET_DP = 10,
     HDI_RENDER_OFFSET_USB = 11,
     HDI_RENDER_OFFSET_VOIP_FAST = 12,
-};
-
-uint32_t GenerateUniqueID(AudioHdiUniqueIDBase base, uint32_t offset);
 };
 
 uint32_t GenerateUniqueID(AudioHdiUniqueIDBase base, uint32_t offset);

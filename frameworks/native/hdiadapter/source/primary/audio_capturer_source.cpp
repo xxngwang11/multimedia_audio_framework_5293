@@ -82,7 +82,7 @@ static int32_t GetByteSizeByFormat(HdiAdapterFormat format)
 
 static bool IsNonblockingSource(int32_t source, std::string adapterName)
 {
-    return (source == SOURCE_TYPE_EC || source == SOURCE_TYPE_MIC_REF) && (adapterName != "dp");
+    return (source == SOURCE_TYPE_EC && adapterName != "dp") || (source == SOURCE_TYPE_MIC_REF);
 }
 
 static uint32_t GenerateUniqueIDBySource(int32_t source)
@@ -167,11 +167,11 @@ public:
 
     int32_t Preload(const std::string &usbInfoStr) override;
     float GetMaxAmplitude() override;
+    int32_t GetCaptureId(uint32_t &captureId) const override;
 
     int32_t UpdateAppsUid(const int32_t appsUid[PA_MAX_OUTPUTS_PER_SOURCE],
         const size_t size) final;
     int32_t UpdateAppsUid(const std::vector<int32_t> &appsUid) final;
-    int32_t GetCaptureId(uint32_t &captureId) const override;
 
     int32_t UpdateSourceType(SourceType souceType) final;
 
@@ -203,12 +203,12 @@ private:
     int32_t SetAudioRouteInfoForEnhanceChain(const DeviceType &inputDevice);
     void DfxOperation(BufferDesc &buffer, AudioSampleFormat format, AudioChannel channel) const;
 
-    int32_t DoStop();
-
     void CaptureThreadLoop();
     void CaptureFrameEcInternal(RingBuffer &ringBuf);
     int32_t StartNonblockingCapture();
     int32_t StopNonblockingCapture();
+
+    int32_t DoStop();
 
     CaptureAttr *hdiAttr_;
     IAudioSourceAttr attr_ = {};
@@ -225,7 +225,7 @@ private:
     uint32_t captureId_ = 0;
     std::string adapterNameCase_ = "";
     mutable int64_t volumeDataCount_ = 0;
-    std::string logUtilsTag_ = "";
+    std::string logUtilsTag_ = "AudioSource";
 
     // for get amplitude
     float maxAmplitude_ = 0;
@@ -301,11 +301,11 @@ public:
     void RegisterAudioCapturerSourceCallback(std::unique_ptr<ICapturerStateCallback> callback) override;
     void RegisterParameterCallback(IAudioSourceCallback *callback) override;
     float GetMaxAmplitude() override;
+    int32_t GetCaptureId(uint32_t &captureId) const override;
 
     int32_t UpdateAppsUid(const int32_t appsUid[PA_MAX_OUTPUTS_PER_SOURCE],
         const size_t size) final;
     int32_t UpdateAppsUid(const std::vector<int32_t> &appsUid) final;
-    int32_t GetCaptureId(uint32_t &captureId) const override;
 
     AudioCapturerSourceWakeup() = default;
     ~AudioCapturerSourceWakeup() = default;
@@ -718,6 +718,9 @@ int32_t AudioCapturerSourceInner::CreateCapture(struct AudioPort &capturePort)
             DEEP_BUFFER_CAPTURE_PERIOD_SIZE / (param.ecSampleAttributes.ecFrameSize);
         param.ecSampleAttributes.ecStopThreshold = INT_32_MAX;
         param.ecSampleAttributes.ecSilenceThreshold = AUDIO_BUFF_SIZE;
+        AUDIO_INFO_LOG("Ec config ecSampleRate: %{public}d ecChannel: %{public}u ecFormat: %{public}u",
+            param.ecSampleAttributes.ecSampleRate, param.ecSampleAttributes.ecChannelCount,
+            param.ecSampleAttributes.ecFormat);
     }
 
     struct AudioDeviceDescriptor deviceDesc;
@@ -732,7 +735,11 @@ int32_t AudioCapturerSourceInner::CreateCapture(struct AudioPort &capturePort)
         "rate:%{public}u channel:%{public}u format:%{public}u, devicePin:%{public}u",
         halName_.c_str(), param.sourceType, param.sampleRate, param.channelCount, param.format, deviceDesc.pins);
     int32_t ret = audioAdapter_->CreateCapture(audioAdapter_, &deviceDesc, &param, &audioCapture_, &captureId_);
-    CHECK_AND_RETURN_RET_LOG(audioCapture_ != nullptr && ret >= 0, ERR_NOT_STARTED, "Create capture failed");
+    if (ret < 0 || audioCapture_ == nullptr) {
+        AUDIO_ERR_LOG("Create capture failed");
+        currentActiveDevice_ = DEVICE_TYPE_INVALID;
+        return ERR_NOT_STARTED;
+    }
 
     return 0;
 }
@@ -761,7 +768,7 @@ int32_t AudioCapturerSourceInner::InitWithoutAttr()
     // build attr
     IAudioSourceAttr attr = {};
     attr.adapterName = hdiAttr_->adapterName;
-    attr.openMicSpeaker = false;
+    attr.openMicSpeaker = hdiAttr_->openMicSpeaker;
     attr.format = hdiAttr_->format;
     attr.sampleRate = hdiAttr_->sampleRate;
     attr.channel = hdiAttr_->channelCount;
@@ -784,25 +791,27 @@ int32_t AudioCapturerSourceInner::InitWithoutAttr()
 
 int32_t AudioCapturerSourceInner::CaptureFrame(char *frame, uint64_t requestBytes, uint64_t &replyBytes)
 {
+    CHECK_AND_RETURN_RET_LOG(audioCapture_ != nullptr, ERR_INVALID_HANDLE, "Audio capture Handle is nullptr!");
+
+    Trace trace("AudioCapturerSourceInner::CaptureFrame");
+
     // only mic ref use this
     if (attr_.sourceType == SOURCE_TYPE_MIC_REF) {
         if (ringBuffer_ != nullptr) {
             Trace trace("CaptureRefOutput");
             RingBuffer buffer = ringBuffer_->AcquireOutputBuffer();
+            int32_t ret = ringBuffer_->ReleaseOutputBuffer(buffer);
+            CHECK_AND_RETURN_RET_LOG(ret == 0, ERR_READ_FAILED, "get data from ring buffer fail");
+            CHECK_AND_RETURN_RET_LOG(buffer.length == requestBytes, ERR_READ_FAILED, "buffer length is invalid");
             if (memcpy_s(frame, requestBytes, buffer.data, requestBytes) != EOK) {
                 AUDIO_ERR_LOG("memcpy error");
             } else {
                 replyBytes = buffer.length;
             }
-            ringBuffer_->ReleaseOutputBuffer(buffer);
         }
 
         return SUCCESS;
     }
-
-    CHECK_AND_RETURN_RET_LOG(audioCapture_ != nullptr, ERR_INVALID_HANDLE, "Audio capture Handle is nullptr!");
-
-    Trace trace("AudioCapturerSourceInner::CaptureFrame");
 
     int64_t stamp = ClockTime::GetCurNano();
     uint32_t frameLen = static_cast<uint32_t>(requestBytes);
@@ -858,21 +867,26 @@ int32_t AudioCapturerSourceInner::CaptureFrameWithEc(
     struct AudioCaptureFrameInfo frameInfo = {};
 
     int32_t ret = audioCapture_->CaptureFrameEc(audioCapture_, &frameLen, &frameInfo);
-    CHECK_AND_RETURN_RET_LOG(ret >= 0, ERR_READ_FAILED, "Capture Frame with ec fail");
+    if (ret < 0) {
+        AUDIO_ERR_LOG("Capture Frame with ec fail");
+        AudioCaptureFrameInfoFree(&frameInfo, false);
+        return ERR_READ_FAILED;
+    }
 
     // same adapter reply length is mic + ec, different adapter is only ec, so we can't use reply bytes to copy
     if (attr_.sourceType != SOURCE_TYPE_EC && frameInfo.frame != nullptr) {
         if (memcpy_s(fdesc->frame, fdesc->frameLen, frameInfo.frame, fdesc->frameLen) != EOK) {
             AUDIO_ERR_LOG("memcpy error");
         } else {
-            replyBytes = frameInfo.replyBytes;
+            replyBytes = (attr_.sourceType == SOURCE_TYPE_EC) ? 0 : fdesc->frameLen;
         }
     }
     if (frameInfo.frameEc != nullptr) {
         if (memcpy_s(fdescEc->frame, fdescEc->frameLen, frameInfo.frameEc, fdescEc->frameLen) != EOK) {
             AUDIO_ERR_LOG("memcpy ec error");
         } else {
-            replyBytesEc = frameInfo.replyBytesEc;
+            replyBytesEc = (attr_.sourceType == SOURCE_TYPE_EC) ?
+                frameInfo.replyBytesEc : fdescEc->frameLen;
         }
     }
     AudioCaptureFrameInfoFree(&frameInfo, false);
@@ -1014,7 +1028,6 @@ int32_t AudioCapturerSourceInner::Start(void)
         + "_source_" + std::to_string(attr_.sampleRate) + "_" + std::to_string(attr_.channel)
         + "_" + std::to_string(attr_.format) + ".pcm";
     DumpFileUtil::OpenDumpFile(DUMP_SERVER_PARA, dumpFileName_, &dumpFile_);
-    logUtilsTag_ = "AudioSource";
 
     if (!started_) {
         if (audioCapturerSourceCallback_ != nullptr) {
@@ -1184,7 +1197,7 @@ int32_t AudioCapturerSourceInner::SetInputRoute(DeviceType inputDevice, AudioPor
         if (inputDevice == DEVICE_TYPE_MIC) {
             int32_t ret = SetAudioRouteInfoForEnhanceChain(currentActiveDevice_);
             if (ret != SUCCESS) {
-                AUDIO_WARNING_LOG("Set device %{public}d failed.", currentActiveDevice_);
+                AUDIO_WARNING_LOG("SetAudioRouteInfoForEnhanceChain failed.");
             }
         }
         AUDIO_INFO_LOG("SetInputRoute input device not change. currentActiveDevice %{public}d", currentActiveDevice_);
@@ -1229,7 +1242,7 @@ int32_t AudioCapturerSourceInner::SetInputRoute(DeviceType inputDevice, AudioPor
     currentActiveDevice_ = inputDevice;
     ret = SetAudioRouteInfoForEnhanceChain(currentActiveDevice_);
     if (ret != SUCCESS) {
-        AUDIO_WARNING_LOG("Set device %{public}d failed.", currentActiveDevice_);
+        AUDIO_WARNING_LOG("SetAudioRouteInfoForEnhanceChain failed.");
     }
     return SUCCESS;
 }

@@ -92,10 +92,10 @@ public:
         const std::string &value) override;
     
     float GetMaxAmplitude() override;
+    int32_t GetCaptureId(uint32_t &captureId) const override;
 
     int32_t UpdateAppsUid(const int32_t appsUid[PA_MAX_OUTPUTS_PER_SOURCE], const size_t size) final;
     int32_t UpdateAppsUid(const std::vector<int32_t> &appsUid) final;
-    int32_t GetCaptureId(uint32_t &captureId) const override;
 private:
     int32_t CreateCapture(const AudioPort &capturePort);
     int32_t SetInputPortPin(DeviceType inputDevice, AudioRouteNode &source);

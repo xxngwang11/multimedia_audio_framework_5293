@@ -71,6 +71,7 @@ typedef struct CaptureAttr {
     uint32_t channelCount;
     enum HdiAdapterFormat format;
     bool isBigEndian;
+    uint32_t openMicSpeaker;
 } CaptureAttr;
 
 #ifdef __cplusplus

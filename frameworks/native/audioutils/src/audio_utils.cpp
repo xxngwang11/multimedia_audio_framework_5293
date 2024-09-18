@@ -1284,12 +1284,6 @@ std::string AudioDump::GetVersionType()
 {
     return versionType_;
 }
-
-uint32_t GenerateUniqueID(AudioHdiUniqueIDBase base, uint32_t offset)
-{
-    return base + offset * UNIQUE_ID_INTERVAL;
-}
-
 } // namespace AudioStandard
 } // namespace OHOS
 
