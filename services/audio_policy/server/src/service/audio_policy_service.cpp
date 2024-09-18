@@ -1209,7 +1209,7 @@ int32_t AudioPolicyService::ConnectVirtualDevice(sptr<AudioDeviceDescriptor> &se
     int32_t ret = Bluetooth::AudioA2dpManager::Connect(selectedDesc->macAddress_);
     CHECK_AND_RETURN_RET_LOG(ret == SUCCESS, ret, "A2dp connect failed");
     ret = Bluetooth::AudioHfpManager::Connect(selectedDesc->macAddress_);
-    CHECK_AND_RETURN_RET_LOG(ret == SUCCESS, ret, "A2dp connect failed");
+    CHECK_AND_RETURN_RET_LOG(ret == SUCCESS, ret, "Hfp connect failed");
     AUDIO_INFO_LOG("Connect virtual device[%{public}s]", GetEncryptAddr(selectedDesc->macAddress_).c_str());
     return SUCCESS;
 }
