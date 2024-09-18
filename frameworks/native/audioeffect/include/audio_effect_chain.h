@@ -48,7 +48,8 @@ public:
     void SetEffectMode(const std::string &mode);
     void SetExtraSceneType(const std::string &extraSceneType);
     void SetEffectCurrSceneType(AudioEffectScene currSceneType);
-    void AddEffectHandle(AudioEffectHandle effectHandle, AudioEffectLibrary *libHandle, AudioEffectScene currSceneType);
+    void AddEffectHandle(AudioEffectHandle effectHandle, AudioEffectLibrary *libHandle, AudioEffectScene currSceneType,
+        const std::string &effectName, const std::string &property);
     void ApplyEffectChain(float *bufIn, float *bufOut, uint32_t frameLen, AudioEffectProcInfo procInfo);
     bool IsEmptyEffectHandles();
     void Dump();
@@ -62,6 +63,7 @@ public:
     void SetFinalVolume(float volume);
     float GetFinalVolume();
     void SetSpatialDeviceType(AudioSpatialDeviceType spatialDeviceType);
+    int32_t SetEffectProperty(const std::string &effect, const std::string &property);
 
 private:
     AudioEffectConfig GetIoBufferConfig();
@@ -76,6 +78,7 @@ private:
     uint32_t extraEffectChainType_ = 0;
     AudioEffectScene currSceneType_ = SCENE_MUSIC;
     std::vector<AudioEffectHandle> standByEffectHandles_;
+    std::vector<std::string> effectNames_;
     std::vector<AudioEffectLibrary *> libHandles_;
     AudioEffectConfig ioBufferConfig_ = {};
     AudioBuffer audioBufIn_ = {};

@@ -13,17 +13,12 @@
  * limitations under the License.
  */
 
-#ifndef LOG_TAG
+#undef LOG_TAG
 #define LOG_TAG "AudioEnhanceChainAdapter"
-#endif
 
 #include "audio_enhance_chain_adapter.h"
 
-#include <map>
-
-#include "securec.h"
-#include "audio_effect_log.h"
-#include "audio_effect.h"
+#include "audio_log.h"
 #include "audio_errors.h"
 #include "audio_enhance_chain_manager.h"
 
@@ -41,106 +36,88 @@ const std::map<int32_t, pa_sample_format_t> FORMAT_CONVERT_MAP {
     {SAMPLE_FORMAT_S32LE, PA_SAMPLE_S32LE},
 };
 
-int32_t EnhanceChainManagerCreateCb(const char *sceneType, const char *enhanceMode, const char *upDevice,
-    const char *downDevice)
+int32_t EnhanceChainManagerCreateCb(const uint32_t sceneKeyCode, struct DeviceAttrAdapter adapter)
 {
     AudioEnhanceChainManager *audioEnhanceChainMananger = AudioEnhanceChainManager::GetInstance();
     CHECK_AND_RETURN_RET_LOG(audioEnhanceChainMananger != nullptr,
         ERR_INVALID_HANDLE, "null audioEnhanceChainManager");
-    std::string sceneTypeString = "";
-    std::string sceneModeString = "";
-    std::string upDeviceString = "";
-    std::string downDeviceString = "";
-    if (sceneType) {
-        sceneTypeString = sceneType;
+    AudioEnhanceDeviceAttr deviceAttr = {};
+    deviceAttr.micRate = adapter.micRate;
+    deviceAttr.micChannels = adapter.micChannels;
+    deviceAttr.micFormat = adapter.micFormat;
+    if (adapter.needEc) {
+        deviceAttr.needEc = adapter.needEc;
+        deviceAttr.ecRate = adapter.ecRate;
+        deviceAttr.ecChannels = adapter.ecChannels;
+        deviceAttr.ecFormat = adapter.ecFormat;
     }
-    if (enhanceMode) {
-        sceneModeString = enhanceMode;
+    if (adapter.needMicRef) {
+        deviceAttr.needMicRef = adapter.needMicRef;
+        deviceAttr.micRefRate = adapter.micRefRate;
+        deviceAttr.micRefChannels = adapter.micRefChannels;
+        deviceAttr.micRefFormat = adapter.micRefFormat;
     }
-    if (upDevice) {
-        upDeviceString = upDevice;
-    }
-    if (downDevice) {
-        downDeviceString = downDevice;
-    }
-    if (audioEnhanceChainMananger->CreateAudioEnhanceChainDynamic(sceneTypeString, sceneModeString, upDeviceString,
-        downDeviceString) != SUCCESS) {
+    return audioEnhanceChainMananger->CreateAudioEnhanceChainDynamic(sceneKeyCode, deviceAttr);
+}
+
+int32_t EnhanceChainManagerReleaseCb(const uint32_t sceneKeyCode)
+{
+    AudioEnhanceChainManager *audioEnhanceChainMananger = AudioEnhanceChainManager::GetInstance();
+    CHECK_AND_RETURN_RET_LOG(audioEnhanceChainMananger != nullptr,
+        ERR_INVALID_HANDLE, "null audioEnhanceChainManager");
+    if (audioEnhanceChainMananger->ReleaseAudioEnhanceChainDynamic(sceneKeyCode) != SUCCESS) {
         return ERROR;
     }
     return SUCCESS;
 }
 
-int32_t EnhanceChainManagerReleaseCb(const char *sceneType, const char *upDevice, const char *downDevice)
+bool EnhanceChainManagerExist(const uint32_t sceneKeyCode)
 {
     AudioEnhanceChainManager *audioEnhanceChainMananger = AudioEnhanceChainManager::GetInstance();
     CHECK_AND_RETURN_RET_LOG(audioEnhanceChainMananger != nullptr,
         ERR_INVALID_HANDLE, "null audioEnhanceChainManager");
-    std::string sceneTypeString = "";
-    std::string upDeviceString = "";
-    std::string downDeviceString = "";
-    if (sceneType) {
-        sceneTypeString = sceneType;
-    }
-    if (upDevice) {
-        upDeviceString = upDevice;
-    }
-    if (downDevice) {
-        downDeviceString = downDevice;
-    }
-    if (audioEnhanceChainMananger->ReleaseAudioEnhanceChainDynamic(sceneTypeString, upDeviceString,
-        downDeviceString) != SUCCESS) {
+    return audioEnhanceChainMananger->ExistAudioEnhanceChain(sceneKeyCode);
+}
+
+int32_t EnhanceChainManagerGetAlgoConfig(const uint32_t sceneKeyCode, pa_sample_spec *spec,
+    bool *needEcFlag, bool *needMicRefFlag)
+{
+    AudioEnhanceChainManager *audioEnhanceChainMananger = AudioEnhanceChainManager::GetInstance();
+    CHECK_AND_RETURN_RET_LOG(audioEnhanceChainMananger != nullptr,
+        ERROR, "null audioEnhanceChainManager");
+    AudioBufferConfig config = {};
+    bool needEcFlagValue = false;
+    bool needMicRefFlagValue = false;
+    uint32_t ret = audioEnhanceChainMananger->AudioEnhanceChainGetAlgoConfig(sceneKeyCode, config,
+        needEcFlagValue, needMicRefFlagValue);
+    if (ret != 0 || config.samplingRate == 0) {
         return ERROR;
     }
-    return SUCCESS;
-}
-
-bool EnhanceChainManagerExist(const char *sceneKey)
-{
-    AudioEnhanceChainManager *audioEnhanceChainMananger = AudioEnhanceChainManager::GetInstance();
-    CHECK_AND_RETURN_RET_LOG(audioEnhanceChainMananger != nullptr,
-        ERR_INVALID_HANDLE, "null audioEnhanceChainManager");
-    std::string sceneKeyString = "";
-    if (sceneKey) {
-        sceneKeyString = sceneKey;
+    if (needEcFlag) {
+        *needEcFlag = needEcFlagValue;
     }
-    return audioEnhanceChainMananger->ExistAudioEnhanceChain(sceneKeyString);
-}
-
-pa_sample_spec EnhanceChainManagerGetAlgoConfig(const char *sceneType, const char *upDevice, const char *downDevice)
-{
-    pa_sample_spec spec;
-    pa_sample_spec_init(&spec);
-    AudioEnhanceChainManager *audioEnhanceChainMananger = AudioEnhanceChainManager::GetInstance();
-    CHECK_AND_RETURN_RET_LOG(audioEnhanceChainMananger != nullptr,
-        spec, "null audioEnhanceChainManager");
-    std::string sceneTypeString = "";
-    std::string upDeviceString = "";
-    std::string downDeviceString = "";
-    if (sceneType) {
-        sceneTypeString = sceneType;
+    if (needMicRefFlag) {
+        *needMicRefFlag = needMicRefFlagValue;
     }
-    if (upDevice) {
-        upDeviceString = upDevice;
-    }
-    if (downDevice) {
-        downDeviceString = downDevice;
-    }
-    AudioBufferConfig config = audioEnhanceChainMananger->AudioEnhanceChainGetAlgoConfig(sceneTypeString,
-        upDeviceString, downDeviceString);
-    if (config.samplingRate == 0) {
-        return spec;
-    }
-    pa_sample_spec sampleSpec;
-    sampleSpec.rate = config.samplingRate;
-    sampleSpec.channels = static_cast<uint8_t>(config.channels);
+    spec->rate = config.samplingRate;
+    spec->channels = static_cast<uint8_t>(config.channels);
 
     auto item = FORMAT_CONVERT_MAP.find(config.format);
     if (item != FORMAT_CONVERT_MAP.end()) {
-        sampleSpec.format = item->second;
+        spec->format = item->second;
     } else {
-        sampleSpec.format = PA_SAMPLE_INVALID;
+        spec->format = PA_SAMPLE_INVALID;
+        return ERROR;
     }
-    return sampleSpec;
+    return SUCCESS;
+}
+
+bool EnhanceChainManagerIsEmptyEnhanceChain()
+{
+    AudioEnhanceChainManager *audioEnhanceChainMananger = AudioEnhanceChainManager::GetInstance();
+    CHECK_AND_RETURN_RET_LOG(audioEnhanceChainMananger != nullptr,
+        true, "null audioEnhanceChainManager");
+    return audioEnhanceChainMananger->IsEmptyEnhanceChain();
 }
 
 int32_t EnhanceChainManagerInitEnhanceBuffer()
@@ -153,4 +130,97 @@ int32_t EnhanceChainManagerInitEnhanceBuffer()
         return ERROR;
     }
     return audioEnhanceChainMananger->InitEnhanceBuffer();
+}
+
+int32_t CopyToEnhanceBufferAdapter(void *data, uint32_t length)
+{
+    AudioEnhanceChainManager *audioEnhanceChainMananger = AudioEnhanceChainManager::GetInstance();
+    CHECK_AND_RETURN_RET_LOG(audioEnhanceChainMananger != nullptr,
+        ERROR, "null audioEnhanceChainManager");
+    CHECK_AND_RETURN_RET_LOG(data != nullptr, ERROR, "data null");
+    uint32_t ret = audioEnhanceChainMananger->CopyToEnhanceBuffer(data, length);
+    if (ret != 0) {
+        return ERROR;
+    }
+    return SUCCESS;
+}
+
+int32_t CopyEcdataToEnhanceBufferAdapter(void *data, uint32_t length)
+{
+    AudioEnhanceChainManager *audioEnhanceChainMananger = AudioEnhanceChainManager::GetInstance();
+    CHECK_AND_RETURN_RET_LOG(audioEnhanceChainMananger != nullptr,
+        ERROR, "null audioEnhanceChainManager");
+    CHECK_AND_RETURN_RET_LOG(data != nullptr, ERROR, "data null");
+    uint32_t ret = audioEnhanceChainMananger->CopyEcToEnhanceBuffer(data, length);
+    if (ret != 0) {
+        return ERROR;
+    }
+    return SUCCESS;
+}
+
+int32_t CopyMicRefdataToEnhanceBufferAdapter(void *data, uint32_t length)
+{
+    AudioEnhanceChainManager *audioEnhanceChainMananger = AudioEnhanceChainManager::GetInstance();
+    CHECK_AND_RETURN_RET_LOG(audioEnhanceChainMananger != nullptr,
+        ERROR, "null audioEnhanceChainManager");
+    CHECK_AND_RETURN_RET_LOG(data != nullptr, ERROR, "data null");
+    uint32_t ret = audioEnhanceChainMananger->CopyMicRefToEnhanceBuffer(data, length);
+    if (ret != 0) {
+        return ERROR;
+    }
+    return SUCCESS;
+}
+
+int32_t CopyFromEnhanceBufferAdapter(void *data, uint32_t length)
+{
+    AudioEnhanceChainManager *audioEnhanceChainMananger = AudioEnhanceChainManager::GetInstance();
+    CHECK_AND_RETURN_RET_LOG(audioEnhanceChainMananger != nullptr,
+        ERROR, "null audioEnhanceChainManager");
+    CHECK_AND_RETURN_RET_LOG(data != nullptr, ERROR, "data null");
+    uint32_t ret = audioEnhanceChainMananger->CopyFromEnhanceBuffer(data, length);
+    if (ret != 0) {
+        return ERROR;
+    }
+    return SUCCESS;
+}
+
+int32_t EnhanceChainManagerProcess(const uint32_t sceneKeyCode, uint32_t length)
+{
+    AudioEnhanceChainManager *audioEnhanceChainMananger = AudioEnhanceChainManager::GetInstance();
+    CHECK_AND_RETURN_RET_LOG(audioEnhanceChainMananger != nullptr,
+        ERR_INVALID_HANDLE, "null audioEnhanceChainManager");
+    if (audioEnhanceChainMananger->ApplyAudioEnhanceChain(sceneKeyCode, length) != SUCCESS) {
+        AUDIO_ERR_LOG("%{public}u process failed", sceneKeyCode);
+        return ERROR;
+    }
+    AUDIO_DEBUG_LOG("%{public}u process success", sceneKeyCode);
+    return SUCCESS;
+}
+
+int32_t EnhanceChainManagerProcessDefault(const uint32_t captureId, uint32_t length)
+{
+    AudioEnhanceChainManager *audioEnhanceChainMananger = AudioEnhanceChainManager::GetInstance();
+    CHECK_AND_RETURN_RET_LOG(audioEnhanceChainMananger != nullptr,
+        ERR_INVALID_HANDLE, "null audioEnhanceChainManager");
+    if (audioEnhanceChainMananger->ApplyAudioEnhanceChainDefault(captureId, length) != SUCCESS) {
+        AUDIO_ERR_LOG("%{public}u default process failed", captureId);
+        return ERROR;
+    }
+    AUDIO_DEBUG_LOG("%{public}u default process success", captureId);
+    return SUCCESS;
+}
+
+int32_t GetSceneTypeCode(const char *sceneType, uint32_t *sceneTypeCode)
+{
+    std::string sceneTypeString = "";
+    if (sceneType) {
+        sceneTypeString = sceneType;
+    }
+    for (auto &item : AUDIO_ENHANCE_SUPPORTED_SCENE_TYPES) {
+        if (item.second == sceneTypeString) {
+            *sceneTypeCode = static_cast<uint32_t>(item.first);
+            return SUCCESS;
+        }
+    }
+    return ERROR;
 }

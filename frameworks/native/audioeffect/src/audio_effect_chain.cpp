@@ -180,8 +180,30 @@ int32_t AudioEffectChain::SetEffectParamToHandle(AudioEffectHandle handle, int32
     return ret;
 }
 
+int32_t AudioEffectChain::SetEffectProperty(const std::string &effect, const std::string &property)
+{
+    std::lock_guard<std::mutex> lock(reloadMutex_);
+    int32_t ret = 0;
+    int32_t size = standByEffectHandles_.size();
+    for (int32_t index = 0; index < size; index++) {
+        auto &handle = standByEffectHandles_[index];
+        auto const &effectName = effectNames_[index];
+        if (effect == effectName) {
+            int32_t replyData = 0;
+            const char *propCstr = property.c_str();
+            AudioEffectTransInfo cmdInfo = {sizeof(const char *), reinterpret_cast<void*>(&propCstr)};
+            AudioEffectTransInfo replyInfo = {sizeof(int32_t), &replyData};
+            ret = (*handle)->command(handle, EFFECT_CMD_SET_PROPERTY, &cmdInfo, &replyInfo);
+            CHECK_AND_RETURN_RET_LOG(ret == 0, ret,
+                "[%{public}s] with mode [%{public}s], %{public}s effect EFFECT_CMD_SET_PROPERTY fail",
+                sceneType_.c_str(), effectMode_.c_str(), effectName.c_str());
+        }
+    }
+    return ret;
+}
+
 void AudioEffectChain::AddEffectHandle(AudioEffectHandle handle, AudioEffectLibrary *libHandle,
-    AudioEffectScene currSceneType)
+    AudioEffectScene currSceneType, const std::string &effectName, const std::string &effectProperty)
 {
     int32_t ret;
     int32_t replyData = 0;
@@ -189,27 +211,37 @@ void AudioEffectChain::AddEffectHandle(AudioEffectHandle handle, AudioEffectLibr
     AudioEffectTransInfo cmdInfo = {sizeof(AudioEffectConfig), &ioBufferConfig_};
     AudioEffectTransInfo replyInfo = {sizeof(int32_t), &replyData};
     ret = (*handle)->command(handle, EFFECT_CMD_INIT, &cmdInfo, &replyInfo);
-    CHECK_AND_RETURN_LOG(ret == 0, "[%{public}s] with mode [%{public}s], %{public}s lib EFFECT_CMD_INIT fail",
-        sceneType_.c_str(), effectMode_.c_str(), libHandle->name);
+    CHECK_AND_RETURN_LOG(ret == 0, "[%{public}s] with mode [%{public}s], %{public}s effect EFFECT_CMD_INIT fail",
+        sceneType_.c_str(), effectMode_.c_str(), effectName.c_str());
     ret = (*handle)->command(handle, EFFECT_CMD_ENABLE, &cmdInfo, &replyInfo);
-    CHECK_AND_RETURN_LOG(ret == 0, "[%{public}s] with mode [%{public}s], %{public}s lib EFFECT_CMD_ENABLE fail",
-        sceneType_.c_str(), effectMode_.c_str(), libHandle->name);
+    CHECK_AND_RETURN_LOG(ret == 0, "[%{public}s] with mode [%{public}s], %{public}s effect EFFECT_CMD_ENABLE fail",
+        sceneType_.c_str(), effectMode_.c_str(), effectName.c_str());
 
-    CHECK_AND_RETURN_LOG(SetEffectParamToHandle(handle, replyData) == 0,
-        "[%{public}s] with mode [%{public}s], %{public}s lib EFFECT_CMD_SET_PARAM fail", sceneType_.c_str(),
-        effectMode_.c_str(), libHandle->name);
+    CHECK_AND_RETURN_LOG(SetEffectParamToHandle(handle, currSceneType, replyData) == 0,
+        "[%{public}s] with mode [%{public}s], %{public}s effect EFFECT_CMD_SET_PARAM fail", sceneType_.c_str(),
+        effectMode_.c_str(), effectName.c_str());
+
+    if (!effectProperty.empty()) {
+        const char *propCstr = effectProperty.c_str();
+        cmdInfo = {sizeof(const char *), &propCstr};
+        ret = (*handle)->command(handle, EFFECT_CMD_SET_PROPERTY, &cmdInfo, &replyInfo);
+        CHECK_AND_RETURN_LOG(ret == 0,
+            "[%{public}s] with mode [%{public}s], %{public}s effect EFFECT_CMD_SET_PROPERTY fail",
+            sceneType_.c_str(), effectMode_.c_str(), effectName.c_str());
+    }
 
     cmdInfo = {sizeof(AudioEffectConfig), &ioBufferConfig_};
     ret = (*handle)->command(handle, EFFECT_CMD_SET_CONFIG, &cmdInfo, &replyInfo);
-    CHECK_AND_RETURN_LOG(ret == 0, "[%{public}s] with mode [%{public}s], %{public}s lib EFFECT_CMD_SET_CONFIG fail",
-        sceneType_.c_str(), effectMode_.c_str(), libHandle->name);
+    CHECK_AND_RETURN_LOG(ret == 0, "[%{public}s] with mode [%{public}s], %{public}s effect EFFECT_CMD_SET_CONFIG fail",
+        sceneType_.c_str(), effectMode_.c_str(), effectName.c_str());
 
     ret = (*handle)->command(handle, EFFECT_CMD_GET_CONFIG, &cmdInfo, &cmdInfo);
-    CHECK_AND_RETURN_LOG(ret == 0, "[%{public}s] with mode [%{public}s], %{public}s lib EFFECT_CMD_GET_CONFIG fail",
-        sceneType_.c_str(), effectMode_.c_str(), libHandle->name);
+    CHECK_AND_RETURN_LOG(ret == 0, "[%{public}s] with mode [%{public}s], %{public}s effect EFFECT_CMD_GET_CONFIG fail",
+        sceneType_.c_str(), effectMode_.c_str(), effectName.c_str());
     Swap(ioBufferConfig_.inputCfg, ioBufferConfig_.outputCfg); // pass outputCfg to next algo as inputCfg
 
     standByEffectHandles_.emplace_back(handle);
+    effectNames_.emplace_back(effectName);
     libHandles_.emplace_back(libHandle);
     latency_ += static_cast<uint32_t>(replyData);
 }

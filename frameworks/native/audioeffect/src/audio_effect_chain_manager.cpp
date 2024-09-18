@@ -50,7 +50,10 @@ static int32_t FindEffectLib(const std::string &effect,
     std::shared_ptr<AudioEffectLibEntry> &libEntry, std::string &libName)
 {
     for (const std::shared_ptr<AudioEffectLibEntry> &lib : effectLibraryList) {
-        if (lib->libraryName == effect) {
+        if (std::any_of(lib->effectName.begin(), lib->effectName.end(),
+            [&effect](const std::string &effectName) {
+                return effectName == effect;
+            })) {
             libName = lib->libraryName;
             libEntry = lib;
             return SUCCESS;
@@ -88,6 +91,7 @@ AudioEffectChainManager::AudioEffectChainManager()
     sessionIDSet_.clear();
     sceneTypeToSessionIDMap_.clear();
     sessionIDToEffectInfoMap_.clear();
+    effectPropertyMap_.clear();
     deviceType_ = DEVICE_TYPE_SPEAKER;
     deviceSink_ = DEFAULT_DEVICE_SINK;
     spatialDeviceType_ = EARPHONE_TYPE_OTHERS;
@@ -263,7 +267,9 @@ void AudioEffectChainManager::InitAudioEffectChainManager(std::vector<EffectChai
         std::string key = efc.name;
         std::vector <std::string> effects;
         for (std::string effectName: efc.apply) {
-            effects.emplace_back(effectName);
+            if (effectToLibraryEntryMap_.count(effectName)) {
+                effects.emplace_back(effectName);
+            }
         }
         effectChainToEffectsMap_[key] = effects;
     }
@@ -277,6 +283,8 @@ void AudioEffectChainManager::InitAudioEffectChainManager(std::vector<EffectChai
                 effectChainManagerParam.defaultSceneName.size())] = item->second;
         }
     }
+    // Construct effectPropertyMap_ that stores effect's property
+    effectPropertyMap_ = effectChainManagerParam.effectDefaultProperty;
 
     AUDIO_INFO_LOG("EffectToLibraryEntryMap size %{public}zu", effectToLibraryEntryMap_.size());
     AUDIO_DEBUG_LOG("EffectChainToEffectsMap size %{public}zu, SceneTypeAndModeToEffectChainNameMap size %{public}zu",
@@ -384,8 +392,9 @@ int32_t AudioEffectChainManager::SetAudioEffectChainDynamic(const std::string &s
             effect.c_str(), effectChainKey.c_str());
         AudioEffectScene currSceneType;
         UpdateCurrSceneType(currSceneType, tSceneType);
+        auto propIter = effectPropertyMap_.find(effect);
         audioEffectChain->AddEffectHandle(handle, effectToLibraryEntryMap_[effect]->audioEffectLibHandle,
-            currSceneType);
+            currSceneType, effect, propIter == effectPropertyMap_.end() ? "" : propIter->second);
     }
     audioEffectChain->ResetIoBufferConfig();
 
@@ -507,14 +516,16 @@ int32_t AudioEffectChainManager::ApplyAudioEffectChain(const std::string &sceneT
 {
     std::string sceneTypeAndDeviceKey = sceneType + "_&_" + GetDeviceTypeName();
     size_t totLen = static_cast<size_t>(bufferAttr->frameLen * bufferAttr->numChans * sizeof(float));
+    auto it = sceneTypeToEffectChainMap_.find(sceneTypeAndDeviceKey);
 #ifdef DEVICE_FLAG
-    if (!sceneTypeToEffectChainMap_.count(sceneTypeAndDeviceKey)) {
+    if (it == sceneTypeToEffectChainMap_.end() || it->second == nullptr) {
         CHECK_AND_RETURN_RET_LOG(memcpy_s(bufferAttr->bufOut, totLen, bufferAttr->bufIn, totLen) == 0, ERROR,
             "memcpy error when no effect applied");
         return ERROR;
     }
 #else
-    if (deviceType_ != DEVICE_TYPE_SPEAKER || !sceneTypeToEffectChainMap_.count(sceneTypeAndDeviceKey)) {
+    if (deviceType_ != DEVICE_TYPE_SPEAKER || it == sceneTypeToEffectChainMap_.end()
+        || it->second == nullptr) {
         CHECK_AND_RETURN_RET_LOG(memcpy_s(bufferAttr->bufOut, totLen, bufferAttr->bufIn, totLen) == 0, ERROR,
             "memcpy error when no effect applied");
         return SUCCESS;
@@ -962,14 +973,14 @@ void AudioEffectChainManager::UpdateSensorState()
 
 void AudioEffectChainManager::DeleteAllChains()
 {
-    std::map<std::string, int32_t> SceneTypeToEffectChainCountBackupMap;
+    std::map<std::string, int32_t> sceneTypeToEffectChainCountBackupMap;
     for (auto it = sceneTypeToEffectChainCountMap_.begin(); it != sceneTypeToEffectChainCountMap_.end(); ++it) {
         AUDIO_DEBUG_LOG("sceneTypeAndDeviceKey %{public}s count:%{public}d", it->first.c_str(), it->second);
-        SceneTypeToEffectChainCountBackupMap.insert(
+        sceneTypeToEffectChainCountBackupMap.insert(
             std::make_pair(it->first.substr(0, static_cast<size_t>(it->first.find("_&_"))), it->second));
     }
     
-    for (auto it = SceneTypeToEffectChainCountBackupMap.begin(); it != SceneTypeToEffectChainCountBackupMap.end();
+    for (auto it = sceneTypeToEffectChainCountBackupMap.begin(); it != sceneTypeToEffectChainCountBackupMap.end();
         ++it) {
         for (int32_t k = 0; k < it->second; ++k) {
             ReleaseAudioEffectChainDynamic(it->first);
@@ -1131,6 +1142,7 @@ void AudioEffectChainManager::ResetInfo()
     sceneTypeToSessionIDMap_.clear();
     sessionIDToEffectInfoMap_.clear();
     sceneTypeToSpecialEffectSet_.clear();
+    effectPropertyMap_.clear();
     deviceType_ = DEVICE_TYPE_SPEAKER;
     deviceSink_ = DEFAULT_DEVICE_SINK;
     isInitialized_ = false;
@@ -1189,7 +1201,7 @@ bool AudioEffectChainManager::CheckSceneTypeMatch(const std::string &sinkSceneTy
     return false;
 }
 
-void AudioEffectChainManager::UpdateCurrSceneType(AudioEffectScene &currSceneType, std::string &sceneType)
+void AudioEffectChainManager::UpdateCurrSceneType(AudioEffectScene &currSceneType, const std::string &sceneType)
 {
     if (!spatializationEnabled_ || (GetDeviceTypeName() != "DEVICE_TYPE_BLUETOOTH_A2DP")) {
         currSceneType = static_cast<AudioEffectScene>(GetKeyFromValue(AUDIO_SUPPORTED_SCENE_TYPES, sceneType));
@@ -1240,9 +1252,10 @@ std::shared_ptr<AudioEffectChain> AudioEffectChainManager::CreateAudioEffectChai
         return audioEffectChain;
     }
 
-    if ((maxEffectChainCount_ - sceneTypeToSpecialEffectSet_.size()) > 1) {
+    if ((maxEffectChainCount_ - static_cast<int32_t>(sceneTypeToSpecialEffectSet_.size())) > 1) {
         AUDIO_INFO_LOG("max audio effect chain count not reached, create special effect chain: %{public}s",
             sceneType.c_str());
+        sceneTypeToSpecialEffectSet_.insert(sceneType);
 #ifdef SENSOR_ENABLE
         audioEffectChain = std::make_shared<AudioEffectChain>(sceneType, headTracker_);
 #else
@@ -1344,16 +1357,6 @@ bool AudioEffectChainManager::CheckIfSpkDsp()
     return true;
 }
 
-int32_t AudioEffectChainManager::SetAudioEffectProperty(const AudioEffectPropertyArray &propertyArray)
-{
-    return AUDIO_OK;
-}
-
-int32_t AudioEffectChainManager::GetAudioEffectProperty(AudioEffectPropertyArray &propertyArray)
-{
-    return AUDIO_OK;
-}
-
 void AudioEffectChainManager::UpdateEffectBtOffloadSupported(const bool &isSupported)
 {
     std::lock_guard<std::recursive_mutex> lock(dynamicMutex_);
@@ -1379,6 +1382,32 @@ void AudioEffectChainManager::UpdateEffectBtOffloadSupported(const bool &isSuppo
     btOffloadSupported_ = isSupported;
     UpdateSpatializationState(oldState);
     return;
+}
+
+int32_t AudioEffectChainManager::SetAudioEffectProperty(const AudioEffectPropertyArray &propertyArray)
+{
+    std::lock_guard<std::recursive_mutex> lock(dynamicMutex_);
+    for (const auto &property : propertyArray.property) {
+        effectPropertyMap_.insert_or_assign(property.effectClass, property.effectProp);
+        for (const auto &[sceneType, effectChain] : sceneTypeToEffectChainMap_) {
+            if (effectChain) {
+                effectChain->SetEffectProperty(property.effectClass, property.effectProp);
+            }
+        }
+    }
+    return AUDIO_OK;
+}
+
+int32_t AudioEffectChainManager::GetAudioEffectProperty(AudioEffectPropertyArray &propertyArray)
+{
+    std::lock_guard<std::recursive_mutex> lock(dynamicMutex_);
+    propertyArray.property.clear();
+    for (const auto &[effect, prop] : effectPropertyMap_) {
+        if (!prop.empty()) {
+            propertyArray.property.emplace_back(AudioEffectProperty{effect, prop});
+        }
+    }
+    return AUDIO_OK;
 }
 
 void AudioEffectChainManager::UpdateSceneTypeList(const std::string &sceneType, SceneTypeOperation operation)
@@ -1413,7 +1442,7 @@ void AudioEffectChainManager::UpdateSceneTypeList(const std::string &sceneType, 
             AUDIO_INFO_LOG("scene Type %{public}s count is decreased to %{public}d", sceneType.c_str(), it->second);
         }
     } else {
-        AUDIO_ERR_LOG("Wrong operation to SceneTypeToEffectChainCountBackupMap.");
+        AUDIO_ERR_LOG("Wrong operation to sceneTypeToEffectChainCountBackupMap.");
     }
 }
 
