@@ -313,6 +313,8 @@ int32_t CapturerInServer::Start()
             "NotifyPrivacy failed!");
     }
 
+    AudioService::GetInstance()->UpdateSourceType(processConfig_.capturerInfo.sourceType);
+
     status_ = I_STATUS_STARTING;
     int ret = stream_->Start();
     CHECK_AND_RETURN_RET_LOG(ret == SUCCESS, ret, "Start stream failed, reason: %{public}d", ret);
