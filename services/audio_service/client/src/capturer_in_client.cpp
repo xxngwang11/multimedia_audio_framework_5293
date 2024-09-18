@@ -509,7 +509,7 @@ int32_t CapturerInClientInner::SetAudioStreamInfo(const AudioStreamParams info,
     int32_t initRet = InitIpcStream();
     CHECK_AND_RETURN_RET_LOG(initRet == SUCCESS, initRet, "Init stream failed: %{public}d", initRet);
     state_ = PREPARED;
-    logUtilsTag_ = "IpcClientPlay::" + std::to_string(sessionId_);
+    logUtilsTag_ = "[" + std::to_string(sessionId_) + "]NormalCapturer";
 
     proxyObj_ = proxyObj;
     RegisterTracker(proxyObj);
@@ -1663,9 +1663,9 @@ int32_t CapturerInClientInner::Read(uint8_t &buffer, size_t userSize, bool isBlo
 
     size_t readSize = 0;
     int32_t res = HandleCapturerRead(readSize, userSize, buffer, isBlockingRead);
+    CHECK_AND_RETURN_RET_LOG(res >= 0, ERROR, "HandleCapturerRead err : %{public}d", res);
     BufferDesc tmpBuffer = {reinterpret_cast<uint8_t *>(&buffer), userSize, userSize};
     DfxOperation(tmpBuffer, clientConfig_.streamInfo.format, clientConfig_.streamInfo.channels);
-    CHECK_AND_RETURN_RET_LOG(res >= 0, ERROR, "HandleCapturerRead err : %{public}d", res);
     HandleCapturerPositionChanges(readSize);
     return readSize;
 }
