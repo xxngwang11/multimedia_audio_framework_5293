@@ -104,6 +104,7 @@ private:
     size_t byteSizePerFrame_;
     size_t spanSizeInFrame_;
     size_t totalBytesWritten_;
+    size_t sinkBytesWritten_;
     size_t minBufferSize_;
     float powerVolumeFactor_;
     std::atomic<IStatus> status_;

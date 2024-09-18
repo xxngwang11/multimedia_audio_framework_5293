@@ -74,6 +74,7 @@ public:
     std::shared_ptr<CapturerInServer> GetCapturerBySessionID(const uint32_t &session);
     void SetNonInterruptMute(const uint32_t SessionId, const bool muteFlag);
     void UpdateMuteControlSet(uint32_t sessionId, bool muteFlag);
+    int32_t UpdateSourceType(SourceType sourceType);
 
 private:
     AudioService();
