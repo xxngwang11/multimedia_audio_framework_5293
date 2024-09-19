@@ -1178,8 +1178,7 @@ int32_t AudioPolicyService::SetRenderDeviceForUsage(StreamUsage streamUsage, spt
     auto isPresent = [&desc] (const unique_ptr<AudioDeviceDescriptor> &device) {
         return (desc->deviceType_ == device->deviceType_) &&
             (desc->macAddress_ == device->macAddress_) &&
-            (desc->networkId_ == device->networkId_) &&
-            (desc->deviceId_ == device->deviceId_);
+            (desc->networkId_ == device->networkId_);
     };
     uint32_t tempId = desc->deviceId_;
     if (streamUsage == STREAM_USAGE_VOICE_COMMUNICATION || streamUsage == STREAM_USAGE_VOICE_MODEM_COMMUNICATION ||
@@ -1188,8 +1187,8 @@ int32_t AudioPolicyService::SetRenderDeviceForUsage(StreamUsage streamUsage, spt
         auto itr = std::find_if(devices.begin(), devices.end(), isPresent);
         CHECK_AND_RETURN_RET_LOG(itr != devices.end(), ERR_INVALID_OPERATION,
             "device not available type:%{public}d macAddress:%{public}s id:%{public}d networkId:%{public}s",
-            desc->deviceType_, GetEncryptStr(desc->macAddress_).c_str(),
-            tempId, GetEncryptAddr(desc->networkId_).c_str());
+            desc->deviceType_, GetEncryptAddr(desc->macAddress_).c_str(),
+            tempId, GetEncryptStr(desc->networkId_).c_str());
         SetPreferredDevice(AUDIO_CALL_RENDER, new(std::nothrow) AudioDeviceDescriptor(**itr));
         return SUCCESS;
     } else {
@@ -1197,8 +1196,8 @@ int32_t AudioPolicyService::SetRenderDeviceForUsage(StreamUsage streamUsage, spt
         auto itr = std::find_if(devices.begin(), devices.end(), isPresent);
         CHECK_AND_RETURN_RET_LOG(itr != devices.end(), ERR_INVALID_OPERATION,
             "device not available type:%{public}d macAddress:%{public}s id:%{public}d networkId:%{public}s",
-            desc->deviceType_, GetEncryptStr(desc->macAddress_).c_str(),
-            tempId, GetEncryptAddr(desc->networkId_).c_str());
+            desc->deviceType_, GetEncryptAddr(desc->macAddress_).c_str(),
+            tempId, GetEncryptStr(desc->networkId_).c_str());
         SetPreferredDevice(AUDIO_MEDIA_RENDER, new(std::nothrow) AudioDeviceDescriptor(**itr));
         return SUCCESS;
     }
