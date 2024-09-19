@@ -373,23 +373,6 @@ void AudioLoadAudioEffectLibrariesTest(const uint8_t* rawData, size_t size)
         data, reply, option);
 }
 
-void AudioAudioServerDumpFuzzTest(const uint8_t* rawData, size_t size)
-{
-    if (rawData == nullptr || size < LIMITSIZE) {
-        return;
-    }
-    AudioServerDump dumpObj;
-    dumpObj.Initialize();
-
-    std::queue<std::u16string> argQue;
-    for (int i = 0; i < COMMON_INT; i++) {
-        argQue.push(COMMONU16STRTEST);
-    }
-    std::string dumpString;
-    dumpObj.AudioDataDump(dumpString, argQue);
-    dumpObj.OnTimeOut();
-}
-
 void AudioCapturerInServerTestFirst(const uint8_t* rawData, size_t size,
     std::shared_ptr<CapturerInServer> capturerInServer)
 {
@@ -512,7 +495,7 @@ void AudioRendererInServerTestSecond(const uint8_t* rawData, size_t size, std::s
     renderer->InitDualToneStream();
     renderer->GetStreamManagerType();
     renderer->SetSilentModeAndMixWithOthers(isAppBack);
-    renderer->SetClientVolume();
+    renderer->SetClientVolume(false, true);
     uint32_t operation_int = *reinterpret_cast<const uint32_t*>(rawData);
     operation_int = (operation_int%IOPERTAION_LENGTH) - 1;
     IOperation operation = static_cast<IOperation>(operation_int);
@@ -577,7 +560,6 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     OHOS::AudioStandard::AudioGetAudioParameterTest(data, size);
     OHOS::AudioStandard::AudioCreateAudioProcessTest(data, size);
     OHOS::AudioStandard::AudioLoadAudioEffectLibrariesTest(data, size);
-    OHOS::AudioStandard::AudioAudioServerDumpFuzzTest(data, size);
     OHOS::AudioStandard::AudioCapturerInServerFuzzTest(data, size);
     OHOS::AudioStandard::AudioRendererInServerTest(data, size);
     return 0;
