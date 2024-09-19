@@ -329,9 +329,9 @@ int32_t AudioEnhanceChain::ApplyEnhanceChain(std::unique_ptr<EnhanceBuffer> &enh
 
     uint32_t inputLen = algoAttr_.byteLenPerFrame * algoAttr_.batchLen;
     uint32_t outputLen = algoAttr_.byteLenPerFrame * algoSupportedConfig_.outNum;
-    CHECK_AND_RETURN_RET_LOG(algoCache_.input.size() == inputLen, ERROR, 
+    CHECK_AND_RETURN_RET_LOG(algoCache_.input.size() == inputLen, ERROR,
         "algo cache input size:%{public}zu != inputLen:%{public}u", algoCache_.input.size(), inputLen);
-    CHECK_AND_RETURN_RET_LOG(algoCache_.output.size() == outputLen, ERROR, 
+    CHECK_AND_RETURN_RET_LOG(algoCache_.output.size() == outputLen, ERROR,
         "algo cache output size:%{public}zu != outputLen:%{public}u", algoCache_.output.size(), outputLen);
 
     if (standByEnhanceHandles_.size() == 0) {
