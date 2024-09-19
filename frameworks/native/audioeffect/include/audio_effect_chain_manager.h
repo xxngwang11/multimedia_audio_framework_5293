@@ -152,10 +152,10 @@ private:
     int32_t EffectApVolumeUpdate(std::shared_ptr<AudioEffectVolume> audioEffectVolume);
     AudioEffectScene GetSceneTypeFromSpatializationSceneType(AudioEffectScene sceneType);
     void UpdateEffectChainParams(AudioEffectScene sceneType);
+    void SetSpatializationSceneTypeToChains();
+    void SetSpatializationEnabledToChains();
     void SetSpkOffloadState();
     void UpdateCurrSceneType(AudioEffectScene &currSceneType, std::string &sceneType);
-    void ChangeEffectChainCountMapForCreate(const std::string &sceneType);
-    void EraseEffectChainSetAndMapForCreate(const std::string &sceneType);
     void FindMaxEffectChannels(const std::string &sceneType, const std::set<std::string> &sessions, uint32_t &channels,
         uint64_t &channelLayout);
     int32_t UpdateDeviceInfo(int32_t device, const std::string &sinkName);
