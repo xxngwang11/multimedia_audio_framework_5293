@@ -65,21 +65,6 @@ static bool IsChannelLayoutSupported(const uint64_t channelLayout)
         AUDIO_EFFECT_SUPPORTED_CHANNELLAYOUTS.end(), channelLayout) != AUDIO_EFFECT_SUPPORTED_CHANNELLAYOUTS.end();
 }
 
-static void FindMaxSessionID(uint32_t &maxSessionID, std::string &sceneType,
-    const std::string &scenePairType, std::set<std::string> &sessions)
-{
-    for (auto& sessionID : sessions) {
-        if (sessionIDToEffectInfoMap_[sessionID].sceneMode == "EFFECT_NONE") {
-            continue;
-        }
-        uint32_t sessionIDInt = static_cast<uint32_t>(std::stoul(sessionID));
-        if (sessionIDInt > maxSessionID) {
-            maxSessionID = sessionIDInt;
-            sceneType = scenePairType;
-        }
-    }
-}
-
 AudioEffectChainManager::AudioEffectChainManager()
 {
     effectToLibraryEntryMap_.clear();
@@ -1466,6 +1451,21 @@ uint32_t AudioEffectChainManager::GetSceneTypeToChainCount(const std::string &sc
         }
     }
     return 0;
+}
+
+void AudioEffectChainManager::FindMaxSessionID(uint32_t &maxSessionID, std::string &sceneType,
+    const std::string &scenePairType, std::set<std::string> &sessions)
+{
+    for (auto &sessionID : sessions) {
+        if (sessionIDToEffectInfoMap_[sessionID].sceneMode == "EFFECT_NONE") {
+            continue;
+        }
+        uint32_t sessionIDInt = static_cast<uint32_t>(std::stoul(sessionID));
+        if (sessionIDInt > maxSessionID) {
+            maxSessionID = sessionIDInt;
+            sceneType = scenePairType;
+        }
+    }
 }
 } // namespace AudioStandard
 } // namespace OHOS

@@ -45,17 +45,17 @@ constexpr int32_t HDI_EFFECT_NUM = 2;
 constexpr int32_t HDI_SET_PATAM = 6;
 
 enum HdiSetParamCommandCode {
-    HDI_INIT = 0;
-    HDI_BYPASS = 1;
-    HDI_HEAD_MODE = 2;
-    HDI_ROOM_MODE = 3;
-    HDI_BLUETOOTH_MODE = 4;
-    HDI_DESTROY = 5;
-    HDI_UPDATE_SPATIAL_DEVICE_TYPE = 6;
-    HDI_VOLUME = 7;
-    HDI_ROTATION = 8;
-    HDI_EXTRA_SCENE_TYPE = 9;
-    HDI_SPATIALIZATION_SCENE_TYPE = 10;
+    HDI_INIT = 0,
+    HDI_BYPASS = 1,
+    HDI_HEAD_MODE = 2,
+    HDI_ROOM_MODE = 3,
+    HDI_BLUETOOTH_MODE = 4,
+    HDI_DESTROY = 5,
+    HDI_UPDATE_SPATIAL_DEVICE_TYPE = 6,
+    HDI_VOLUME = 7,
+    HDI_ROTATION = 8,
+    HDI_EXTRA_SCENE_TYPE = 9,
+    HDI_SPATIALIZATION_SCENE_TYPE = 10,
 };
 
 enum AudioSpatialDeviceType {

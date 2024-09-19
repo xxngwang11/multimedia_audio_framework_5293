@@ -162,6 +162,8 @@ private:
     std::shared_ptr<AudioEffectChain> CreateAudioEffectChain(const std::string &sceneType, bool isPriorScene);
     bool CheckIfSpkDsp();
     void CheckAndReleaseCommonEffectChain(const std::string &sceneType);
+    void FindMaxSessionID(uint32_t &maxSessionID, std::string &sceneType,
+        const std::string &scenePairType, std::set<std::string> &sessions);
 #ifdef WINDOW_MANAGER_ENABLE
     int32_t EffectDspRotationUpdate(std::shared_ptr<AudioEffectRotation> audioEffectRotation,
         const uint32_t rotationState);
