@@ -135,11 +135,6 @@ struct OriginalEffectConfig {
     PostProcessConfig postProcess;
 };
 
-struct StreamEffectMode {
-    std::string mode;
-    std::vector<Device> devicePort;
-};
-
 struct EffectChainManagerParam {
     uint32_t maxExtraNum = 0;
     std::string defaultSceneName;
@@ -206,14 +201,6 @@ enum AudioEnhanceScene {
 enum AudioEffectMode {
     EFFECT_NONE = 0,
     EFFECT_DEFAULT = 1
-};
-
-/**
-* Enumerates the audio scene effct mode.
-*/
-enum AudioEnhanceMode {
-    ENHANCE_NONE = 0,
-    ENHANCE_DEFAULT = 1
 };
 
 /**
