@@ -33,6 +33,7 @@
 #include "policy_handler.h"
 #include "audio_enhance_chain_manager.h"
 #include "media_monitor_manager.h"
+#include "audio_volume.h"
 
 namespace OHOS {
 namespace AudioStandard {
@@ -161,6 +162,7 @@ int32_t RendererInServer::Init()
     CHECK_AND_RETURN_RET_LOG(ret == SUCCESS && stream_ != nullptr, ERR_OPERATION_FAILED,
         "Construct rendererInServer failed: %{public}d", ret);
     streamIndex_ = stream_->GetStreamIndex();
+    AudioVolume::GetInstance()->AddStreamVolume(streamIndex_);
     traceTag_ = "[" + std::to_string(streamIndex_) + "]RendererInServer"; // [100001]RendererInServer:
     ret = ConfigServerBuffer();
     CHECK_AND_RETURN_RET_LOG(ret == SUCCESS, ERR_OPERATION_FAILED,
@@ -824,6 +826,7 @@ int32_t RendererInServer::Stop()
 int32_t RendererInServer::Release()
 {
     AudioService::GetInstance()->RemoveRenderer(streamIndex_);
+    AudioVolume::GetInstance()->RemoveStreamVolume(streamIndex_);
     {
         std::unique_lock<std::mutex> lock(statusLock_);
         if (status_ == I_STATUS_RELEASED) {
@@ -1084,16 +1087,9 @@ int32_t RendererInServer::OffloadSetVolume(float volume)
     }
 
     AudioVolumeType volumeType = VolumeUtils::GetVolumeTypeFromStreamType(processConfig_.streamType);
-    DeviceType deviceType = PolicyHandler::GetInstance().GetActiveOutPutDevice();
-    Volume vol = {false, 0.0f, 0};
-    PolicyHandler::GetInstance().GetSharedVolume(volumeType, deviceType, vol);
-    float systemVol = vol.isMute ? 0.0f : vol.volumeFloat;
-    if (PolicyHandler::GetInstance().IsAbsVolumeSupported() &&
-        PolicyHandler::GetInstance().GetActiveOutPutDevice() == DEVICE_TYPE_BLUETOOTH_A2DP) {
-        systemVol = 1.0f; // 1.0f for a2dp abs volume
-    }
-    AUDIO_INFO_LOG("sessionId %{public}u set volume:%{public}f [volumeType:%{public}d deviceType:%{public}d systemVol:"
-        "%{public}f]", streamIndex_, volume, volumeType, deviceType, systemVol);
+    float systemVol = AudioVolume::GetInstance()->GetVolume(streamIndex_, volumeType, "offload");
+    AUDIO_INFO_LOG("sessionId %{public}u set volume:%{public}f [volumeType:%{public}d systemVol:"
+        "%{public}f]", streamIndex_, volume, volumeType, systemVol);
 
     AudioEnhanceChainManager *audioEnhanceChainManager = AudioEnhanceChainManager::GetInstance();
     CHECK_AND_RETURN_RET_LOG(audioEnhanceChainManager != nullptr, ERROR, "audioEnhanceChainManager is nullptr");
@@ -1153,6 +1149,11 @@ int32_t RendererInServer::SetClientVolume(bool isStreamVolumeChange, bool isMedi
     int32_t ret = stream_->SetClientVolume(clientVolume);
     if (isStreamVolumeChange && !isMediaServiceAndOffloadEnable) {
         SetStreamVolumeInfoForEnhanceChain();
+    }
+    if (IsVolumeSame(MIN_FLOAT_VOLUME, clientVolume, AUDIO_VOLOMUE_EPSILON)) {
+        AudioVolume::GetInstance()->SetStreamVolume(streamIndex_, 0.0f);
+    } else {
+        AudioVolume::GetInstance()->SetStreamVolume(streamIndex_, 1.0f);
     }
     return ret;
 }
