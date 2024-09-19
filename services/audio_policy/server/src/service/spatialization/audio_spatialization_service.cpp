@@ -89,6 +89,7 @@ void AudioSpatializationService::Init(const std::vector<EffectChain> &effectChai
             isHeadTrackingSupported_ = true;
         }
     }
+    UpdateSpatializationStateReal(false);
 }
 
 void AudioSpatializationService::Deinit(void)
