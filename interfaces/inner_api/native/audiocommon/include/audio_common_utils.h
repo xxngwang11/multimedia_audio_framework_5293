@@ -30,7 +30,7 @@ private:
     static std::unordered_map<AudioStreamType, AudioVolumeType> defaultVolumeMap_;
     static std::unordered_map<AudioStreamType, AudioVolumeType> audioPCVolumeMap_;
     static std::unordered_map<AudioStreamType, AudioVolumeType>& GetVolumeMap();
-    static bool isPCVlolumeEnable_;
+    static bool isPCVolumeEnable_;
 };
 } // namespace AudioStandard
 } // namespace OHOS
