@@ -81,10 +81,7 @@ int32_t EnhanceChainManagerReleaseCb(const uint32_t sceneKeyCode)
     AudioEnhanceChainManager *audioEnhanceChainMananger = AudioEnhanceChainManager::GetInstance();
     CHECK_AND_RETURN_RET_LOG(audioEnhanceChainMananger != nullptr,
         ERR_INVALID_HANDLE, "null audioEnhanceChainManager");
-    if (audioEnhanceChainMananger->ReleaseAudioEnhanceChainDynamic(sceneKeyCode) != SUCCESS) {
-        return ERROR;
-    }
-    return SUCCESS;
+    return audioEnhanceChainMananger->ReleaseAudioEnhanceChainDynamic(sceneKeyCode);
 }
 
 bool EnhanceChainManagerExist(const uint32_t sceneKeyCode)
