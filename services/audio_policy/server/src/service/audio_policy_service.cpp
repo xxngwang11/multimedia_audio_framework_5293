@@ -2482,7 +2482,13 @@ void AudioPolicyService::FetchOutputDeviceWhenNoRunningStream()
 
 void AudioPolicyService::FetchInputDeviceWhenNoRunningStream()
 {
-    unique_ptr<AudioDeviceDescriptor> desc = audioRouterCenter_.FetchInputDevice(SOURCE_TYPE_MIC, -1);
+    unique_ptr<AudioDeviceDescriptor> desc;
+    if (currentActiveDevice_.deviceType_ == DEVICE_TYPE_BLUETOOTH_SCO &&
+        Bluetooth::AudioHfpManager::GetScoCategory() == Bluetooth::ScoCategory::SCO_RECOGNITION) {
+        desc = audioRouterCenter_.FetchInputDevice(SOURCE_TYPE_VOICE_RECOGNITION, -1);
+    } else {
+        desc = audioRouterCenter_.FetchInputDevice(SOURCE_TYPE_MIC, -1);
+    }
     AudioDeviceDescriptor tempDesc = GetCurrentInputDevice();
     if (desc->deviceType_ == DEVICE_TYPE_NONE || IsSameDevice(desc, tempDesc)) {
         AUDIO_DEBUG_LOG("input device is not change");
@@ -5364,11 +5370,7 @@ int32_t AudioPolicyService::UpdateTracker(AudioMode &mode, AudioStreamChangeInfo
 {
     std::lock_guard<std::shared_mutex> deviceLock(deviceStatusUpdateSharedMutex_);
 
-    if (mode == AUDIO_MODE_RECORD && streamChangeInfo.audioCapturerChangeInfo.capturerState == CAPTURER_RELEASED) {
-        audioAffinityManager_.DelSelectCapturerDevice(streamChangeInfo.audioCapturerChangeInfo.clientUID);
-        audioCaptureMicrophoneDescriptor_.erase(streamChangeInfo.audioCapturerChangeInfo.sessionId);
-    }
-
+    HandleAudioCaptureState(mode, streamChangeInfo);
     int32_t ret = streamCollector_.UpdateTracker(mode, streamChangeInfo);
 
     const auto &rendererState = streamChangeInfo.audioRendererChangeInfo.rendererState;
@@ -5403,6 +5405,19 @@ int32_t AudioPolicyService::UpdateTracker(AudioMode &mode, AudioStreamChangeInfo
     UpdateA2dpOffloadFlagForAllStream(currentActiveDevice_.deviceType_);
     SendA2dpConnectedWhileRunning(rendererState, streamChangeInfo.audioRendererChangeInfo.sessionId);
     return ret;
+}
+
+void AudioPolicyService::HandleAudioCaptureState(AudioMode &mode, AudioStreamChangeInfo &streamChangeInfo)
+{
+    if (mode == AUDIO_MODE_RECORD &&
+        (streamChangeInfo.audioCapturerChangeInfo.capturerState == CAPTURER_RELEASED ||
+         streamChangeInfo.audioCapturerChangeInfo.capturerState == CAPTURER_STOPPED)) {
+        if (streamChangeInfo.audioCapturerChangeInfo.capturerInfo.sourceType == SOURCE_TYPE_VOICE_RECOGNITION) {
+            BluetoothScoDisconectForRecongnition();
+        }
+        audioAffinityManager_.DelSelectCapturerDevice(streamChangeInfo.audioCapturerChangeInfo.clientUID);
+        audioCaptureMicrophoneDescriptor_.erase(streamChangeInfo.audioCapturerChangeInfo.sessionId);
+    }
 }
 
 void AudioPolicyService::SendA2dpConnectedWhileRunning(const RendererState &rendererState, const uint32_t &sessionId)
