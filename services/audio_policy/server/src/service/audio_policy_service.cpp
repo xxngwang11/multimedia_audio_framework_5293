@@ -4950,8 +4950,6 @@ void AudioPolicyService::LoadEffectLibrary()
     audioEffectManager_.ConstructEnhanceChainManagerParam(enhanceChainManagerParam);
 
     identity = IPCSkeleton::ResetCallingIdentity();
-    EffectChainManagerParam effectChainManagerParam;
-    EffectChainManagerParam enhanceChainManagerParam;
     bool ret = gsp->CreateEffectChainManager(supportedEffectConfig.effectChains,
         effectChainManagerParam, enhanceChainManagerParam);
     IPCSkeleton::SetCallingIdentity(identity);
