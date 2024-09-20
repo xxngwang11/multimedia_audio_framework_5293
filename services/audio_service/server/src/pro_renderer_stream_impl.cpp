@@ -28,7 +28,6 @@ namespace OHOS {
 namespace AudioStandard {
 constexpr uint64_t AUDIO_US_PER_S = 1000000;
 constexpr uint64_t AUDIO_NS_PER_S = 1000000000;
-constexpr uint32_t AUDIO_NS_TO_US_RADIO = 1000;
 constexpr int32_t SECOND_TO_MILLISECOND = 1000;
 constexpr int32_t DEFAULT_BUFFER_MILLISECOND = 20;
 constexpr int32_t DEFAULT_BUFFER_MICROSECOND = 20000000;
@@ -297,9 +296,11 @@ int32_t ProRendererStreamImpl::GetCurrentTimeStamp(uint64_t &timestamp)
     int64_t timeSec = 0;
     int64_t timeNsec = 0;
     uint64_t framePosition;
-    int32_t ret = GetAudioTime(framePosition, timeSec, timeNsec);
-    CHECK_AND_RETURN_RET_LOG(ret == SUCCESS, false, "GetBufferSize error.");
-    timestamp = static_cast<uint64_t>(timeSec * AUDIO_NS_PER_S + timeNsec);
+    bool ret = GetAudioTime(framePosition, timeSec, timeNsec);
+    CHECK_AND_RETURN_RET_LOG(ret, ERROR, "GetAudioTime error");
+    timespec tm {};
+    clock_gettime(CLOCK_MONOTONIC, &tm);
+    timestamp = static_cast<uint64_t>(tm.tv_sec) * AUDIO_NS_PER_S + static_cast<uint64_t>(tm.tv_nsec);
     return SUCCESS;
 }
 
@@ -307,9 +308,11 @@ int32_t ProRendererStreamImpl::GetCurrentPosition(uint64_t &framePosition, uint6
 {
     int64_t timeSec = 0;
     int64_t timeNsec = 0;
-    int32_t ret = GetAudioTime(framePosition, timeSec, timeNsec);
-    CHECK_AND_RETURN_RET_LOG(ret == SUCCESS, false, "GetBufferSize error.");
-    timestamp = static_cast<uint64_t>(timeSec * AUDIO_NS_PER_S + timeNsec) / AUDIO_NS_TO_US_RADIO;
+    bool ret = GetAudioTime(framePosition, timeSec, timeNsec);
+    CHECK_AND_RETURN_RET_LOG(ret, ERROR, "GetAudioTime error");
+    timespec tm {};
+    clock_gettime(CLOCK_MONOTONIC, &tm);
+    timestamp = static_cast<uint64_t>(tm.tv_sec) * AUDIO_NS_PER_S + static_cast<uint64_t>(tm.tv_nsec);
     return SUCCESS;
 }
 
@@ -516,6 +519,7 @@ bool ProRendererStreamImpl::GetAudioTime(uint64_t &framePos, int64_t &sec, int64
 {
     GetStreamFramesWritten(framePos);
     int64_t time = handleTimeModel_.GetTimeOfPos(framePos);
+    AUDIO_INFO_LOG("time:%{public}ld", time);
     int64_t deltaTime = DEFAULT_BUFFER_MICROSECOND; // note: 20ms
     time += deltaTime;
     sec = time / AUDIO_NS_PER_S;
@@ -714,6 +718,8 @@ void ProRendererStreamImpl::InitBasicInfo(const AudioStreamInfo &streamInfo)
     spanSizeInFrame_ = (streamInfo.samplingRate * DEFAULT_BUFFER_MILLISECOND) / SECOND_TO_MILLISECOND;
     byteSizePerFrame_ = GetSamplePerFrame(streamInfo.format) * streamInfo.channels;
     minBufferSize_ = spanSizeInFrame_ * byteSizePerFrame_;
+    bool config = handleTimeModel_.ConfigSampleRate(currentRate_);
+    AUDIO_INFO_LOG("config sample rate:%{public}d", config);
 }
 } // namespace AudioStandard
 } // namespace OHOS
