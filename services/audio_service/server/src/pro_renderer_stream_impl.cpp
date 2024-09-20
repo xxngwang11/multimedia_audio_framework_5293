@@ -298,9 +298,7 @@ int32_t ProRendererStreamImpl::GetCurrentTimeStamp(uint64_t &timestamp)
     uint64_t framePosition;
     bool ret = GetAudioTime(framePosition, timeSec, timeNsec);
     CHECK_AND_RETURN_RET_LOG(ret, ERROR, "GetAudioTime error");
-    timespec tm {};
-    clock_gettime(CLOCK_MONOTONIC, &tm);
-    timestamp = static_cast<uint64_t>(tm.tv_sec) * AUDIO_NS_PER_S + static_cast<uint64_t>(tm.tv_nsec);
+    timestamp = static_cast<uint64_t>(timeSec * AUDIO_NS_PER_S + timeNsec);
     return SUCCESS;
 }
 
@@ -717,8 +715,7 @@ void ProRendererStreamImpl::InitBasicInfo(const AudioStreamInfo &streamInfo)
     spanSizeInFrame_ = (streamInfo.samplingRate * DEFAULT_BUFFER_MILLISECOND) / SECOND_TO_MILLISECOND;
     byteSizePerFrame_ = GetSamplePerFrame(streamInfo.format) * streamInfo.channels;
     minBufferSize_ = spanSizeInFrame_ * byteSizePerFrame_;
-    bool config = handleTimeModel_.ConfigSampleRate(currentRate_);
-    AUDIO_INFO_LOG("config sample rate:%{public}d", config);
+    handleTimeModel_.ConfigSampleRate(currentRate_);
 }
 } // namespace AudioStandard
 } // namespace OHOS
