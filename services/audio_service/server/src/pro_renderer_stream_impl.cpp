@@ -519,7 +519,6 @@ bool ProRendererStreamImpl::GetAudioTime(uint64_t &framePos, int64_t &sec, int64
 {
     GetStreamFramesWritten(framePos);
     int64_t time = handleTimeModel_.GetTimeOfPos(framePos);
-    AUDIO_INFO_LOG("time:%{public}ld", time);
     int64_t deltaTime = DEFAULT_BUFFER_MICROSECOND; // note: 20ms
     time += deltaTime;
     sec = time / AUDIO_NS_PER_S;
