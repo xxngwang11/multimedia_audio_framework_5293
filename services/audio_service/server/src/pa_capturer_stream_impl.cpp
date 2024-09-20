@@ -354,7 +354,13 @@ void PaCapturerStreamImpl::PAStreamReadCb(pa_stream *stream, size_t length, void
         AUDIO_ERR_LOG("PAStreamReadCb: userdata is null");
         return;
     }
-    auto streamImpl = static_cast<PaCapturerStreamImpl *>(userdata);
+    std::weak_ptr<PaCapturerStreamImpl> paCapturerStreamWeakPtr;
+    if (!paCapturerMap_.Find(userdata, paCapturerStreamWeakPtr)) {
+        AUDIO_ERR_LOG("streamImpl is null");
+        return;
+    }
+    auto streamImpl = paCapturerStreamWeakPtr.lock();
+    CHECK_AND_RETURN_LOG(streamImpl, "PAStreamWriteCb: userdata is null");
     std::shared_ptr<IReadCallback> readCallback = streamImpl->readCallback_.lock();
     if (readCallback != nullptr) {
         readCallback->OnReadData(length);
@@ -387,7 +393,13 @@ void PaCapturerStreamImpl::PAStreamUnderFlowCb(pa_stream *stream, void *userdata
         return;
     }
 
-    PaCapturerStreamImpl *streamImpl = static_cast<PaCapturerStreamImpl *>(userdata);
+    std::weak_ptr<PaCapturerStreamImpl> paCapturerStreamWeakPtr;
+    if (!paCapturerMap_.Find(userdata, paCapturerStreamWeakPtr)) {
+        AUDIO_ERR_LOG("streamImpl is null");
+        return;
+    }
+    auto streamImpl = paCapturerStreamWeakPtr.lock();
+    CHECK_AND_RETURN_LOG(streamImpl, "PAStreamWriteCb: userdata is null");
     streamImpl->underFlowCount_++;
 
     std::shared_ptr<IStatusCallback> statusCallback = streamImpl->statusCallback_.lock();
@@ -438,7 +450,13 @@ void PaCapturerStreamImpl::PAStreamPauseSuccessCb(pa_stream *stream, int32_t suc
         return;
     }
 
-    PaCapturerStreamImpl *streamImpl = static_cast<PaCapturerStreamImpl *>(userdata);
+    std::weak_ptr<PaCapturerStreamImpl> paCapturerStreamWeakPtr;
+    if (!paCapturerMap_.Find(userdata, paCapturerStreamWeakPtr)) {
+        AUDIO_ERR_LOG("streamImpl is null");
+        return;
+    }
+    auto streamImpl = paCapturerStreamWeakPtr.lock();
+    CHECK_AND_RETURN_LOG(streamImpl, "PAStreamWriteCb: userdata is null");
     streamImpl->state_ = PAUSED;
     std::shared_ptr<IStatusCallback> statusCallback = streamImpl->statusCallback_.lock();
     if (statusCallback != nullptr) {
@@ -453,7 +471,13 @@ void PaCapturerStreamImpl::PAStreamFlushSuccessCb(pa_stream *stream, int32_t suc
         AUDIO_ERR_LOG("PAStreamFlushSuccessCb: userdata is null");
         return;
     }
-    PaCapturerStreamImpl *streamImpl = static_cast<PaCapturerStreamImpl *>(userdata);
+    std::weak_ptr<PaCapturerStreamImpl> paCapturerStreamWeakPtr;
+    if (!paCapturerMap_.Find(userdata, paCapturerStreamWeakPtr)) {
+        AUDIO_ERR_LOG("streamImpl is null");
+        return;
+    }
+    auto streamImpl = paCapturerStreamWeakPtr.lock();
+    CHECK_AND_RETURN_LOG(streamImpl, "PAStreamWriteCb: userdata is null");
     std::shared_ptr<IStatusCallback> statusCallback = streamImpl->statusCallback_.lock();
     if (statusCallback != nullptr) {
         statusCallback->OnStatusUpdate(OPERATION_FLUSHED);
