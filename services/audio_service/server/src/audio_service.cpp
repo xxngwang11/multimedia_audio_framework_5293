@@ -25,6 +25,7 @@
 #include "audio_utils.h"
 #include "policy_handler.h"
 #include "ipc_stream_in_server.h"
+#include "audio_capturer_source.h"
 
 namespace OHOS {
 namespace AudioStandard {
@@ -897,6 +898,19 @@ int32_t AudioService::UnsetOffloadMode(uint32_t sessionId)
     int32_t ret = renderer->UnsetOffloadMode();
     lock.unlock();
     return ret;
+}
+
+int32_t AudioService::UpdateSourceType(SourceType sourceType)
+{
+    // specialSourceType need not updateaudioroute
+    if (specialSourceTypeSet_.contains(sourceType)) {
+        return SUCCESS;
+    }
+
+    AudioCapturerSource *audioCapturerSourceInstance = AudioCapturerSource::GetInstance("primary");
+    CHECK_AND_RETURN_RET_LOG(audioCapturerSourceInstance != nullptr, ERROR, "source is null");
+
+    return audioCapturerSourceInstance->UpdateSourceType(sourceType);
 }
 } // namespace AudioStandard
 } // namespace OHOS

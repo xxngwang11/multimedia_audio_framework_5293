@@ -2069,6 +2069,8 @@ void AudioPolicyManagerStub::GetSupportedAudioEffectPropertyInternal(MessageParc
 void AudioPolicyManagerStub::SetAudioEffectPropertyInternal(MessageParcel &data, MessageParcel &reply)
 {
     int32_t size = data.ReadInt32();
+    CHECK_AND_RETURN_LOG(size > 0 && size <= AUDIO_EFFECT_COUNT_UPPER_LIMIT,
+        "set audio effect property size upper limit.");
     AudioEffectPropertyArray propertyArray = {};
     for (int i = 0; i < size; i++) {
         AudioEffectProperty prop = {};
@@ -2085,7 +2087,7 @@ void AudioPolicyManagerStub::GetAudioEffectPropertyInternal(MessageParcel &data,
     int32_t result = GetAudioEffectProperty(propertyArray);
     int32_t size = propertyArray.property.size();
     reply.WriteInt32(size);
-    for (int i = 0; i < size; i++)    {
+    for (int i = 0; i < size; i++) {
         propertyArray.property[i].Marshalling(reply);
     }
     reply.WriteInt32(result);
@@ -2095,6 +2097,8 @@ void AudioPolicyManagerStub::GetAudioEffectPropertyInternal(MessageParcel &data,
 void AudioPolicyManagerStub::SetAudioEnhancePropertyInternal(MessageParcel &data, MessageParcel &reply)
 {
     int32_t size = data.ReadInt32();
+    CHECK_AND_RETURN_LOG(size > 0 && size <= AUDIO_EFFECT_COUNT_UPPER_LIMIT,
+        "set audio enhance property size upper limit.");
     AudioEnhancePropertyArray propertyArray = {};
     for (int i = 0; i < size; i++) {
         AudioEnhanceProperty prop = {};

@@ -1185,6 +1185,13 @@ enum PolicyType {
     PRIVACY_POLCIY_TYPE = 1,
     TEMPORARY_POLCIY_TYPE = 2,
 };
+
+static inline const std::unordered_set<SourceType> specialSourceTypeSet_ = {
+    SOURCE_TYPE_PLAYBACK_CAPTURE,
+    SOURCE_TYPE_WAKEUP,
+    SOURCE_TYPE_VIRTUAL_CAPTURE,
+    SOURCE_TYPE_REMOTE_CAST
+};
 } // namespace AudioStandard
 } // namespace OHOS
 #endif // AUDIO_INFO_H

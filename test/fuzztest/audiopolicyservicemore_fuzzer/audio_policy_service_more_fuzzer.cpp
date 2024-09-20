@@ -343,6 +343,7 @@ void AudioPolicyServiceMoreTest(const uint8_t* rawData, size_t size)
     GetServerPtr()->
         audioPolicyService_.FetchInputDevice(audioCapturerChangeInfos, AudioStreamDeviceChangeReason::UNKNOWN);
 }
+
 } // namespace AudioStandard
 } // namesapce OHOS
 

@@ -28,7 +28,6 @@ namespace OHOS {
 namespace AudioStandard {
 constexpr uint64_t AUDIO_US_PER_S = 1000000;
 constexpr uint64_t AUDIO_NS_PER_S = 1000000000;
-constexpr uint32_t AUDIO_NS_TO_US_RADIO = 1000;
 constexpr int32_t SECOND_TO_MILLISECOND = 1000;
 constexpr int32_t DEFAULT_BUFFER_MILLISECOND = 20;
 constexpr int32_t DEFAULT_BUFFER_MICROSECOND = 20000000;
@@ -56,6 +55,7 @@ ProRendererStreamImpl::ProRendererStreamImpl(AudioProcessConfig processConfig, b
       byteSizePerFrame_(0),
       spanSizeInFrame_(0),
       totalBytesWritten_(0),
+      sinkBytesWritten_(0),
       minBufferSize_(0),
       powerVolumeFactor_(1.f),
       status_(I_STATUS_INVALID),
@@ -227,7 +227,7 @@ int32_t ProRendererStreamImpl::Flush()
     for (auto &buffer : sinkBuffer_) {
         memset_s(buffer.data(), buffer.size(), 0, buffer.size());
     }
-    totalBytesWritten_ = 0;
+    sinkBytesWritten_ = 0;
     std::shared_ptr<IStatusCallback> statusCallback = statusCallback_.lock();
     if (statusCallback != nullptr) {
         statusCallback->OnStatusUpdate(OPERATION_FLUSHED);
@@ -263,6 +263,7 @@ int32_t ProRendererStreamImpl::Stop()
     if (isFirstFrame_) {
         firstFrameSync_.notify_all();
     }
+    totalBytesWritten_ = 0;
     std::shared_ptr<IStatusCallback> statusCallback = statusCallback_.lock();
     if (statusCallback != nullptr) {
         statusCallback->OnStatusUpdate(OPERATION_STOPPED);
@@ -295,8 +296,8 @@ int32_t ProRendererStreamImpl::GetCurrentTimeStamp(uint64_t &timestamp)
     int64_t timeSec = 0;
     int64_t timeNsec = 0;
     uint64_t framePosition;
-    int32_t ret = GetAudioTime(framePosition, timeSec, timeNsec);
-    CHECK_AND_RETURN_RET_LOG(ret == SUCCESS, false, "GetBufferSize error.");
+    bool ret = GetAudioTime(framePosition, timeSec, timeNsec);
+    CHECK_AND_RETURN_RET_LOG(ret, ERROR, "GetAudioTime error");
     timestamp = static_cast<uint64_t>(timeSec * AUDIO_NS_PER_S + timeNsec);
     return SUCCESS;
 }
@@ -305,16 +306,18 @@ int32_t ProRendererStreamImpl::GetCurrentPosition(uint64_t &framePosition, uint6
 {
     int64_t timeSec = 0;
     int64_t timeNsec = 0;
-    int32_t ret = GetAudioTime(framePosition, timeSec, timeNsec);
-    CHECK_AND_RETURN_RET_LOG(ret == SUCCESS, false, "GetBufferSize error.");
-    timestamp = static_cast<uint64_t>(timeSec * AUDIO_NS_PER_S + timeNsec) / AUDIO_NS_TO_US_RADIO;
+    bool ret = GetAudioTime(framePosition, timeSec, timeNsec);
+    CHECK_AND_RETURN_RET_LOG(ret, ERROR, "GetAudioTime error");
+    timespec tm {};
+    clock_gettime(CLOCK_MONOTONIC, &tm);
+    timestamp = static_cast<uint64_t>(tm.tv_sec) * AUDIO_NS_PER_S + static_cast<uint64_t>(tm.tv_nsec);
     return SUCCESS;
 }
 
 int32_t ProRendererStreamImpl::GetLatency(uint64_t &latency)
 {
-    uint64_t framePos;
-    GetStreamFramesWritten(framePos);
+    CHECK_AND_RETURN_RET_LOG(byteSizePerFrame_ != 0, ERR_ILLEGAL_STATE, "Error frame size");
+    uint64_t framePos = sinkBytesWritten_ / byteSizePerFrame_;
     latency = ((framePos / byteSizePerFrame_) * AUDIO_US_PER_S) / processConfig_.streamInfo.samplingRate;
     return SUCCESS;
 }
@@ -440,6 +443,7 @@ int32_t ProRendererStreamImpl::EnqueueBuffer(const BufferDesc &bufferDesc)
     AUDIO_DEBUG_LOG("buffer length:%{public}zu ,sink buffer length:%{public}zu,volume:%{public}f", bufferDesc.bufLength,
         sinkBuffer_[0].size(), volume);
     totalBytesWritten_ += bufferDesc.bufLength;
+    sinkBytesWritten_ += bufferDesc.bufLength;
     return SUCCESS;
 }
 
@@ -711,6 +715,7 @@ void ProRendererStreamImpl::InitBasicInfo(const AudioStreamInfo &streamInfo)
     spanSizeInFrame_ = (streamInfo.samplingRate * DEFAULT_BUFFER_MILLISECOND) / SECOND_TO_MILLISECOND;
     byteSizePerFrame_ = GetSamplePerFrame(streamInfo.format) * streamInfo.channels;
     minBufferSize_ = spanSizeInFrame_ * byteSizePerFrame_;
+    handleTimeModel_.ConfigSampleRate(currentRate_);
 }
 } // namespace AudioStandard
 } // namespace OHOS

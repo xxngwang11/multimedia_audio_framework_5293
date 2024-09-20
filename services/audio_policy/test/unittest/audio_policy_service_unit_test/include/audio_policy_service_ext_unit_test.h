@@ -13,25 +13,25 @@
  * limitations under the License.
  */
 
-#ifndef AUDIO_COMMON_UTILS_H
-#define AUDIO_COMMON_UTILS_H
+#ifndef AUDIO_POLICY_SERVICE_EXT_UNIT_TEST_H
+#define AUDIO_POLICY_SERVICE_EXT_UNIT_TEST_H
 
-#include <unordered_map>
+#include "gtest/gtest.h"
 
 namespace OHOS {
 namespace AudioStandard {
 
-class VolumeUtils {
+class AudioPolicyServiceExtUnitTest : public testing::Test {
 public:
-    static AudioVolumeType GetVolumeTypeFromStreamType(AudioStreamType streamType);
-    static void SetPCVolumeEnable(const bool& isPCVolumeEnable);
-    static bool IsPCVolumeEnable();
-private:
-    static std::unordered_map<AudioStreamType, AudioVolumeType> defaultVolumeMap_;
-    static std::unordered_map<AudioStreamType, AudioVolumeType> audioPCVolumeMap_;
-    static std::unordered_map<AudioStreamType, AudioVolumeType>& GetVolumeMap();
-    static bool isPCVolumeEnable_;
+    // SetUpTestCase: Called before all test cases
+    static void SetUpTestCase(void);
+    // TearDownTestCase: Called after all test case
+    static void TearDownTestCase(void);
+    // SetUp: Called before each test cases
+    void SetUp(void);
+    // TearDown: Called after each test cases
+    void TearDown(void);
 };
 } // namespace AudioStandard
 } // namespace OHOS
-#endif // AUDIO_COMMON_UTILS_H
+#endif // AUDIO_POLICY_SERVICE_EXT_UNIT_TEST_H

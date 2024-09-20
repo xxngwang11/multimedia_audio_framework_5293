@@ -33,6 +33,7 @@
 #include "datashare_helper.h"
 #include "ipc_skeleton.h"
 #include "power_mgr_client.h"
+#include "common_event_manager.h"
 #ifdef FEATURE_DTMF_TONE
 #include "audio_tone_parser.h"
 #endif
@@ -169,7 +170,7 @@ public:
 
     unique_ptr<AudioDeviceDescriptor> GetActiveOutputDeviceDescriptor() const;
 
-    DeviceType GetActiveInputDevice() const;
+    DeviceType GetActiveInputDevice();
 
     int32_t SetRingerMode(AudioRingerMode ringMode);
 
@@ -329,6 +330,8 @@ public:
         const sptr<IRemoteObject> &object, const int32_t apiVersion);
 
     int32_t UpdateTracker(AudioMode &mode, AudioStreamChangeInfo &streamChangeInfo);
+
+    void HandleAudioCaptureState(AudioMode &mode, AudioStreamChangeInfo &streamChangeInfo);
 
     int32_t GetCurrentRendererChangeInfos(vector<unique_ptr<AudioRendererChangeInfo>> &audioRendererChangeInfos,
         bool hasBTPermission, bool hasSystemPermission);
@@ -581,6 +584,8 @@ public:
     int32_t SetAudioDeviceAnahsCallback(const sptr<IRemoteObject> &object);
 
     int32_t UnsetAudioDeviceAnahsCallback();
+    void OnReceiveEvent(const EventFwk::CommonEventData &eventData);
+    void SubscribeSafeVolumeEvent();
 
 private:
     AudioPolicyService()
@@ -1038,6 +1043,14 @@ private:
 
     bool IsA2dpOffloadConnected();
 
+    void SetCurrenInputDevice(const AudioDeviceDescriptor &desc);
+
+    AudioDeviceDescriptor GetCurrentInputDevice();
+
+    DeviceType GetCurrentInputDeviceType();
+
+    void SetCurrentInputDeviceType(DeviceType deviceType);
+
     void SendA2dpConnectedWhileRunning(const RendererState &rendererState, const uint32_t &sessionId);
 
     int32_t ConnectVirtualDevice(sptr<AudioDeviceDescriptor> &desc);
@@ -1054,6 +1067,8 @@ private:
         std::vector<sptr<AudioDeviceDescriptor>> selectedDesc);
     int32_t SelectOutputDeviceForFastInner(sptr<AudioRendererFilter> audioRendererFilter,
         std::vector<sptr<AudioDeviceDescriptor>> selectedDesc);
+    void PublishSafeVolumeNotification(int32_t notificationId);
+    void CancelSafeVolumeNotification(int32_t notificationId);
 
     void CheckAndNotifyUserSelectedDevice(const sptr<AudioDeviceDescriptor> &deviceDescriptor);
 
@@ -1090,6 +1105,7 @@ private:
     std::mutex serviceFlagMutex_;
     DeviceType effectActiveDevice_ = DEVICE_TYPE_NONE;
     AudioDeviceDescriptor currentActiveDevice_ = AudioDeviceDescriptor(DEVICE_TYPE_NONE, DEVICE_ROLE_NONE);
+    std::mutex curInputDevice_; // lock this mutex to operate currentActiveInputDevice_
     AudioDeviceDescriptor currentActiveInputDevice_ = AudioDeviceDescriptor(DEVICE_TYPE_NONE, DEVICE_ROLE_NONE);
     std::vector<std::pair<DeviceType, bool>> pnpDeviceList_;
 
@@ -1190,12 +1206,6 @@ private:
 
     // sourceType is SOURCE_TYPE_PLAYBACK_CAPTURE, SOURCE_TYPE_WAKEUP or SOURCE_TYPE_VIRTUAL_CAPTURE
     std::unordered_map<uint32_t, SessionInfo> sessionWithSpecialSourceType_;
-    static inline const std::unordered_set<SourceType> specialSourceTypeSet_ = {
-        SOURCE_TYPE_PLAYBACK_CAPTURE,
-        SOURCE_TYPE_WAKEUP,
-        SOURCE_TYPE_VIRTUAL_CAPTURE,
-        SOURCE_TYPE_REMOTE_CAST
-    };
 
     static std::map<std::string, std::string> sinkPortStrToClassStrMap_;
     static std::map<std::string, uint32_t> formatStrToEnum;
@@ -1226,6 +1236,13 @@ private:
     std::unique_ptr<std::thread> safeVolumeDialogThrd_ = nullptr;
     std::atomic<bool> isSafeVolumeDialogShowing_ = false;
     std::mutex safeVolumeMutex_;
+
+    std::mutex notifyMutex_;
+    int32_t streamMusicVol_;
+    bool isSelectRestoreVol_ = false;
+    bool isSelectIncreaseVol_ = false;
+    bool restoreNIsShowing_ = false;
+    bool increaseNIsShowing_ = false;
 
     DeviceType priorityOutputDevice_ = DEVICE_TYPE_INVALID;
     DeviceType priorityInputDevice_ = DEVICE_TYPE_INVALID;
@@ -1268,6 +1285,18 @@ private:
     std::mutex connectionMutex_;
     std::condition_variable connectionCV_;
     static const int32_t CONNECTION_TIMEOUT_IN_MS = 300; // 300ms
+};
+
+class SafeVolumeEventSubscriber : public EventFwk::CommonEventSubscriber {
+public:
+    explicit SafeVolumeEventSubscriber(const EventFwk::CommonEventSubscribeInfo &subscribeInfo,
+        std::function<void(const EventFwk::CommonEventData&)> receiver)
+        : EventFwk::CommonEventSubscriber(subscribeInfo), eventReceiver_(receiver) {}
+    ~SafeVolumeEventSubscriber() {}
+    void OnReceiveEvent(const EventFwk::CommonEventData &eventData) override;
+private:
+    SafeVolumeEventSubscriber() = default;
+    std::function<void(const EventFwk::CommonEventData&)> eventReceiver_;
 };
 } // namespace AudioStandard
 } // namespace OHOS
