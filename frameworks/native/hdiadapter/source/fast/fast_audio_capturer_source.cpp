@@ -48,6 +48,9 @@ public:
     int32_t Pause(void) override;
     int32_t Resume(void) override;
     int32_t CaptureFrame(char *frame, uint64_t requestBytes, uint64_t &replyBytes) override;
+    int32_t CaptureFrameWithEc(
+        FrameDesc *fdesc, uint64_t &replyBytes,
+        FrameDesc *fdescEc, uint64_t &replyBytesEc) override;
     int32_t SetVolume(float left, float right) override;
     int32_t GetVolume(float &left, float &right) override;
     int32_t SetMute(bool isMute) override;
@@ -70,11 +73,11 @@ public:
         uint32_t &byteSizePerFrame) override;
     int32_t GetMmapHandlePosition(uint64_t &frames, int64_t &timeSec, int64_t &timeNanoSec) override;
     float GetMaxAmplitude() override;
+    int32_t GetCaptureId(uint32_t &captureId) const override;
 
     int32_t UpdateAppsUid(const int32_t appsUid[PA_MAX_OUTPUTS_PER_SOURCE],
         const size_t size) final;
     int32_t UpdateAppsUid(const std::vector<int32_t> &appsUid) final;
-    int32_t GetCaptureId(uint32_t &captureId) const override;
 
     FastAudioCapturerSourceInner();
     ~FastAudioCapturerSourceInner() override;
@@ -473,13 +476,21 @@ int32_t FastAudioCapturerSourceInner::CaptureFrame(char *frame, uint64_t request
     return ERR_DEVICE_NOT_SUPPORTED;
 }
 
+int32_t FastAudioCapturerSourceInner::CaptureFrameWithEc(
+    FrameDesc *fdesc, uint64_t &replyBytes,
+    FrameDesc *fdescEc, uint64_t &replyBytesEc)
+{
+    AUDIO_ERR_LOG("not supported!");
+    return ERR_DEVICE_NOT_SUPPORTED;
+}
+
 int32_t FastAudioCapturerSourceInner::CheckPositionTime()
 {
-    int32_t tryCount = 10;
+    int32_t tryCount = 20; // max try count
     uint64_t frames = 0;
     int64_t timeSec = 0;
     int64_t timeNanoSec = 0;
-    int64_t maxHandleCost = 10000000; // ns
+    int64_t maxHandleCost = 10000000; // 10ms
     int64_t waitTime = 2000000; // 2ms
     while (tryCount-- > 0) {
         ClockTime::RelativeSleep(waitTime); // us
@@ -624,6 +635,7 @@ int32_t FastAudioCapturerSourceInner::SetInputRoute(DeviceType inputDevice, Audi
     sink.type = AUDIO_PORT_MIX_TYPE;
     sink.ext.mix.moduleId = 0;
     sink.ext.mix.streamId = GenerateUniqueID(AUDIO_HDI_CAPTURE_ID_BASE, HDI_CAPTURE_OFFSET_FAST);
+    sink.ext.mix.source = static_cast<int32_t>(ConvertToHDIAudioInputType(attr_.sourceType));
     sink.ext.device.desc = const_cast<char*>("");
 
     AudioRoute route = {
