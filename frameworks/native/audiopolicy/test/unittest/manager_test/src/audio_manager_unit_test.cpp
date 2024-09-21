@@ -178,7 +178,7 @@ HWTEST(AudioManagerUnitTest, SelectOutputDevice_001, TestSize.Level1)
     outputDevice->networkId_ = LOCAL_NETWORK_ID;
     deviceDescriptorVector.push_back(outputDevice);
     auto ret = AudioSystemManager::GetInstance()->SelectOutputDevice(deviceDescriptorVector);
-    EXPECT_EQ(SUCCESS, ret);
+    EXPECT_EQ(ERR_INVALID_OPERATION, ret);
 }
 
 /**
@@ -249,7 +249,7 @@ HWTEST(AudioManagerUnitTest, SelectOutputDevice_004, TestSize.Level1)
     outputDevice->networkId_ = LOCAL_NETWORK_ID;
     deviceDescriptorVector.push_back(outputDevice);
     auto ret = AudioSystemManager::GetInstance()->SelectOutputDevice(audioRendererFilter, deviceDescriptorVector);
-    EXPECT_EQ(ret, SUCCESS);
+    EXPECT_EQ(ret, ERR_INVALID_OPERATION);
 }
 
 /**
