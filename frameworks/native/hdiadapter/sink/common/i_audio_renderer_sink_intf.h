@@ -64,7 +64,7 @@ struct RendererSinkAdapter {
     int32_t (*RendererSinkSetPaPower)(struct RendererSinkAdapter *adapter, int32_t flag);
     int32_t (*RendererSinkSetPriPaPower)(struct RendererSinkAdapter *adapter);
     int32_t (*RendererSinkUpdateAppsUid)(struct RendererSinkAdapter *adapter, const int32_t appsUid[MAX_MIX_CHANNELS],
-         const size_t size);
+        const size_t size);
     int32_t (*RendererSinkGetRenderId)(struct RendererSinkAdapter *adapter, uint32_t *renderId);
 };
 

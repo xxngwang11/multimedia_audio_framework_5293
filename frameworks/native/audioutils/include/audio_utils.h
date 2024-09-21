@@ -63,6 +63,7 @@ const uint32_t STRING_BUFFER_SIZE = 4096;
 
 // Ringer or alarmer dual tone
 const size_t AUDIO_CONCURRENT_ACTIVE_DEVICES_LIMIT = 2;
+
 class Util {
 public:
     static bool IsDualToneStreamType(const AudioStreamType streamType)
@@ -582,8 +583,8 @@ protected:
 
 enum AudioHdiUniqueIDBase : uint32_t {
     // 0-4 is reserved for other modules
-    AUDIO_HDI_CAPTURE_ID_BASE = 5,
-    AUDIO_HDI_RENDER_ID_BASE = 6,
+    AUDIO_HDI_RENDER_ID_BASE = 5,
+    AUDIO_HDI_CAPTURE_ID_BASE = 6,
 };
 
 enum HdiCaptureOffset : uint32_t {
@@ -613,6 +614,7 @@ enum HdiRenderOffset : uint32_t {
 };
 
 uint32_t GenerateUniqueID(AudioHdiUniqueIDBase base, uint32_t offset);
+
 } // namespace AudioStandard
 } // namespace OHOS
 #endif // AUDIO_UTILS_H

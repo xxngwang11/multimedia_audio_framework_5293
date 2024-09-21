@@ -279,6 +279,17 @@ void AudioA2dpManager::CheckA2dpDeviceReconnect()
 int32_t AudioA2dpManager::Connect(const std::string &macAddress)
 {
     CHECK_AND_RETURN_RET_LOG(a2dpInstance_ != nullptr, ERROR, "A2DP profile instance unavailable");
+    if (MediaBluetoothDeviceManager::IsA2dpBluetoothDeviceConnecting(macAddress)) {
+        AUDIO_PRERELEASE_LOGI("A2dp device %{public}s is connecting, ignore connect request", macAddress.c_str());
+        return SUCCESS;
+    }
+    std::vector<std::string> virtualDevices;
+    a2dpInstance_->GetVirtualDeviceList(virtualDevices);
+    if (std::find(virtualDevices.begin(), virtualDevices.end(), macAddress) == virtualDevices.end()) {
+        AUDIO_PRERELEASE_LOGI("A2dp device %{public}s is not virtual device, ignore connect request",
+            macAddress.c_str());
+        return SUCCESS;
+    }
     int32_t ret = a2dpInstance_->Connect(BluetoothRemoteDevice(macAddress));
     CHECK_AND_RETURN_RET_LOG(ret == 0, ERROR, "A2dp Connect Failed");
     return SUCCESS;
@@ -572,6 +583,17 @@ AudioStandard::AudioScene AudioHfpManager::GetPolicyAudioScene()
 int32_t AudioHfpManager::Connect(const std::string &macAddress)
 {
     CHECK_AND_RETURN_RET_LOG(hfpInstance_ != nullptr, ERROR, "HFP AG profile instance unavailable");
+    if (HfpBluetoothDeviceManager::IsHfpBluetoothDeviceConnecting(macAddress)) {
+        AUDIO_PRERELEASE_LOGI("Hfp device %{public}s is connecting, ignore connect request", macAddress.c_str());
+        return SUCCESS;
+    }
+    std::vector<std::string> virtualDevices;
+    hfpInstance_->GetVirtualDeviceList(virtualDevices);
+    if (std::find(virtualDevices.begin(), virtualDevices.end(), macAddress) == virtualDevices.end()) {
+        AUDIO_PRERELEASE_LOGI("Hfp device %{public}s is not virtual device, ignore connect request",
+            macAddress.c_str());
+        return SUCCESS;
+    }
     int32_t ret = hfpInstance_->Connect(BluetoothRemoteDevice(macAddress));
     CHECK_AND_RETURN_RET_LOG(ret == 0, ERROR, "Hfp Connect Failed");
     return SUCCESS;

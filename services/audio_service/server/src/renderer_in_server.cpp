@@ -826,7 +826,6 @@ int32_t RendererInServer::Stop()
 int32_t RendererInServer::Release()
 {
     AudioService::GetInstance()->RemoveRenderer(streamIndex_);
-    AudioVolume::GetInstance()->RemoveStreamVolume(streamIndex_);
     {
         std::unique_lock<std::mutex> lock(statusLock_);
         if (status_ == I_STATUS_RELEASED) {
@@ -835,6 +834,7 @@ int32_t RendererInServer::Release()
         }
     }
     int32_t ret = IStreamManager::GetPlaybackManager(managerType_).ReleaseRender(streamIndex_);
+    AudioVolume::GetInstance()->RemoveStreamVolume(streamIndex_);
     if (ret < 0) {
         AUDIO_ERR_LOG("Release stream failed, reason: %{public}d", ret);
         status_ = I_STATUS_INVALID;

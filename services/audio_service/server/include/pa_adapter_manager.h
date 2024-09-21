@@ -99,7 +99,6 @@ private:
         SourceType source, const std::string &deviceName);
 
     int32_t SetStreamAudioEnhanceMode(pa_stream *paStream, AudioEnhanceMode mode);
-    const std::string GetEnhanceModeName(AudioEnhanceMode mode);
     const std::string GetEnhanceSceneName(SourceType sourceType);
 
     // Callbacks to be implemented
@@ -113,7 +112,7 @@ private:
 
     int32_t GetDeviceNameForConnect(AudioProcessConfig processConfig,
         uint32_t sessionId, std::string &deviceName);
-    
+
     void SetHighResolution(pa_proplist *propList, AudioProcessConfig &processConfig, uint32_t sessionId);
     bool CheckHighResolution(const AudioProcessConfig &processConfig);
     void SetRecordProplist(pa_proplist *propList, AudioProcessConfig &processConfig);

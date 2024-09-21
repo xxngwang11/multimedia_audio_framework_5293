@@ -55,6 +55,7 @@ std::map<std::string, BluetoothDeviceAction> MediaBluetoothDeviceManager::wearDe
 std::vector<BluetoothRemoteDevice> MediaBluetoothDeviceManager::privacyDevices_;
 std::vector<BluetoothRemoteDevice> MediaBluetoothDeviceManager::commonDevices_;
 std::vector<BluetoothRemoteDevice> MediaBluetoothDeviceManager::negativeDevices_;
+std::vector<BluetoothRemoteDevice> MediaBluetoothDeviceManager::connectingDevices_;
 std::mutex g_hfpDeviceLock;
 std::mutex g_hfpDeviceMapLock;
 std::mutex g_hfpWearStateMapLock;
@@ -63,6 +64,7 @@ std::map<std::string, BluetoothDeviceAction> HfpBluetoothDeviceManager::wearDete
 std::vector<BluetoothRemoteDevice> HfpBluetoothDeviceManager::privacyDevices_;
 std::vector<BluetoothRemoteDevice> HfpBluetoothDeviceManager::commonDevices_;
 std::vector<BluetoothRemoteDevice> HfpBluetoothDeviceManager::negativeDevices_;
+std::vector<BluetoothRemoteDevice> HfpBluetoothDeviceManager::connectingDevices_;
 std::mutex HfpBluetoothDeviceManager::stopVirtualCallHandleLock_;
 BluetoothStopVirtualCallHandle HfpBluetoothDeviceManager::stopVirtualCallHandle_ = { BluetoothRemoteDevice(), false};
 
@@ -145,6 +147,9 @@ DeviceCategory GetDeviceCategory(const BluetoothRemoteDevice &device)
 void MediaBluetoothDeviceManager::SetMediaStack(const BluetoothRemoteDevice &device, int action)
 {
     switch (action) {
+        case BluetoothDeviceAction::CONNECTING_ACTION:
+            HandleConnectingDevice(device);
+            break;
         case BluetoothDeviceAction::CONNECT_ACTION:
             HandleConnectDevice(device);
             break;
@@ -184,11 +189,20 @@ void MediaBluetoothDeviceManager::SetMediaStack(const BluetoothRemoteDevice &dev
     }
 }
 
+void MediaBluetoothDeviceManager::HandleConnectingDevice(const BluetoothRemoteDevice &device)
+{
+    if (IsA2dpBluetoothDeviceExist(device.GetDeviceAddr())) {
+        return;
+    }
+    AddDeviceInConfigVector(device, connectingDevices_);
+}
+
 void MediaBluetoothDeviceManager::HandleConnectDevice(const BluetoothRemoteDevice &device)
 {
     if (IsA2dpBluetoothDeviceExist(device.GetDeviceAddr())) {
         return;
     }
+    RemoveDeviceInConfigVector(device, connectingDevices_);
     // If the device was virtual connected, remove it from the negativeDevices_ list.
     RemoveDeviceInConfigVector(device, negativeDevices_);
     DeviceCategory bluetoothCategory = GetDeviceCategory(device);
@@ -228,7 +242,7 @@ void MediaBluetoothDeviceManager::HandleDisconnectDevice(const BluetoothRemoteDe
         AUDIO_INFO_LOG("The device is already disconnected, ignore disconnect action.");
         return;
     }
-
+    RemoveDeviceInConfigVector(device, connectingDevices_);
     RemoveDeviceInConfigVector(device, privacyDevices_);
     RemoveDeviceInConfigVector(device, commonDevices_);
     RemoveDeviceInConfigVector(device, negativeDevices_);
@@ -470,6 +484,19 @@ bool MediaBluetoothDeviceManager::IsA2dpBluetoothDeviceExist(const std::string& 
     return false;
 }
 
+bool MediaBluetoothDeviceManager::IsA2dpBluetoothDeviceConnecting(const std::string& macAddress)
+{
+    std::lock_guard<std::mutex> a2dpDeviceLock(g_a2dpDeviceLock);
+    auto deviceIter = std::find_if(connectingDevices_.begin(), connectingDevices_.end(),
+        [&macAddress] (BluetoothRemoteDevice &bluetoothRemoteDevice) {
+            return macAddress == bluetoothRemoteDevice.GetDeviceAddr();
+        });
+    if (deviceIter != connectingDevices_.end()) {
+        return true;
+    }
+    return false;
+}
+
 int32_t MediaBluetoothDeviceManager::GetConnectedA2dpBluetoothDevice(const std::string& macAddress,
     BluetoothRemoteDevice &device)
 {
@@ -520,6 +547,9 @@ void MediaBluetoothDeviceManager::ClearAllA2dpBluetoothDevice()
 void HfpBluetoothDeviceManager::SetHfpStack(const BluetoothRemoteDevice &device, int action)
 {
     switch (action) {
+        case BluetoothDeviceAction::CONNECTING_ACTION:
+            HandleConnectingDevice(device);
+            break;
         case BluetoothDeviceAction::CONNECT_ACTION:
             HandleConnectDevice(device);
             break;
@@ -562,11 +592,20 @@ void HfpBluetoothDeviceManager::SetHfpStack(const BluetoothRemoteDevice &device,
     }
 }
 
+void HfpBluetoothDeviceManager::HandleConnectingDevice(const BluetoothRemoteDevice &device)
+{
+    if (IsHfpBluetoothDeviceExist(device.GetDeviceAddr())) {
+        return;
+    }
+    AddDeviceInConfigVector(device, connectingDevices_);
+}
+
 void HfpBluetoothDeviceManager::HandleConnectDevice(const BluetoothRemoteDevice &device)
 {
     if (IsHfpBluetoothDeviceExist(device.GetDeviceAddr())) {
         return;
     }
+    RemoveDeviceInConfigVector(device, connectingDevices_);
     RemoveDeviceInConfigVector(device, negativeDevices_);
     DeviceCategory bluetoothCategory = GetDeviceCategory(device);
     AudioDeviceDescriptor desc;
@@ -605,6 +644,7 @@ void HfpBluetoothDeviceManager::HandleDisconnectDevice(const BluetoothRemoteDevi
         AUDIO_INFO_LOG("The device is already disconnected, ignore disconnect action.");
         return;
     }
+    RemoveDeviceInConfigVector(device, connectingDevices_);
     RemoveDeviceInConfigVector(device, privacyDevices_);
     RemoveDeviceInConfigVector(device, commonDevices_);
     RemoveDeviceInConfigVector(device, negativeDevices_);
@@ -872,6 +912,19 @@ bool HfpBluetoothDeviceManager::IsHfpBluetoothDeviceExist(const std::string& mac
 {
     std::lock_guard<std::mutex> deviceMapLock(g_hfpDeviceMapLock);
     if (hfpBluetoothDeviceMap_.find(macAddress) != hfpBluetoothDeviceMap_.end()) {
+        return true;
+    }
+    return false;
+}
+
+bool HfpBluetoothDeviceManager::IsHfpBluetoothDeviceConnecting(const std::string& macAddress)
+{
+    std::lock_guard<std::mutex> hfpDeviceLock(g_hfpDeviceLock);
+    auto deviceIter = std::find_if(connectingDevices_.begin(), connectingDevices_.end(),
+        [&macAddress] (BluetoothRemoteDevice &bluetoothRemoteDevice) {
+            return macAddress == bluetoothRemoteDevice.GetDeviceAddr();
+        });
+    if (deviceIter != connectingDevices_.end()) {
         return true;
     }
     return false;

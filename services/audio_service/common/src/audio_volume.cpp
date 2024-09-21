@@ -23,7 +23,6 @@
 #include "audio_utils.h"
 #include "audio_stream_info.h"
 
-
 namespace OHOS {
 namespace AudioStandard {
 static const std::unordered_map<std::string, AudioStreamType> STREAM_TYPE_STRING_ENUM_MAP = {

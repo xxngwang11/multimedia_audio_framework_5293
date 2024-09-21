@@ -121,7 +121,7 @@ bool g_effectAllStreamVolumeZeroMap[SCENE_TYPE_NUM] = {false, false, false, fals
 bool g_effectHaveDisabledMap[SCENE_TYPE_NUM] = {false, false, false, false, false, false, false};
 time_t g_effectStartVolZeroTimeMap[SCENE_TYPE_NUM] = {0, 0, 0, 0, 0, 0, 0};
 char *const SCENE_TYPE_SET[SCENE_TYPE_NUM] = {"SCENE_DEFAULT", "SCENE_MUSIC", "SCENE_GAME", "SCENE_MOVIE",
-    "SCENE_SPEECH", "SCENE_RING", "SCENE_VOIP", "SCENE_OTHERS", "EFFECT_NONE"};
+    "SCENE_SPEECH", "SCENE_RING", "SCENE_VOIP_DOWN", "SCENE_OTHERS", "EFFECT_NONE"};
 const int32_t COMMON_SCENE_TYPE_INDEX = 0;
 
 enum HdiInputType { HDI_INPUT_TYPE_PRIMARY, HDI_INPUT_TYPE_OFFLOAD, HDI_INPUT_TYPE_MULTICHANNEL };
@@ -1208,15 +1208,14 @@ static unsigned SinkRenderPrimaryCluster(pa_sink *si, size_t *length, pa_mix_inf
     size_t count = 0;
     while ((sinkIn = pa_hashmap_iterate(si->thread_info.inputs, &state, NULL)) && maxInfo > 0) {
         CheckAndPushUidToArr(sinkIn, appsUid, &count);
-        const char *sinkSceneType = pa_proplist_gets(sinkIn->proplist, "scene.type");
-        const char *sinkSceneMode = pa_proplist_gets(sinkIn->proplist, "scene.mode");
-        bool existFlag = GetExistFlag(sinkIn, sinkSceneType, sinkSceneMode,
-            u->actualSpatializationEnabled ? "1" : "0");
-        bool sceneTypeFlag = EffectChainManagerSceneCheck(sinkSceneType, sceneType);
+        const char *sSceneType = pa_proplist_gets(sinkIn->proplist, "scene.type");
+        const char *sSceneMode = pa_proplist_gets(sinkIn->proplist, "scene.mode");
+        bool existFlag = GetExistFlag(sinkIn, sSceneType, sSceneMode, u->actualSpatializationEnabled ? "1" : "0");
+        bool sceneTypeFlag = EffectChainManagerSceneCheck(sSceneType, sceneType);
         if ((IsInnerCapturer(sinkIn) && IsCaptureSilently()) || !InputIsPrimary(sinkIn)) {
             continue;
         } else if ((sceneTypeFlag && existFlag) || (pa_safe_streq(sceneType, "EFFECT_NONE") && (!existFlag))) {
-            RecordEffectChainStatus(existFlag, sinkSceneType, sinkSceneMode, u->actualSpatializationEnabled);
+            RecordEffectChainStatus(existFlag, sSceneType, sSceneMode, u->actualSpatializationEnabled);
             pa_sink_input_assert_ref(sinkIn);
             updateResampler(sinkIn, sceneType, false);
 
@@ -1240,8 +1239,7 @@ static unsigned SinkRenderPrimaryCluster(pa_sink *si, size_t *length, pa_mix_inf
             PreparePrimaryFading(sinkIn, infoIn, si);
             CheckPrimaryFadeinIsDone(si, sinkIn);
 
-            const char *sinkFadeoutPause = pa_proplist_gets(sinkIn->proplist, "fadeoutPause");
-            if (pa_safe_streq(sinkFadeoutPause, "0")) {u->streamAvailable++;}
+            if (pa_safe_streq(pa_proplist_gets(sinkIn->proplist, "fadeoutPause"), "0")) {u->streamAvailable++;}
 
             infoIn++;
             n++;
@@ -2584,6 +2582,18 @@ static void PaInputStateChangeCbOffload(struct Userdata *u, pa_sink_input *i, pa
     }
 }
 
+static void ResetVolumeBySinkInputState(pa_sink_input *i, pa_sink_input_state_t state)
+{
+    pa_assert(i);
+    const bool corking = i->thread_info.state == PA_SINK_INPUT_RUNNING && state == PA_SINK_INPUT_CORKED;
+    const bool stopping = state == PA_SINK_INPUT_UNLINKED;
+    if (corking || stopping) {
+        const char *sessionIDStr = safeProplistGets(i->proplist, "stream.sessionID", "NULL");
+        uint32_t sessionID = sessionIDStr != NULL ? atoi(sessionIDStr) : 0;
+        SetPreVolume(sessionID, 0.0f);
+    }
+}
+
 // call from IO thread(OS_ProcessData)
 static void PaInputStateChangeCbPrimary(struct Userdata *u, pa_sink_input *i, pa_sink_input_state_t state)
 {
@@ -2621,6 +2631,7 @@ static void PaInputStateChangeCbPrimary(struct Userdata *u, pa_sink_input *i, pa
             AUDIO_INFO_LOG("PaInputStateChangeCb, Successfully restarted HDI renderer");
         }
     }
+    ResetVolumeBySinkInputState(i, state);
 }
 
 // call from IO thread(OS_ProcessData)
@@ -2740,6 +2751,7 @@ static void PaInputStateChangeCbMultiChannel(struct Userdata *u, pa_sink_input *
         u->multiChannel.isHDISinkStarted = false;
         u->multiChannel.isHDISinkInited = false;
     }
+    ResetVolumeBySinkInputState(i, state);
 }
 
 static void ResetFadeoutPause(pa_sink_input *i, pa_sink_input_state_t state)

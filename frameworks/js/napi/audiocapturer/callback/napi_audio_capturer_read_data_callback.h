@@ -31,6 +31,7 @@ public:
 
     void AddCallbackReference(const std::string &callbackName, napi_value args);
     void RemoveCallbackReference(napi_env env, napi_value callback);
+    void RemoveNapiCapturer();
 
 private:
     struct CapturerReadDataJsCallback {

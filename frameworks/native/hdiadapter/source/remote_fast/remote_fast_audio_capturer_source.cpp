@@ -68,6 +68,9 @@ public:
     int32_t Pause(void) override;
     int32_t Resume(void) override;
     int32_t CaptureFrame(char *frame, uint64_t requestBytes, uint64_t &replyBytes) override;
+    int32_t CaptureFrameWithEc(
+        FrameDesc *fdesc, uint64_t &replyBytes,
+        FrameDesc *fdescEc, uint64_t &replyBytesEc) override;
     int32_t SetVolume(float left, float right) override;
     int32_t GetVolume(float &left, float &right) override;
     int32_t SetMute(bool isMute) override;
@@ -89,10 +92,10 @@ public:
         const std::string &value) override;
     
     float GetMaxAmplitude() override;
+    int32_t GetCaptureId(uint32_t &captureId) const override;
 
     int32_t UpdateAppsUid(const int32_t appsUid[PA_MAX_OUTPUTS_PER_SOURCE], const size_t size) final;
     int32_t UpdateAppsUid(const std::vector<int32_t> &appsUid) final;
-    int32_t GetCaptureId(uint32_t &captureId) const override;
 
 private:
     int32_t CreateCapture(const struct AudioPort &capturePort);
@@ -337,7 +340,7 @@ int32_t RemoteFastAudioCapturerSourceInner::InitAshmem(const struct AudioSampleA
         desc.transferFrameSize <= periodFrameMaxSize, ERR_OPERATION_FAILED,
         "ReqMmapBuffer invalid values: totalBufferFrames[%{public}d] transferFrameSize[%{public}d]",
         desc.totalBufferFrames, desc.transferFrameSize);
-    bufferTotalFrameSize_ = desc.totalBufferFrames;
+    bufferTotalFrameSize_ = static_cast<uint32_t>(desc.totalBufferFrames);
     eachReadFrameSize_ = static_cast<uint32_t>(desc.transferFrameSize);
 
 #ifdef DEBUG_DIRECT_USE_HDI
@@ -440,6 +443,14 @@ int32_t RemoteFastAudioCapturerSourceInner::CaptureFrame(char *frame, uint64_t r
 {
     AUDIO_DEBUG_LOG("Capture frame is not supported.");
     return SUCCESS;
+}
+
+int32_t RemoteFastAudioCapturerSourceInner::CaptureFrameWithEc(
+    FrameDesc *fdesc, uint64_t &replyBytes,
+    FrameDesc *fdescEc, uint64_t &replyBytesEc)
+{
+    AUDIO_ERR_LOG("not supported!");
+    return ERR_DEVICE_NOT_SUPPORTED;
 }
 
 int32_t RemoteFastAudioCapturerSourceInner::CheckPositionTime()
@@ -672,7 +683,7 @@ int32_t RemoteFastAudioCapturerSourceInner::SetInputRoute(DeviceType inputDevice
     int32_t ret = SetInputPortPin(inputDevice, source);
     CHECK_AND_RETURN_RET_LOG(ret == SUCCESS, ret, "Set input port pin fail, ret %{public}d", ret);
 
-    source.portId = audioPort_.portId;
+    source.portId = static_cast<int32_t>(audioPort_.portId);
     source.role = AudioPortRole::AUDIO_PORT_SOURCE_ROLE;
     source.type = AudioPortType::AUDIO_PORT_DEVICE_TYPE;
     source.ext.device.moduleId = 0;

@@ -39,6 +39,7 @@ public:
     MediaBluetoothDeviceManager() = default;
     virtual ~MediaBluetoothDeviceManager() = default;
     static void SetMediaStack(const BluetoothRemoteDevice &device, int action);
+    static void HandleConnectingDevice(const BluetoothRemoteDevice &device);
     static void HandleConnectDevice(const BluetoothRemoteDevice &device);
     static void HandleDisconnectDevice(const BluetoothRemoteDevice &device);
     static void HandleWearDevice(const BluetoothRemoteDevice &device);
@@ -59,6 +60,7 @@ public:
     static void NotifyToUpdateVirtualDevice(const BluetoothRemoteDevice &device,
         AudioStandard::AudioDeviceDescriptor &desc, DeviceStatus deviceStatus);
     static bool IsA2dpBluetoothDeviceExist(const std::string& macAddress);
+    static bool IsA2dpBluetoothDeviceConnecting(const std::string& macAddress);
     static int32_t GetConnectedA2dpBluetoothDevice(const std::string& macAddress, BluetoothRemoteDevice &device);
     static void UpdateA2dpDeviceConfiguration(const BluetoothRemoteDevice &device,
         const AudioStandard::AudioStreamInfo &streamInfo);
@@ -71,6 +73,7 @@ private:
     static std::vector<BluetoothRemoteDevice> privacyDevices_;
     static std::vector<BluetoothRemoteDevice> commonDevices_;
     static std::vector<BluetoothRemoteDevice> negativeDevices_;
+    static std::vector<BluetoothRemoteDevice> connectingDevices_;
 };
 
 struct BluetoothStopVirtualCallHandle {
@@ -83,6 +86,7 @@ public:
     HfpBluetoothDeviceManager() = default;
     virtual ~HfpBluetoothDeviceManager() = default;
     static void SetHfpStack(const BluetoothRemoteDevice &device, int action);
+    static void HandleConnectingDevice(const BluetoothRemoteDevice &device);
     static void HandleConnectDevice(const BluetoothRemoteDevice &device);
     static void HandleDisconnectDevice(const BluetoothRemoteDevice &device);
     static void HandleWearDevice(const BluetoothRemoteDevice &device);
@@ -104,6 +108,7 @@ public:
     static void NotifyToUpdateVirtualDevice(const BluetoothRemoteDevice &device,
         AudioStandard::AudioDeviceDescriptor &desc, DeviceStatus deviceStatus);
     static bool IsHfpBluetoothDeviceExist(const std::string& macAddress);
+    static bool IsHfpBluetoothDeviceConnecting(const std::string& macAddress);
     static void UpdateHfpDeviceConfiguration(const BluetoothRemoteDevice &device,
         const AudioStandard::AudioStreamInfo &streamInfo);
     static void OnScoStateChanged(const BluetoothRemoteDevice &device, bool isConnected, int reason);
@@ -117,6 +122,7 @@ private:
     static std::vector<BluetoothRemoteDevice> privacyDevices_;
     static std::vector<BluetoothRemoteDevice> commonDevices_;
     static std::vector<BluetoothRemoteDevice> negativeDevices_;
+    static std::vector<BluetoothRemoteDevice> connectingDevices_;
     static std::mutex stopVirtualCallHandleLock_;
     static BluetoothStopVirtualCallHandle stopVirtualCallHandle_;
 };
