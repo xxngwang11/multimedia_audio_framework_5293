@@ -56,8 +56,6 @@ namespace {
     struct DeviceAttrAdapter validAdapter;
 }
 
-
-
 void AudioEnhanceChainAdapterUnitTest::SetUpTestCase(void)
 {
     EffectChain testChain;
@@ -68,7 +66,7 @@ void AudioEnhanceChainAdapterUnitTest::SetUpTestCase(void)
     managerParam.maxExtraNum = MAX_EXTRA_NUM;
     managerParam.defaultSceneName = "SCENE_DEFAULT";
     managerParam.priorSceneList = {};
-    managerParam.sceneTypeToChainNameMap = {{"SCENE_RECORD_&_ENHANCE_DEFAULT", "EFFECTCHAIN_RECORD"}};
+    managerParam.sceneTypeToChainNameMap = {{"SCENE_RECORD_&_ENHANCE_DEFAULT_&_DEVICE_TYPE_MIC", "EFFECTCHAIN_RECORD"}};
     managerParam.effectDefaultProperty = {
         {"effect1", "property1"}, {"effect2", "property2"}, {"effect3", "property3"}
     };
