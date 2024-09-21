@@ -16,17 +16,24 @@
 #ifndef AUDIO_ENHANCE_CHAIN_MANAGER_UNIT_TEST_H
 #define AUDIO_ENHANCE_CHAIN_MANAGER_UNIT_TEST_H
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
+
 #include "audio_enhance_chain_manager.h"
 
 namespace OHOS {
 namespace AudioStandard {
 class AudioEnhanceChainManagerUnitTest : public testing::Test {
 public:
-    // SetUpTestCase: Called before all test cases
-    static void SetUpTestCase(void);
-    // TearDownTestCase: Called after all test case
-    static void TearDownTestCase(void);
+    static AudioEnhanceChainManager* manager_;
+    static std::vector<EffectChain> enhanceChains_;
+    static EffectChainManagerParam managerParam_;
+    static std::vector<std::shared_ptr<AudioEffectLibEntry>> enhanceLibraryList_;
+    static AudioEnhanceDeviceAttr deviceAttr;
+    
+    // SetUpTestSuite: Called before all test cases
+    static void SetUpTestSuite(void);
+    // TearDownTestSuite: Called after all test cases
+    static void TearDownTestSuite(void);
     // SetUp: Called before each test cases
     void SetUp(void);
     // TearDown: Called after each test cases
@@ -35,4 +42,4 @@ public:
 }
 }
 
-#endif
+#endif // AUDIO_ENHANCE_CHAIN_MANAGER_UNIT_TEST_H
