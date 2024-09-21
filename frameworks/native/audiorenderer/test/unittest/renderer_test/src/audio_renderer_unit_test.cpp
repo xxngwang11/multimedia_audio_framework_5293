@@ -3512,7 +3512,7 @@ HWTEST(AudioRendererUnitTest, Audio_Renderer_PauseTransitent_007, TestSize.Level
 
 /**
  * @tc.name  : Test Pause and resume
- * @tc.number: Audio_Renderer_PauseTransitent_008
+ * @tc.number: Audio_Renderer_PauseTransitent_007
  * @tc.desc  : Test Pause interface. Returns true, if the streamUsage is STREAM_USAGE_VOICE_MODEM_COMMUNICATION.
  */
 HWTEST(AudioRendererUnitTest, Audio_Renderer_PauseTransitent_008, TestSize.Level1)
@@ -3524,7 +3524,7 @@ HWTEST(AudioRendererUnitTest, Audio_Renderer_PauseTransitent_008, TestSize.Level
     audioRendererPrivate->isSwitching_ = false;
     audioRendererPrivate->audioInterrupt_.streamUsage = STREAM_USAGE_VOICE_MODEM_COMMUNICATION;
     bool ret = audioRendererPrivate->PauseTransitent(CMD_FROM_SYSTEM);
-    EXPECT_FALSE(ret);
+    EXPECT_TRUE(ret);
 }
 
 /**
@@ -7113,7 +7113,7 @@ HWTEST(AudioRendererUnitTest, Audio_Renderer_IsDirectVoipParams_001, TestSize.Le
     std::unique_ptr<AudioRendererPrivate> audioRendererPrivate =
         std::make_unique<AudioRendererPrivate>(AudioStreamType::STREAM_MEDIA, appInfo);
     AudioStreamParams audioStreamParams;
-    audioStreamParams.samplingRate = SAMPLE_RATE_16000;
+    audioStreamParams.samplingRate = SAMPLE_RATE_8000;
     audioStreamParams.channels = MONO;
     audioStreamParams.format = SAMPLE_S16LE;
     bool ret = audioRendererPrivate->IsDirectVoipParams(audioStreamParams);
