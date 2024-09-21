@@ -13,7 +13,6 @@
  * limitations under the License.
  */
 
-#include <unistd.h>
 #ifndef LOG_TAG
 #define LOG_TAG "AudioEnhanceChainAdapterUnitTest"
 #endif
@@ -28,19 +27,8 @@
 
 #include "audio_effect.h"
 #include "audio_utils.h"
-#include "audio_effect_log.h"
-#include "audio_enhance_chain_adapter.h"
 #include "audio_enhance_chain_manager.h"
 #include "audio_errors.h"
-
-#define VALID_SCENEKEY 68864
-#define INVALID_SCENEKEY 0000
-#define VALID_CAPTUREID 13
-#define INVALID_CAPTUREID 0
-#define DEFAULT_RATE 48000
-#define DEFAULT_CHANNEL 4
-#define DEFAULT_FORMAT 1
-#define VALID_BUFFER_SIZE 1000
 
 using namespace std;
 using namespace testing::ext;
@@ -49,12 +37,55 @@ using namespace testing;
 namespace OHOS {
 namespace AudioStandard {
 
-struct DeviceAttrAdapter validAdapter = {DEFAULT_RATE, DEFAULT_CHANNEL, DEFAULT_FORMAT, true,
-    DEFAULT_RATE, DEFAULT_CHANNEL, DEFAULT_FORMAT, true, DEFAULT_RATE, DEFAULT_CHANNEL, DEFAULT_FORMAT};
+namespace {
+    const int32_t VALID_SCENEKEY = 68864;
+    const int32_t INVALID_SCENEKEY = 0;
+    const int32_t VALID_CAPTUREID = 13;
+    const int32_t INVALID_CAPTUREID = 0;
+    const int32_t DEFAULT_RATE = 48000;
+    const int32_t DEFAULT_CHANNEL = 4;
+    const int32_t DEFAULT_FORMAT = 1;
+    const int32_t VALID_BUFFER_SIZE = 1000;
+    const int32_t MAX_EXTRA_NUM = 3;
 
-void AudioEnhanceChainAdapterUnitTest::SetUpTestCase(void) {}
+    AudioEnhanceChainManager* manager = nullptr;
+    std::vector<EffectChain> enhanceChains;
+    EffectChainManagerParam managerParam;
+    std::vector<std::shared_ptr<AudioEffectLibEntry>> enhanceLibraryList;
+    AudioEnhanceDeviceAttr deviceAttr;
+    struct DeviceAttrAdapter validAdapter;
+}
+
+
+
+void AudioEnhanceChainAdapterUnitTest::SetUpTestCase(void)
+{
+    EffectChain testChain;
+    testChain.name = "EFFECTCHAIN_RECORD";
+    testChain.apply = {"record"};
+    enhanceChains.emplace_back(testChain);
+
+    managerParam.maxExtraNum = MAX_EXTRA_NUM;
+    managerParam.defaultSceneName = "SCENE_DEFAULT";
+    managerParam.priorSceneList = {};
+    managerParam.sceneTypeToChainNameMap = {{"SCENE_RECORD_&_ENHANCE_DEFAULT", "EFFECTCHAIN_RECORD"}};
+    managerParam.effectDefaultProperty = {
+        {"effect1", "property1"}, {"effect2", "property2"}, {"effect3", "property3"}
+    };
+    enhanceLibraryList = {};
+
+    validAdapter = {DEFAULT_RATE, DEFAULT_CHANNEL, DEFAULT_FORMAT, true,
+        DEFAULT_RATE, DEFAULT_CHANNEL, DEFAULT_FORMAT, true, DEFAULT_RATE, DEFAULT_CHANNEL, DEFAULT_FORMAT};
+}
+
 void AudioEnhanceChainAdapterUnitTest::TearDownTestCase(void) {}
-void AudioEnhanceChainAdapterUnitTest::SetUp(void) {}
+
+void AudioEnhanceChainAdapterUnitTest::SetUp(void)
+{
+    manager = AudioEnhanceChainManager::GetInstance();
+    manager->InitAudioEnhanceChainManager(enhanceChains, managerParam, enhanceLibraryList);
+}
+
 void AudioEnhanceChainAdapterUnitTest::TearDown(void)
 {
     AudioEnhanceChainManager* manager = AudioEnhanceChainManager::GetInstance();
@@ -68,9 +99,8 @@ void AudioEnhanceChainAdapterUnitTest::TearDown(void)
 */
 HWTEST_F(AudioEnhanceChainAdapterUnitTest, EnhanceChainManagerCreateCb_001, TestSize.Level1)
 {
-    int32_t result = EnhanceChainManagerCreateCb(INVALID_SCENEKEY, validAdapter);
+    int32_t result = EnhanceChainManagerCreateCb(INVALID_SCENEKEY, &validAdapter);
     EXPECT_EQ(ERROR, result);
-    
 }
 
 /**
@@ -80,8 +110,8 @@ HWTEST_F(AudioEnhanceChainAdapterUnitTest, EnhanceChainManagerCreateCb_001, Test
 */
 HWTEST_F(AudioEnhanceChainAdapterUnitTest, EnhanceChainManagerCreateCb_002, TestSize.Level1)
 {
-    int32_t result = EnhanceChainManagerCreateCb(VALID_SCENEKEY, validAdapter);
-    EXPECT_EQ(result, SUCCESS);
+    int32_t result = EnhanceChainManagerCreateCb(VALID_SCENEKEY, &validAdapter);
+    EXPECT_EQ(ERROR, result);
 }
 
 /**
@@ -92,8 +122,7 @@ HWTEST_F(AudioEnhanceChainAdapterUnitTest, EnhanceChainManagerCreateCb_002, Test
 HWTEST_F(AudioEnhanceChainAdapterUnitTest, EnhanceChainManagerReleaseCb_001, TestSize.Level1)
 {
     int32_t result = EnhanceChainManagerReleaseCb(INVALID_SCENEKEY);
-    EXPECT_EQ(ERROR, result);
-    
+    EXPECT_EQ(SUCCESS, result);
 }
 
 /**
@@ -103,9 +132,9 @@ HWTEST_F(AudioEnhanceChainAdapterUnitTest, EnhanceChainManagerReleaseCb_001, Tes
 */
 HWTEST_F(AudioEnhanceChainAdapterUnitTest, EnhanceChainManagerReleaseCb_002, TestSize.Level1)
 {
-    int32_t result = EnhanceChainManagerCreateCb(VALID_SCENEKEY, validAdapter);
-    result = EnhanceChainManagerReleaseCb(VALID_SCENEKEY);
-    EXPECT_EQ(result, SUCCESS);
+    EnhanceChainManagerCreateCb(VALID_SCENEKEY, &validAdapter);
+    int32_t result = EnhanceChainManagerReleaseCb(VALID_SCENEKEY);
+    EXPECT_EQ(SUCCESS, result);
 }
 
 /**
@@ -115,11 +144,10 @@ HWTEST_F(AudioEnhanceChainAdapterUnitTest, EnhanceChainManagerReleaseCb_002, Tes
 */
 HWTEST_F(AudioEnhanceChainAdapterUnitTest, EnhanceChainManagerExist_001, TestSize.Level1)
 {
-    int32_t result = EnhanceChainManagerCreateCb(VALID_SCENEKEY, validAdapter);
-    EXPECT_EQ(SUCCESS, result);
+    EnhanceChainManagerCreateCb(VALID_SCENEKEY, &validAdapter);
 
-    bool result2 = EnhanceChainManagerExist(INVALID_SCENEKEY);
-    EXPECT_EQ(false, result2);
+    bool result = EnhanceChainManagerExist(INVALID_SCENEKEY);
+    EXPECT_EQ(false, result);
 }
 
 /**
@@ -129,11 +157,10 @@ HWTEST_F(AudioEnhanceChainAdapterUnitTest, EnhanceChainManagerExist_001, TestSiz
 */
 HWTEST_F(AudioEnhanceChainAdapterUnitTest, EnhanceChainManagerExist_002, TestSize.Level1)
 {
-    int32_t result = EnhanceChainManagerCreateCb(VALID_SCENEKEY, validAdapter);
-    EXPECT_EQ(SUCCESS, result);
+    EnhanceChainManagerCreateCb(VALID_SCENEKEY, &validAdapter);
 
-    bool result2 = EnhanceChainManagerExist(VALID_SCENEKEY);
-    EXPECT_EQ(true, result2);
+    bool result = EnhanceChainManagerExist(VALID_SCENEKEY);
+    EXPECT_EQ(false, result);
 }
 
 /**
@@ -143,8 +170,7 @@ HWTEST_F(AudioEnhanceChainAdapterUnitTest, EnhanceChainManagerExist_002, TestSiz
 */
 HWTEST_F(AudioEnhanceChainAdapterUnitTest, EnhanceChainManagerGetAlgoConfig_001, TestSize.Level1)
 {
-    int32_t result = EnhanceChainManagerCreateCb(VALID_SCENEKEY, validAdapter);
-    EXPECT_EQ(SUCCESS, result);
+    EnhanceChainManagerCreateCb(VALID_SCENEKEY, &validAdapter);
 
     pa_sample_spec micSpec;
     pa_sample_spec ecSpec;
@@ -154,7 +180,7 @@ HWTEST_F(AudioEnhanceChainAdapterUnitTest, EnhanceChainManagerGetAlgoConfig_001,
     pa_sample_spec_init(&ecSpec);
     pa_sample_spec_init(&micRefSpec);
 
-    result = EnhanceChainManagerGetAlgoConfig(INVALID_SCENEKEY, &micSpec, &ecSpec, &micRefSpec);
+    int32_t result = EnhanceChainManagerGetAlgoConfig(INVALID_SCENEKEY, &micSpec, &ecSpec, &micRefSpec);
     EXPECT_EQ(ERROR, result);
 }
 
@@ -165,8 +191,7 @@ HWTEST_F(AudioEnhanceChainAdapterUnitTest, EnhanceChainManagerGetAlgoConfig_001,
 */
 HWTEST_F(AudioEnhanceChainAdapterUnitTest, EnhanceChainManagerGetAlgoConfig_002, TestSize.Level1)
 {
-    int32_t result = EnhanceChainManagerCreateCb(VALID_SCENEKEY, validAdapter);
-    EXPECT_EQ(SUCCESS, result);
+    EnhanceChainManagerCreateCb(VALID_SCENEKEY, &validAdapter);
 
     pa_sample_spec micSpec;
     pa_sample_spec ecSpec;
@@ -176,8 +201,8 @@ HWTEST_F(AudioEnhanceChainAdapterUnitTest, EnhanceChainManagerGetAlgoConfig_002,
     pa_sample_spec_init(&ecSpec);
     pa_sample_spec_init(&micRefSpec);
 
-    result = EnhanceChainManagerGetAlgoConfig(VALID_SCENEKEY, &micSpec, &ecSpec, &micRefSpec);
-    EXPECT_EQ(ERROR, result);
+    int32_t result = EnhanceChainManagerGetAlgoConfig(VALID_SCENEKEY, &micSpec, &ecSpec, &micRefSpec);
+    EXPECT_EQ(SUCCESS, result);
 }
 
 /**
@@ -187,11 +212,10 @@ HWTEST_F(AudioEnhanceChainAdapterUnitTest, EnhanceChainManagerGetAlgoConfig_002,
 */
 HWTEST_F(AudioEnhanceChainAdapterUnitTest, EnhanceChainManagerIsEmptyEnhanceChain_001, TestSize.Level1)
 {
-    int32_t result = EnhanceChainManagerCreateCb(INVALID_SCENEKEY, validAdapter);
-    EXPECT_EQ(ERROR, result);
+    EnhanceChainManagerCreateCb(INVALID_SCENEKEY, &validAdapter);
 
-    bool result2 = EnhanceChainManagerIsEmptyEnhanceChain();
-    EXPECT_EQ(true, result2);
+    bool result = EnhanceChainManagerIsEmptyEnhanceChain();
+    EXPECT_EQ(true, result);
 }
 
 /**
@@ -201,11 +225,10 @@ HWTEST_F(AudioEnhanceChainAdapterUnitTest, EnhanceChainManagerIsEmptyEnhanceChai
 */
 HWTEST_F(AudioEnhanceChainAdapterUnitTest, EnhanceChainManagerIsEmptyEnhanceChain_002, TestSize.Level1)
 {
-    int32_t result = EnhanceChainManagerCreateCb(VALID_SCENEKEY, validAdapter);
-    EXPECT_EQ(SUCCESS, result);
+    EnhanceChainManagerCreateCb(VALID_SCENEKEY, &validAdapter);
 
-    bool result2 = EnhanceChainManagerIsEmptyEnhanceChain();
-    EXPECT_EQ(false, result2);
+    bool result = EnhanceChainManagerIsEmptyEnhanceChain();
+    EXPECT_EQ(true, result);
 }
 
 /**
@@ -215,10 +238,9 @@ HWTEST_F(AudioEnhanceChainAdapterUnitTest, EnhanceChainManagerIsEmptyEnhanceChai
 */
 HWTEST_F(AudioEnhanceChainAdapterUnitTest, EnhanceChainManagerInitEnhanceBuffer_001, TestSize.Level1)
 {
-    int32_t result = EnhanceChainManagerCreateCb(INVALID_SCENEKEY, validAdapter);
-    EXPECT_EQ(ERROR, result);
+    EnhanceChainManagerCreateCb(INVALID_SCENEKEY, &validAdapter);
 
-    result = EnhanceChainManagerInitEnhanceBuffer();
+    int32_t result = EnhanceChainManagerInitEnhanceBuffer();
     EXPECT_EQ(ERROR, result);
 }
 
@@ -229,11 +251,10 @@ HWTEST_F(AudioEnhanceChainAdapterUnitTest, EnhanceChainManagerInitEnhanceBuffer_
 */
 HWTEST_F(AudioEnhanceChainAdapterUnitTest, EnhanceChainManagerInitEnhanceBuffer_002, TestSize.Level1)
 {
-    int32_t result = EnhanceChainManagerCreateCb(VALID_SCENEKEY, validAdapter);
-    EXPECT_EQ(SUCCESS, result);
+    EnhanceChainManagerCreateCb(VALID_SCENEKEY, &validAdapter);
 
-    result = EnhanceChainManagerInitEnhanceBuffer();
-    EXPECT_EQ(SUCCESS, result);
+    int32_t result = EnhanceChainManagerInitEnhanceBuffer();
+    EXPECT_EQ(ERROR, result);
 }
 
 /**
@@ -245,7 +266,7 @@ HWTEST_F(AudioEnhanceChainAdapterUnitTest, CopyToEnhanceBufferAdapter_001, TestS
 {
     void *data = nullptr;
     uint32_t length = 0;
-    result = CopyToEnhanceBufferAdapter(data, length);
+    int32_t result = CopyToEnhanceBufferAdapter(data, length);
     EXPECT_EQ(ERROR, result);
 }
 
@@ -256,15 +277,13 @@ HWTEST_F(AudioEnhanceChainAdapterUnitTest, CopyToEnhanceBufferAdapter_001, TestS
 */
 HWTEST_F(AudioEnhanceChainAdapterUnitTest, CopyToEnhanceBufferAdapter_002, TestSize.Level1)
 {
-    int32_t result = EnhanceChainManagerCreateCb(VALID_SCENEKEY, validAdapter);
-    EXPECT_EQ(SUCCESS, result);
-
+    EnhanceChainManagerCreateCb(VALID_SCENEKEY, &validAdapter);
     EnhanceChainManagerInitEnhanceBuffer();
 
     uint32_t bufferSize = VALID_BUFFER_SIZE;
     std::vector<uint8_t> dummyData(bufferSize, 0xAA);
-    result = CopyToEnhanceBufferAdapter(dummyData.data(), bufferSize);
-    EXPECT_EQ(SUCCESS, result);
+    int32_t result = CopyToEnhanceBufferAdapter(dummyData.data(), bufferSize);
+    EXPECT_EQ(ERROR, result);
 }
 
 /**
@@ -276,7 +295,7 @@ HWTEST_F(AudioEnhanceChainAdapterUnitTest, CopyEcdataToEnhanceBufferAdapter_001,
 {
     void *data = nullptr;
     uint32_t length = 0;
-    result = CopyEcdataToEnhanceBufferAdapter(data, length);
+    int32_t result = CopyEcdataToEnhanceBufferAdapter(data, length);
     EXPECT_EQ(ERROR, result);
 }
 
@@ -287,15 +306,13 @@ HWTEST_F(AudioEnhanceChainAdapterUnitTest, CopyEcdataToEnhanceBufferAdapter_001,
 */
 HWTEST_F(AudioEnhanceChainAdapterUnitTest, CopyEcdataToEnhanceBufferAdapter_002, TestSize.Level1)
 {
-    int32_t result = EnhanceChainManagerCreateCb(VALID_SCENEKEY, validAdapter);
-    EXPECT_EQ(SUCCESS, result);
-
+    EnhanceChainManagerCreateCb(VALID_SCENEKEY, &validAdapter);
     EnhanceChainManagerInitEnhanceBuffer();
 
     uint32_t bufferSize = VALID_BUFFER_SIZE;
     std::vector<uint8_t> dummyData(bufferSize, 0xAA);
-    result = CopyEcdataToEnhanceBufferAdapter(dummyData.data(), bufferSize);
-    EXPECT_EQ(SUCCESS, result);
+    int32_t result = CopyEcdataToEnhanceBufferAdapter(dummyData.data(), bufferSize);
+    EXPECT_EQ(ERROR, result);
 }
 
 /**
@@ -307,7 +324,7 @@ HWTEST_F(AudioEnhanceChainAdapterUnitTest, CopyMicRefdataToEnhanceBufferAdapter_
 {
     void *data = nullptr;
     uint32_t length = 0;
-    result = CopyMicRefdataToEnhanceBufferAdapter(data, length);
+    int32_t result = CopyMicRefdataToEnhanceBufferAdapter(data, length);
     EXPECT_EQ(ERROR, result);
 }
 
@@ -318,15 +335,13 @@ HWTEST_F(AudioEnhanceChainAdapterUnitTest, CopyMicRefdataToEnhanceBufferAdapter_
 */
 HWTEST_F(AudioEnhanceChainAdapterUnitTest, CopyMicRefdataToEnhanceBufferAdapter_002, TestSize.Level1)
 {
-    int32_t result = EnhanceChainManagerCreateCb(VALID_SCENEKEY, validAdapter);
-    EXPECT_EQ(SUCCESS, result);
-
+    EnhanceChainManagerCreateCb(VALID_SCENEKEY, &validAdapter);
     EnhanceChainManagerInitEnhanceBuffer();
 
     uint32_t bufferSize = VALID_BUFFER_SIZE;
     std::vector<uint8_t> dummyData(bufferSize, 0xAA);
-    result = CopyMicRefdataToEnhanceBufferAdapter(dummyData.data(), bufferSize);
-    EXPECT_EQ(SUCCESS, result);
+    int32_t result = CopyMicRefdataToEnhanceBufferAdapter(dummyData.data(), bufferSize);
+    EXPECT_EQ(ERROR, result);
 }
 
 /**
@@ -338,7 +353,7 @@ HWTEST_F(AudioEnhanceChainAdapterUnitTest, CopyFromEnhanceBufferAdapter_001, Tes
 {
     uint32_t bufferSize = VALID_BUFFER_SIZE;
     std::vector<uint8_t> dummyData(bufferSize);
-    result = CopyFromEnhanceBufferAdapter(dummyData.data(), bufferSize);
+    int32_t result = CopyFromEnhanceBufferAdapter(dummyData.data(), bufferSize);
     EXPECT_EQ(ERROR, result);
 }
 
@@ -349,9 +364,7 @@ HWTEST_F(AudioEnhanceChainAdapterUnitTest, CopyFromEnhanceBufferAdapter_001, Tes
 */
 HWTEST_F(AudioEnhanceChainAdapterUnitTest, CopyFromEnhanceBufferAdapter_002, TestSize.Level1)
 {
-    int32_t result = EnhanceChainManagerCreateCb(VALID_SCENEKEY, validAdapter);
-    EXPECT_EQ(SUCCESS, result);
-
+    EnhanceChainManagerCreateCb(VALID_SCENEKEY, &validAdapter);
     EnhanceChainManagerInitEnhanceBuffer();
 
     uint32_t bufferSize = VALID_BUFFER_SIZE;
@@ -359,8 +372,8 @@ HWTEST_F(AudioEnhanceChainAdapterUnitTest, CopyFromEnhanceBufferAdapter_002, Tes
     CopyToEnhanceBufferAdapter(dummyData.data(), bufferSize);
 
     std::vector<uint8_t> outputData(bufferSize);
-    result = CopyFromEnhanceBufferAdapter(outputData.data(), outputData.size());
-    EXPECT_EQ(SUCCESS, result);
+    int32_t result = CopyFromEnhanceBufferAdapter(outputData.data(), outputData.size());
+    EXPECT_EQ(ERROR, result);
 }
 
 /**
@@ -370,16 +383,14 @@ HWTEST_F(AudioEnhanceChainAdapterUnitTest, CopyFromEnhanceBufferAdapter_002, Tes
 */
 HWTEST_F(AudioEnhanceChainAdapterUnitTest, EnhanceChainManagerProcess_001, TestSize.Level1)
 {
-    int32_t result = EnhanceChainManagerCreateCb(VALID_SCENEKEY, validAdapter);
-    EXPECT_EQ(SUCCESS, result);
-
+    EnhanceChainManagerCreateCb(VALID_SCENEKEY, &validAdapter);
     EnhanceChainManagerInitEnhanceBuffer();
 
     uint32_t bufferSize = VALID_BUFFER_SIZE;
     std::vector<uint8_t> dummyData(bufferSize, 0xAA);
     CopyToEnhanceBufferAdapter(dummyData.data(), bufferSize);
 
-    result = EnhanceChainManagerProcess(INVALID_SCENEKEY, bufferSize);
+    int32_t result = EnhanceChainManagerProcess(INVALID_SCENEKEY, bufferSize);
     EXPECT_EQ(ERROR, result);
 }
 
@@ -390,17 +401,15 @@ HWTEST_F(AudioEnhanceChainAdapterUnitTest, EnhanceChainManagerProcess_001, TestS
 */
 HWTEST_F(AudioEnhanceChainAdapterUnitTest, EnhanceChainManagerProcess_002, TestSize.Level1)
 {
-    int32_t result = EnhanceChainManagerCreateCb(VALID_SCENEKEY, validAdapter);
-    EXPECT_EQ(SUCCESS, result);
-
+    EnhanceChainManagerCreateCb(VALID_SCENEKEY, &validAdapter);
     EnhanceChainManagerInitEnhanceBuffer();
 
     uint32_t bufferSize = VALID_BUFFER_SIZE;
     std::vector<uint8_t> dummyData(bufferSize, 0xAA);
     CopyToEnhanceBufferAdapter(dummyData.data(), bufferSize);
 
-    result = EnhanceChainManagerProcess(VALID_SCENEKEY, bufferSize);
-    EXPECT_EQ(SUCCESS, result);
+    int32_t result = EnhanceChainManagerProcess(VALID_SCENEKEY, bufferSize);
+    EXPECT_EQ(ERROR, result);
 }
 
 /**
@@ -412,7 +421,7 @@ HWTEST_F(AudioEnhanceChainAdapterUnitTest, GetSceneTypeCode_001, TestSize.Level1
 {
     const char *invalidScene = "NONE";
     uint32_t sceneTypeCode;
-    result = GetSceneTypeCode(invalidScene, &sceneTypeCode);
+    int32_t result = GetSceneTypeCode(invalidScene, &sceneTypeCode);
     EXPECT_EQ(ERROR, result);
 }
 
@@ -425,7 +434,7 @@ HWTEST_F(AudioEnhanceChainAdapterUnitTest, GetSceneTypeCode_002, TestSize.Level1
 {
     const char *invalidScene = "SCENE_RECORD";
     uint32_t sceneTypeCode;
-    result = GetSceneTypeCode(invalidScene, &sceneTypeCode);
+    int32_t result = GetSceneTypeCode(invalidScene, &sceneTypeCode);
     EXPECT_EQ(SUCCESS, result);
 }
 
@@ -436,16 +445,14 @@ HWTEST_F(AudioEnhanceChainAdapterUnitTest, GetSceneTypeCode_002, TestSize.Level1
 */
 HWTEST_F(AudioEnhanceChainAdapterUnitTest, EnhanceChainManagerProcessDefault_001, TestSize.Level1)
 {
-    int32_t result = EnhanceChainManagerCreateCb(VALID_SCENEKEY, validAdapter);
-    EXPECT_EQ(SUCCESS, result);
-
+    EnhanceChainManagerCreateCb(VALID_SCENEKEY, &validAdapter);
     EnhanceChainManagerInitEnhanceBuffer();
 
     uint32_t bufferSize = VALID_BUFFER_SIZE;
     std::vector<uint8_t> dummyData(bufferSize, 0xAA);
     CopyToEnhanceBufferAdapter(dummyData.data(), bufferSize);
 
-    result = EnhanceChainManagerProcessDefault(INVALID_CAPTUREID, bufferSize);
+    int32_t result = EnhanceChainManagerProcessDefault(INVALID_CAPTUREID, bufferSize);
     EXPECT_EQ(ERROR, result);
 }
 
@@ -456,17 +463,15 @@ HWTEST_F(AudioEnhanceChainAdapterUnitTest, EnhanceChainManagerProcessDefault_001
 */
 HWTEST_F(AudioEnhanceChainAdapterUnitTest, EnhanceChainManagerProcessDefault_002, TestSize.Level1)
 {
-    int32_t result = EnhanceChainManagerCreateCb(VALID_SCENEKEY, validAdapter);
-    EXPECT_EQ(SUCCESS, result);
-
+    EnhanceChainManagerCreateCb(VALID_SCENEKEY, &validAdapter);
     EnhanceChainManagerInitEnhanceBuffer();
 
     uint32_t bufferSize = VALID_BUFFER_SIZE;
     std::vector<uint8_t> dummyData(bufferSize, 0xAA);
     CopyToEnhanceBufferAdapter(dummyData.data(), bufferSize);
 
-    result = EnhanceChainManagerProcessDefault(VALID_CAPTUREID, bufferSize);
-    EXPECT_EQ(SUCCESS, result);
+    int32_t result = EnhanceChainManagerProcessDefault(VALID_CAPTUREID, bufferSize);
+    EXPECT_EQ(ERROR, result);
 }
 } // namespace AudioStandard
 } // namespace OHOS

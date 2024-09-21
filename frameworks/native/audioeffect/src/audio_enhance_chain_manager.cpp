@@ -572,6 +572,7 @@ int32_t AudioEnhanceChainManager::CopyFromEnhanceBuffer(void *data, uint32_t len
 int32_t AudioEnhanceChainManager::ApplyAudioEnhanceChain(const uint32_t sceneKeyCode, uint32_t length)
 {
     std::lock_guard<std::mutex> lock(chainManagerMutex_);
+    CHECK_AND_RETURN_RET_LOG(enhanceBuffer_ != nullptr, ERROR, "enhance buffer is null");
     auto chainMapIter = sceneTypeToEnhanceChainMap_.find(sceneKeyCode);
     if (chainMapIter == sceneTypeToEnhanceChainMap_.end() || chainMapIter->second == nullptr) {
         CHECK_AND_RETURN_RET_LOG(memcpy_s(enhanceBuffer_->micBufferOut.data(), enhanceBuffer_->micBufferOut.size(),
@@ -686,6 +687,7 @@ int32_t AudioEnhanceChainManager::GetAudioEnhanceProperty(AudioEnhancePropertyAr
 int32_t AudioEnhanceChainManager::ApplyAudioEnhanceChainDefault(const uint32_t captureId, uint32_t length)
 {
     std::lock_guard<std::mutex> lock(chainManagerMutex_);
+    CHECK_AND_RETURN_RET_LOG(enhanceBuffer_ != nullptr, ERROR, "enhance buffer is null");
     auto chainMapIter = captureId2DefaultChain_.find(captureId);
     if (chainMapIter == captureId2DefaultChain_.end() || chainMapIter->second == nullptr) {
         CHECK_AND_RETURN_RET_LOG(memcpy_s(enhanceBuffer_->micBufferOut.data(), enhanceBuffer_->micBufferOut.size(),

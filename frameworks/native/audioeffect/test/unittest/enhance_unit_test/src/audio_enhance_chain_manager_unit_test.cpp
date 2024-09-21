@@ -27,7 +27,6 @@
 #include "audio_effect.h"
 #include "audio_utils.h"
 #include "audio_log.h"
-#include "audio_enhance_chain_manager.h"
 #include "audio_errors.h"
 
 #define VALID_SCENEKEY_CODE 68864
