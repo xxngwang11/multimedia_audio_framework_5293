@@ -52,7 +52,6 @@ namespace {
     std::vector<EffectChain> enhanceChains;
     EffectChainManagerParam managerParam;
     std::vector<std::shared_ptr<AudioEffectLibEntry>> enhanceLibraryList;
-    AudioEnhanceDeviceAttr deviceAttr;
     struct DeviceAttrAdapter validAdapter;
 }
 
