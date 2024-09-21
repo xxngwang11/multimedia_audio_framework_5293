@@ -314,6 +314,35 @@ void AudioPolicyServiceTest(const uint8_t *rawData, size_t size)
     AudioPolicyServiceThirdTest(rawData, size);
 }
 
+void AudioPolicyServiceMoreTest(const uint8_t* rawData, size_t size)
+{
+    if (rawData == nullptr || size < LIMITSIZE) {
+        return;
+    }
+    GetServerPtr()->audioPolicyService_.CreateSafeVolumeDialogThread();
+    int32_t volumeLevel = *reinterpret_cast<const int32_t*>(rawData);
+    GetServerPtr()->audioPolicyService_.DealWithSafeVolume(volumeLevel, true);
+    GetServerPtr()->audioPolicyService_.DealWithSafeVolume(volumeLevel, false);
+    AudioStreamInfo audioStreamInfo = {};
+    audioStreamInfo.samplingRate = *reinterpret_cast<const AudioSamplingRate *>(rawData);
+    audioStreamInfo.encoding = *reinterpret_cast<const AudioEncodingType *>(rawData);
+    audioStreamInfo.format = *reinterpret_cast<const AudioSampleFormat *>(rawData);
+    audioStreamInfo.channels = *reinterpret_cast<const AudioChannel *>(rawData);
+    A2dpDeviceConfigInfo configInfo = {audioStreamInfo, true};
+    volumeLevel = GetServerPtr()->audioPolicyService_.audioPolicyManager_.GetSafeVolumeLevel() + MOD_NUM_TWO;
+    GetServerPtr()->audioPolicyService_.connectedA2dpDeviceMap_.insert({"activeBTDevice_1", configInfo});
+    GetServerPtr()->audioPolicyService_.SetA2dpDeviceVolume("activeBTDevice_1", volumeLevel, true);
+    GetServerPtr()->audioPolicyService_.SetA2dpDeviceVolume("activeBTDevice_1", volumeLevel, false);
+    GetServerPtr()->audioPolicyService_.OnMicrophoneBlockedUpdate(DEVICE_TYPE_BLUETOOTH_SCO, DEVICE_UNBLOCKED);
+    vector<unique_ptr<AudioCapturerChangeInfo>> audioCapturerChangeInfos;
+    AudioStreamManager::GetInstance()->GetCurrentCapturerChangeInfos(audioCapturerChangeInfos);
+    for (auto &capturerChangeInfo : audioCapturerChangeInfos) {
+        capturerChangeInfo->capturerInfo.sourceType = SOURCE_TYPE_VIRTUAL_CAPTURE;
+        capturerChangeInfo->capturerState = CAPTURER_PREPARED;
+    }
+    GetServerPtr()->
+        audioPolicyService_.FetchInputDevice(audioCapturerChangeInfos, AudioStreamDeviceChangeReason::UNKNOWN);
+}
 
 } // namespace AudioStandard
 } // namesapce OHOS
@@ -329,5 +358,6 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
     /* Run your code on data */
     OHOS::AudioStandard::AudioPolicyServiceTest(data, size);
+    OHOS::AudioStandard::AudioPolicyServiceMoreTest(data, size);
     return 0;
 }

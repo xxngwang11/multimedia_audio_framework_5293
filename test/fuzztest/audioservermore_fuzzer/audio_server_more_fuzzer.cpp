@@ -16,6 +16,7 @@
 #include <iostream>
 #include <cstddef>
 #include <cstdint>
+#include <string>
 
 #include "i_audio_renderer_sink.h"
 #include "audio_manager_base.h"
@@ -39,6 +40,7 @@ const int32_t COMMON_INT = 2;
 const std::u16string COMMONU16STRTEST = u"Test";
 const uint32_t IOPERTAION_LENGTH = 13;
 const uint32_t APPID_LENGTH = 10;
+const uint64_t COMMON_UINT64_NUM = 2;
 
 void AudioServerSetSpatializationSceneTypeTest(const uint8_t *rawData, size_t size)
 {
@@ -99,10 +101,10 @@ void AudioServerLoadConfigurationTest(const uint8_t *rawData, size_t size)
     std::unordered_map<std::string, std::unordered_map<std::string, std::set<std::string>>> audioParameterKeys = {};
     std::unordered_map<std::string, std::set<std::string>> audioParameterKey = {};
     std::set<std::string> audioParameterValue = {};
-    std::string audioParameterKeyStr_1(reinterpret_cast<const char*>(rawData), size - 1);
-    std::string audioParameterKeyStr_2(reinterpret_cast<const char*>(rawData), size - 1);
-    std::string audioParameterKeyValueStr_1(reinterpret_cast<const char*>(rawData), size - 1);
-    std::string audioParameterKeyValueStr_2(reinterpret_cast<const char*>(rawData), size - 1);
+    std::string audioParameterKeyStr_1 = "key1";
+    std::string audioParameterKeyStr_2 = "key2";
+    std::string audioParameterKeyValueStr_1 = "value1";
+    std::string audioParameterKeyValueStr_2 = "value2";
     audioParameterValue.insert(audioParameterKeyValueStr_1);
     audioParameterValue.insert(audioParameterKeyValueStr_2);
     audioParameterKey.insert(std::make_pair(audioParameterKeyStr_1, audioParameterValue));
@@ -122,11 +124,10 @@ void AudioServerGetExtarAudioParametersTest(const uint8_t* rawData, size_t size)
 
     MessageParcel data;
     data.WriteInterfaceToken(FORMMGR_INTERFACE_TOKEN);
-    std::string mainKey(reinterpret_cast<const char*>(rawData), size - 1);
-    std::string value_1(reinterpret_cast<const char*>(rawData), size - 1);
-    std::string value_2(reinterpret_cast<const char*>(rawData), size - 1);
+    std::string mainKey = "mainKey";
+    std::string value_1 = "value1";
+    std::string value_2 = "value2";
     std::vector<std::string> subkeys = {};
-    std::vector<std::pair<std::string, std::string>> result;
     subkeys.push_back(value_1);
     subkeys.push_back(value_2);
 
@@ -151,11 +152,11 @@ void AudioServerSetExtraAudioParametersTest(const uint8_t* rawData, size_t size)
 
     MessageParcel data;
     data.WriteInterfaceToken(FORMMGR_INTERFACE_TOKEN);
-    std::string mainKey(reinterpret_cast<const char*>(rawData), size - 1);
+    std::string mainKey = "mainKey";
     std::vector<std::pair<std::string, std::string>> kvpairs;
     for (uint32_t i = 0; i < COMMON_SIZE; i++) {
-        std::string subKey(reinterpret_cast<const char*>(rawData), size - 1);
-        std::string subValue(reinterpret_cast<const char*>(rawData), size - 1);
+        std::string subKey = "subKey" + std::to_string(i);
+        std::string subValue = "subValue" + std::to_string(i);
         kvpairs.push_back(std::make_pair(subKey, subValue));
     }
 
@@ -298,9 +299,9 @@ void AudioSetAudioParameterTest(const uint8_t* rawData, size_t size)
     MessageParcel data;
     data.WriteInterfaceToken(FORMMGR_INTERFACE_TOKEN);
 
-    std::string networkId(reinterpret_cast<const char*>(rawData), size);
-    std::string condition(reinterpret_cast<const char*>(rawData), size);
-    std::string value(reinterpret_cast<const char*>(rawData), size);
+    std::string networkId = "123";
+    std::string condition = "123456";
+    std::string value = "123456";
     AudioParamKey key = *reinterpret_cast<const AudioParamKey*>(rawData);
     data.WriteString(networkId);
     data.WriteInt32(static_cast<uint32_t>(key));
@@ -360,8 +361,8 @@ void AudioLoadAudioEffectLibrariesTest(const uint8_t* rawData, size_t size)
     }
 
     for (int32_t i = 0; i < COMMON_INT; i++) {
-        std::string effectName(reinterpret_cast<const char*>(rawData), size - 1);
-        std::string libName(reinterpret_cast<const char*>(rawData), size - 1);
+        std::string effectName = "effectName" + std::to_string(i);
+        std::string libName = "libName" + std::to_string(i);
         data.WriteString(effectName);
         data.WriteString(libName);
     }
@@ -441,11 +442,11 @@ void AudioRendererInServerTestFirst(const uint8_t* rawData, size_t size, std::sh
     renderer->ResolveBuffer(buffer);
     uint32_t sessionId = *reinterpret_cast<const uint32_t*>(rawData);
     renderer->GetSessionId(sessionId);
-    uint64_t framePos = *reinterpret_cast<const uint64_t*>(rawData);
-    uint64_t timeStamp = *reinterpret_cast<const uint64_t*>(rawData);
+    uint64_t framePos = COMMON_UINT64_NUM;
+    uint64_t timeStamp = COMMON_UINT64_NUM;
     renderer->GetAudioTime(framePos, timeStamp);
     renderer->GetAudioPosition(framePos, timeStamp);
-    uint64_t latency = *reinterpret_cast<const uint64_t*>(rawData);
+    uint64_t latency = COMMON_UINT64_NUM;
     renderer->GetLatency(latency);
     int32_t rate = *reinterpret_cast<const int32_t*>(rawData);
     renderer->SetRate(rate);
@@ -475,7 +476,7 @@ void AudioRendererInServerTestSecond(const uint8_t* rawData, size_t size, std::s
     bool headTrackingEnabled = *reinterpret_cast<const bool*>(rawData);
     renderer->UpdateSpatializationState(isAppBack, headTrackingEnabled);
     renderer->WriterRenderStreamStandbySysEvent();
-    uint64_t timeStamp = *reinterpret_cast<const uint64_t*>(rawData);
+    uint64_t timeStamp = COMMON_UINT64_NUM;
     renderer->GetOffloadApproximatelyCacheTime(timeStamp, timeStamp, timeStamp, timeStamp);
     size_t length = *reinterpret_cast<const size_t*>(rawData);
     renderer->DequeueBuffer(length);
@@ -500,7 +501,7 @@ void AudioRendererInServerTestSecond(const uint8_t* rawData, size_t size, std::s
     operation_int = (operation_int%IOPERTAION_LENGTH) - 1;
     IOperation operation = static_cast<IOperation>(operation_int);
     renderer->OnDataLinkConnectionUpdate(operation);
-    std::string dumpString(reinterpret_cast<const char*>(rawData), size-1);
+    std::string dumpString = "";
     renderer->Dump(dumpString);
     renderer->Pause();
     renderer->Flush();
