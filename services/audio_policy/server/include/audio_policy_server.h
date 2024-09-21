@@ -579,7 +579,6 @@ private:
     void UnRegisterSyncHibernateListener();
     void AddRemoteDevstatusCallback();
     void OnDistributedRoutingRoleChange(const sptr<AudioDeviceDescriptor> descriptor, const CastType type);
-    void SubscribeSafeVolumeEvent();
 
     void InitPolicyDumpMap();
     void PolicyDataDump(std::string &dumpString);
