@@ -196,7 +196,6 @@ void AudioPolicyServer::OnAddSystemAbility(int32_t systemAbilityId, const std::s
             SubscribeCommonEvent("usual.event.DATA_SHARE_READY");
             SubscribeCommonEvent("usual.event.dms.rotation_changed");
             SubscribeCommonEvent("usual.event.bluetooth.remotedevice.NAME_UPDATE");
-            SubscribeSafeVolumeEvent();
             break;
         default:
             OnAddSystemAbilityExtract(systemAbilityId, deviceId);
@@ -390,12 +389,6 @@ void AudioPolicyServer::SubscribeVolumeKeyEvents()
     }
 }
 #endif
-
-void AudioPolicyServer::SubscribeSafeVolumeEvent()
-{
-    AUDIO_INFO_LOG("SubscribeSafeVolumeEvent enter");
-    audioPolicyService_.SubscribeSafeVolumeEvent();
-}
 
 bool AudioPolicyServer::IsVolumeTypeValid(AudioStreamType streamType)
 {
