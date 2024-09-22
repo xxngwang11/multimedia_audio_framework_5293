@@ -1380,7 +1380,7 @@ void AudioServer::ResetRecordConfig(AudioProcessConfig &config)
     if (config.capturerInfo.sourceType == SOURCE_TYPE_PLAYBACK_CAPTURE) {
         config.isInnerCapturer = true;
         config.innerCapMode = LEGACY_INNER_CAP;
-        if (PermissionUtil::VerifyPermission(CAPTURE_PLAYBACK_PERMISSION, config.appInfo.appTokenId)) {
+        if (PermissionUtil::VerifyPermission(CAPTURE_PLAYBACK_PERMISSION, IPCSkeleton::GetCallingTokenID())) {
             AUDIO_INFO_LOG("CAPTURE_PLAYBACK permission granted");
             config.innerCapMode = MODERN_INNER_CAP;
         } else if (config.callerUid == MEDIA_SERVICE_UID || config.callerUid == VASSISTANT_UID) {
