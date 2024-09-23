@@ -417,7 +417,7 @@ int32_t PaRendererStreamImpl::GetCurrentPosition(uint64_t &framePosition, uint64
         AUDIO_ERR_LOG("error data!");
         return ERR_OPERATION_FAILED;
     }
-
+    framePosition = (readIndex > info->sink_usec ? readIndex - info->sink_usec : 0) * sampleSpec->rate / AUDIO_US_PER_S;
     lock.Unlock();
 
     // Processing data for algorithmic time delays
