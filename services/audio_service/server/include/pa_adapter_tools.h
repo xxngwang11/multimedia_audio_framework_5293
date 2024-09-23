@@ -26,7 +26,10 @@ class PaLockGuard {
 public:
     PaLockGuard(pa_threaded_mainloop *mainloop) : mainloop_(mainloop)
     {
-        pa_threaded_mainloop_lock(mainloop_);
+        isInMainloop_ = pa_threaded_mainloop_in_thread(mainloop_) ? true : false;
+        if (!isInMainloop_) {
+            pa_threaded_mainloop_lock(mainloop_);
+        }
     }
 
     ~PaLockGuard()
@@ -36,13 +39,14 @@ public:
 
     void Unlock()
     {
-        if (!isUnlocked_) {
+        if (!isInMainloop_ && !isUnlocked_) {
             pa_threaded_mainloop_unlock(mainloop_);
             isUnlocked_ = true;
         }
     }
 private:
     bool isUnlocked_ = false;
+    bool isInMainloop_ = false;
     pa_threaded_mainloop *mainloop_ = nullptr;
 };
 } // namespace AudioStandard

@@ -319,10 +319,11 @@ int32_t PaAdapterManager::InitPaContext()
 
 int32_t PaAdapterManager::HandleMainLoopStart()
 {
-    PaLockGuard lock(mainLoop_);
     if (pa_threaded_mainloop_start(mainLoop_) < 0) {
         return ERR_DEVICE_INIT;
     }
+
+    PaLockGuard lock(mainLoop_);
     isMainLoopStarted_ = true;
 
     while (true) {

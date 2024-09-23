@@ -1017,7 +1017,6 @@ void PulseAudioServiceAdapterImpl::PaSubscribeCb(pa_context *c, pa_subscription_
                 PulseAudioServiceAdapterImpl *thiz = reinterpret_cast<PulseAudioServiceAdapterImpl *>(userdata);
                 userData->thiz = thiz;
                 userData->isSubscribingCb = true;
-                PaLockGuard lock(thiz->mMainLoop);
                 pa_operation *operation = pa_context_get_sink_input_info(c, idx,
                     PulseAudioServiceAdapterImpl::PaGetSinkInputInfoVolumeNoSignalCb,
                     reinterpret_cast<void*>(userData.get()));

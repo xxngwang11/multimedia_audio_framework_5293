@@ -681,16 +681,10 @@ int32_t PaRendererStreamImpl::EnqueueBuffer(const BufferDesc &bufferDesc)
     }
 
     // EnqueueBuffer is called in mainloop in most cases and don't need lock.
-    bool isInMainloop = pa_threaded_mainloop_in_thread(mainloop_) ? true : false;
-    if (!isInMainloop) {
-        pa_threaded_mainloop_lock(mainloop_);
-    }
+    PaLockGuard palock(mainloop_);
 
     if (paStream_ == nullptr) {
         AUDIO_ERR_LOG("paStream is nullptr");
-        if (!isInMainloop) {
-            pa_threaded_mainloop_unlock(mainloop_);
-        }
         return ERR_ILLEGAL_STATE;
     }
 
@@ -699,10 +693,6 @@ int32_t PaRendererStreamImpl::EnqueueBuffer(const BufferDesc &bufferDesc)
     if (error < 0) {
         AUDIO_ERR_LOG("Write stream failed");
         pa_stream_cancel_write(paStream_);
-    }
-
-    if (!isInMainloop) {
-        pa_threaded_mainloop_unlock(mainloop_);
     }
     totalBytesWritten_ += bufferDesc.bufLength;
     return SUCCESS;
