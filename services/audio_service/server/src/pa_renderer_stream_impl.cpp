@@ -166,6 +166,7 @@ int32_t PaRendererStreamImpl::Start()
 
     streamCmdStatus_ = 0;
     operation = pa_stream_cork(paStream_, 0, PAStreamStartSuccessCb, reinterpret_cast<void *>(this));
+    CHECK_AND_RETURN_RET_LOG(operation != nullptr, ERR_OPERATION_FAILED, "pa_stream_cork failed");
     pa_operation_unref(operation);
 
     std::shared_ptr<AudioEffectVolume> audioEffectVolume = AudioEffectVolume::GetInstance();
@@ -196,7 +197,7 @@ int32_t PaRendererStreamImpl::Pause(bool isStandby)
         pa_operation *updatePropOperation = pa_stream_proplist_update(paStream_, PA_UPDATE_REPLACE, propList,
             nullptr, nullptr);
         pa_proplist_free(propList);
-        CHECK_AND_RETURN_RET_LOG(updatePropOperation != nullptr, ERR_OPERATION_FAILED, "pa_stream_proplist_update failed");
+        CHECK_AND_RETURN_RET_LOG(updatePropOperation != nullptr, ERR_OPERATION_FAILED, "updatePropOperation is nullptr");
         pa_operation_unref(updatePropOperation);
         AUDIO_INFO_LOG("pa_stream_proplist_update done");
         palock.Unlock();
@@ -574,6 +575,7 @@ int32_t PaRendererStreamImpl::SetLowPowerVolume(float powerVolume)
     pa_operation *updatePropOperation = pa_stream_proplist_update(paStream_, PA_UPDATE_REPLACE, propList,
         nullptr, nullptr);
     pa_proplist_free(propList);
+    CHECK_AND_RETURN_RET_LOG(updatePropOperation != nullptr, ERR_OPERATION_FAILED, "updatePropOperation is nullptr");
     pa_operation_unref(updatePropOperation);
 
     // In plan: Call reset volume
@@ -608,6 +610,7 @@ int32_t PaRendererStreamImpl::SetAudioEffectMode(int32_t effectMode)
     pa_operation *updatePropOperation = pa_stream_proplist_update(paStream_, PA_UPDATE_REPLACE, propList,
         nullptr, nullptr);
     pa_proplist_free(propList);
+    CHECK_AND_RETURN_RET_LOG(updatePropOperation != nullptr, ERR_OPERATION_FAILED, "updatePropOperation is nullptr");
     pa_operation_unref(updatePropOperation);
 
     return SUCCESS;
@@ -872,6 +875,8 @@ void PaRendererStreamImpl::PAStreamDrainInStopCb(pa_stream *stream, int32_t succ
     pa_operation *operation = pa_stream_cork(streamImpl->paStream_, 1,
         PaRendererStreamImpl::PAStreamAsyncStopSuccessCb, userdata);
 
+    CHECK_AND_RETURN_RET_LOG(operation != nullptr, ERR_OPERATION_FAILED, "pa_stream_cork is nullptr");
+
     pa_operation_unref(operation);
     streamImpl->streamDrainStatus_ = success;
 }
@@ -965,6 +970,7 @@ int32_t PaRendererStreamImpl::UpdateSpatializationState(bool spatializationEnabl
     pa_operation *updatePropOperation = pa_stream_proplist_update(paStream_, PA_UPDATE_REPLACE, propList,
         nullptr, nullptr);
     pa_proplist_free(propList);
+    CHECK_AND_RETURN_RET_LOG(updatePropOperation != nullptr, ERR_OPERATION_FAILED, "updatePropOperation is nullptr");
     pa_operation_unref(updatePropOperation);
 
     return SUCCESS;
@@ -1241,7 +1247,7 @@ int32_t PaRendererStreamImpl::SetClientVolume(float clientVolume)
     pa_operation *updatePropOperation = pa_stream_proplist_update(paStream_, PA_UPDATE_REPLACE, propList,
         nullptr, nullptr);
     pa_proplist_free(propList);
-    CHECK_AND_RETURN_RET_LOG(updatePropOperation != nullptr, ERR_OPERATION_FAILED, "pa_stream_proplist_update error");
+    CHECK_AND_RETURN_RET_LOG(updatePropOperation != nullptr, ERR_OPERATION_FAILED, "updatePropOperation is nullptr");
     pa_operation_unref(updatePropOperation);
     AUDIO_PRERELEASE_LOGI("set client volume success");
 
