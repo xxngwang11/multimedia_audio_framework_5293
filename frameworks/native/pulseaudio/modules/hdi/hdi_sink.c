@@ -4182,6 +4182,27 @@ static void UserdataFreeThread(struct Userdata *u)
     pa_thread_mq_done(&u->thread_mq);
 }
 
+static void FreeBufferAttr(struct Userdata *u)
+{
+    // free heap allocated in userdata init
+    if (u->bufferAttr == NULL) {
+        pa_xfree(u);
+        AUDIO_DEBUG_LOG("buffer attr is null, free done");
+        return;
+    }
+    free(u->bufferAttr->bufIn);
+    free(u->bufferAttr->bufOut);
+    free(u->bufferAttr->tempBufIn);
+    free(u->bufferAttr->tempBufOut);
+    u->bufferAttr->bufIn = NULL;
+    u->bufferAttr->bufOut = NULL;
+    u->bufferAttr->tempBufIn = NULL;
+    u->bufferAttr->tempBufOut = NULL;
+
+    pa_xfree(u->bufferAttr);
+    u->bufferAttr = NULL;
+}
+
 static void UserdataFree(struct Userdata *u)
 {
     pa_assert(u);
@@ -4221,23 +4242,7 @@ static void UserdataFree(struct Userdata *u)
         UnLoadSinkAdapter(u->primary.sinkAdapter);
     }
 
-    // free heap allocated in userdata init
-    if (u->bufferAttr == NULL) {
-        pa_xfree(u);
-        AUDIO_DEBUG_LOG("buffer attr is null, free done");
-        return;
-    }
-    free(u->bufferAttr->bufIn);
-    free(u->bufferAttr->bufOut);
-    free(u->bufferAttr->tempBufIn);
-    free(u->bufferAttr->tempBufOut);
-    u->bufferAttr->bufIn = NULL;
-    u->bufferAttr->bufOut = NULL;
-    u->bufferAttr->tempBufIn = NULL;
-    u->bufferAttr->tempBufOut = NULL;
-
-    pa_xfree(u->bufferAttr);
-    u->bufferAttr = NULL;
+    FreeBufferAttr(u);
 
     if (u->sceneToCountMap) {
         pa_hashmap_free(u->sceneToCountMap);
