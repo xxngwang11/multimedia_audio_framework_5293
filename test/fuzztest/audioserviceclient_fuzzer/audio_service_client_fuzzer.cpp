@@ -33,6 +33,8 @@ namespace AudioStandard {
 const int32_t LIMITSIZE = 4;
 bool g_hasClientInit = false;
 shared_ptr<AudioProcessInClient> g_AudioProcessInClient = nullptr;
+const uint64_t COMMON_UINT64_NUM = 2;
+const int64_t COMMON_INT64_NUM = 2;
 
 void GetAudioProcessInClient(const uint8_t *rawData, size_t size)
 {
@@ -86,8 +88,8 @@ void AudioClientGetAudioTimeTest(const uint8_t *rawData, size_t size)
         return;
     }
     uint32_t framePos = *reinterpret_cast<const uint32_t*>(rawData);
-    int64_t sec = *reinterpret_cast<const int64_t*>(rawData);
-    int64_t nanoSec = *reinterpret_cast<const int64_t*>(rawData);
+    int64_t sec = COMMON_INT64_NUM;
+    int64_t nanoSec = COMMON_INT64_NUM;
     if (g_AudioProcessInClient) {
         g_AudioProcessInClient->GetAudioTime(framePos, sec, nanoSec);
     }
@@ -120,7 +122,7 @@ void AudioClientGetLatencyTest(const uint8_t *rawData, size_t size)
     if (rawData == nullptr || size < LIMITSIZE) {
         return;
     }
-    uint64_t latency = *reinterpret_cast<const uint64_t*>(rawData);
+    uint64_t latency = COMMON_UINT64_NUM;
     if (g_AudioProcessInClient) {
         g_AudioProcessInClient->GetLatency(latency);
     }
@@ -225,7 +227,7 @@ void AudioClientSetApplicationCachePathTest(const uint8_t *rawData, size_t size)
     if (rawData == nullptr || size < LIMITSIZE) {
         return;
     }
-    const std::string cachePath(reinterpret_cast<const char*>(rawData), size - 1);
+    const std::string cachePath = "cachePath";
     if (g_AudioProcessInClient) {
         g_AudioProcessInClient->SetApplicationCachePath(cachePath);
     }
@@ -248,7 +250,7 @@ void AudioClientUpdateLatencyTimestampTest(const uint8_t *rawData, size_t size)
         return;
     }
     bool isRenderer = *(reinterpret_cast<const bool*>(rawData));
-    std::string timestamp(reinterpret_cast<const char*>(rawData), size - 1);
+    std::string timestamp = "123456";
     if (g_AudioProcessInClient) {
         g_AudioProcessInClient->UpdateLatencyTimestamp(timestamp, isRenderer);
     }

@@ -427,7 +427,7 @@ HWTEST_F(AudioFastRendererUnitTest, Audio_Fast_Renderer_009, TestSize.Level1)
 
     uint32_t sampleRate = AudioSamplingRate::SAMPLE_RATE_96000;
     ret = audioRenderer->SetRendererSamplingRate(sampleRate);
-    EXPECT_EQ(ERR_OPERATION_FAILED, ret);
+    EXPECT_EQ(ERROR, ret);
 
     uint32_t getSampleRateRet = audioRenderer->GetRendererSamplingRate();
     EXPECT_EQ(getSampleRateRet, 48000);

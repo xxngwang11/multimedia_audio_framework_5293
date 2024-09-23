@@ -32,6 +32,7 @@ ohos_fuzztest("AudioServiceCommonFuzzTest") {
     "-O0",
     "-Wno-unused-variable",
     "-fno-omit-frame-pointer",
+    "-fno-access-control",
   ]
 
   sources = [ "audio_service_common_fuzzer.cpp" ]

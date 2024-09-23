@@ -76,20 +76,8 @@ void FastAudioStream::SetCapturerInfo(const AudioCapturerInfo &capturerInfo)
     capturerInfo_.samplingRate = static_cast<AudioSamplingRate>(streamInfo_.samplingRate);
 }
 
-int32_t FastAudioStream::SetAudioStreamInfo(const AudioStreamParams info,
-    const std::shared_ptr<AudioClientTracker> &proxyObj)
+int32_t FastAudioStream::InitializeAudioProcessConfig(AudioProcessConfig &config, const AudioStreamParams &info)
 {
-    AUDIO_INFO_LOG("FastAudioStreamInfo, Sampling rate: %{public}d, channels: %{public}d, format: %{public}d,"
-        " stream type: %{public}d", info.samplingRate, info.channels, info.format, eStreamType_);
-    CHECK_AND_RETURN_RET_LOG(processClient_ == nullptr, ERR_INVALID_OPERATION,
-        "Process is already inited, reset stream info is not supported.");
-    streamInfo_ = info;
-    if (state_ != NEW) {
-        AUDIO_INFO_LOG("FastAudioStream: State is not new, release existing stream");
-        StopAudioStream();
-        ReleaseAudioStream(false);
-    }
-    AudioProcessConfig config;
     config.appInfo.appPid = clientPid_;
     config.appInfo.appUid = clientUid_;
     config.audioMode = eMode_;
@@ -98,6 +86,7 @@ int32_t FastAudioStream::SetAudioStreamInfo(const AudioStreamParams info,
     config.streamInfo.format = static_cast<AudioSampleFormat>(info.format);
     config.streamInfo.samplingRate = static_cast<AudioSamplingRate>(info.samplingRate);
     config.streamType = eStreamType_;
+    config.originalSessionId = info.originalSessionId;
     if (eMode_ == AUDIO_MODE_PLAYBACK) {
         AUDIO_DEBUG_LOG("FastAudioStream: Initialize playback");
         config.rendererInfo.contentType = rendererInfo_.contentType;
@@ -112,6 +101,25 @@ int32_t FastAudioStream::SetAudioStreamInfo(const AudioStreamParams info,
     } else {
         return ERR_INVALID_OPERATION;
     }
+    return SUCCESS;
+}
+
+int32_t FastAudioStream::SetAudioStreamInfo(const AudioStreamParams info,
+    const std::shared_ptr<AudioClientTracker> &proxyObj)
+{
+    AUDIO_INFO_LOG("FastAudioStreamInfo, Sampling rate: %{public}d, channels: %{public}d, format: %{public}d,"
+        " stream type: %{public}d", info.samplingRate, info.channels, info.format, eStreamType_);
+    CHECK_AND_RETURN_RET_LOG(processClient_ == nullptr, ERR_INVALID_OPERATION,
+        "Process is already inited, reset stream info is not supported.");
+    streamInfo_ = info;
+    if (state_ != NEW) {
+        AUDIO_INFO_LOG("FastAudioStream: State is not new, release existing stream");
+        StopAudioStream();
+        ReleaseAudioStream(false);
+    }
+    AudioProcessConfig config;
+    int32_t ret = InitializeAudioProcessConfig(config, info);
+    CHECK_AND_RETURN_RET_LOG(ret == SUCCESS, ret, "Initialize failed.");
     CHECK_AND_RETURN_RET_LOG(AudioProcessInClient::CheckIfSupport(config), ERR_INVALID_PARAM,
         "Stream is not supported.");
     processconfig_ = config;

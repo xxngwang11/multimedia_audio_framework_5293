@@ -1,0 +1,363 @@
+/*
+ * Copyright (c) 2024 Huawei Device Co., Ltd.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include <iostream>
+#include <cstddef>
+#include <cstdint>
+#include <atomic>
+#include <thread>
+#include "audio_policy_server.h"
+#include "audio_device_info.h"
+#include "message_parcel.h"
+#include "accesstoken_kit.h"
+#include "nativetoken_kit.h"
+#include "token_setproc.h"
+#include "access_token.h"
+using namespace std;
+
+namespace OHOS {
+namespace AudioStandard {
+bool g_hasPermission = false;
+constexpr int32_t OFFSET = 4;
+const int32_t MOD_NUM_TWO = 2;
+const int32_t CONNECTING_NUMBER = 10;
+const std::u16string FORMMGR_INTERFACE_TOKEN = u"IAudioPolicy";
+const int32_t SYSTEM_ABILITY_ID = 3009;
+const bool RUN_ON_CREATE = false;
+const int32_t LIMITSIZE = 4;
+const int32_t SHIFT_LEFT_8 = 8;
+const int32_t SHIFT_LEFT_16 = 16;
+const int32_t SHIFT_LEFT_24 = 24;
+const uint32_t LIMIT_ONE = 0;
+const uint32_t LIMIT_TWO = 30;
+const uint32_t LIMIT_THREE = 60;
+const uint32_t LIMIT_FOUR = static_cast<uint32_t>(AudioPolicyInterfaceCode::AUDIO_POLICY_MANAGER_CODE_MAX);
+const uint32_t CHANNELS = 2;
+const uint32_t RATE = 4;
+const uint64_t SESSIONID = 123456;
+constexpr int32_t DEFAULT_STREAM_ID = 10;
+bool g_hasServerInit = false;
+const int64_t ACTIVEBTTIME = 60*1140*2;
+const uint32_t ENUM_NUM = 4;
+
+AudioPolicyServer *GetServerPtr()
+{
+    static AudioPolicyServer server(SYSTEM_ABILITY_ID, RUN_ON_CREATE);
+    if (!g_hasServerInit) {
+        server.OnStart();
+        server.OnAddSystemAbility(AUDIO_DISTRIBUTED_SERVICE_ID, "");
+#ifdef FEATURE_MULTIMODALINPUT_INPUT
+        server.OnAddSystemAbility(MULTIMODAL_INPUT_SERVICE_ID, "");
+#endif
+        server.OnAddSystemAbility(BLUETOOTH_HOST_SYS_ABILITY_ID, "");
+        server.OnAddSystemAbility(POWER_MANAGER_SERVICE_ID, "");
+        server.OnAddSystemAbility(SUBSYS_ACCOUNT_SYS_ABILITY_ID_BEGIN, "");
+        server.audioPolicyService_.SetDefaultDeviceLoadFlag(true);
+        g_hasServerInit = true;
+    }
+    return &server;
+}
+
+static AudioProcessConfig InitProcessConfig()
+{
+    AudioProcessConfig config;
+    config.appInfo.appUid = DEFAULT_STREAM_ID;
+    config.appInfo.appPid = DEFAULT_STREAM_ID;
+    config.streamInfo.format = SAMPLE_S32LE;
+    config.streamInfo.samplingRate = SAMPLE_RATE_48000;
+    config.streamInfo.channels = STEREO;
+    config.streamInfo.channelLayout = AudioChannelLayout::CH_LAYOUT_STEREO;
+    config.audioMode = AudioMode::AUDIO_MODE_RECORD;
+    config.streamType = AudioStreamType::STREAM_MUSIC;
+    config.deviceType = DEVICE_TYPE_USB_HEADSET;
+    return config;
+}
+
+void AudioFuzzTestGetPermission()
+{
+    if (!g_hasPermission) {
+        uint64_t tokenId;
+        constexpr int perNum = 10;
+        const char *perms[perNum] = {
+            "ohos.permission.MICROPHONE",
+            "ohos.permission.MANAGE_INTELLIGENT_VOICE",
+            "ohos.permission.MANAGE_AUDIO_CONFIG",
+            "ohos.permission.MICROPHONE_CONTROL",
+            "ohos.permission.MODIFY_AUDIO_SETTINGS",
+            "ohos.permission.ACCESS_NOTIFICATION_POLICY",
+            "ohos.permission.USE_BLUETOOTH",
+            "ohos.permission.CAPTURE_VOICE_DOWNLINK_AUDIO",
+            "ohos.permission.RECORD_VOICE_CALL",
+            "ohos.permission.MANAGE_SYSTEM_AUDIO_EFFECTS",
+        };
+
+        NativeTokenInfoParams infoInstance = {
+            .dcapsNum = 0,
+            .permsNum = 10,
+            .aclsNum = 0,
+            .dcaps = nullptr,
+            .perms = perms,
+            .acls = nullptr,
+            .processName = "audiofuzztest",
+            .aplStr = "system_basic",
+        };
+        tokenId = GetAccessTokenId(&infoInstance);
+        SetSelfTokenID(tokenId);
+        OHOS::Security::AccessToken::AccessTokenKit::ReloadNativeTokenInfo();
+        g_hasPermission = true;
+    }
+}
+
+void InitGetServerService(const uint8_t *rawData, size_t size, DeviceRole deviceRole,
+    AudioStreamInfo audioStreamInfo_2)
+{
+    if (rawData == nullptr || size < LIMITSIZE) {
+        return;
+    }
+
+    AudioStreamInfo audioStreamInfo = {};
+    audioStreamInfo.samplingRate = *reinterpret_cast<const AudioSamplingRate *>(rawData);
+    audioStreamInfo.encoding = *reinterpret_cast<const AudioEncodingType *>(rawData);
+    audioStreamInfo.format = *reinterpret_cast<const AudioSampleFormat *>(rawData);
+    audioStreamInfo.channels = *reinterpret_cast<const AudioChannel *>(rawData);
+
+    GetServerPtr()->audioPolicyService_.activeBTDevice_ = "activeBTDevice";
+    A2dpDeviceConfigInfo configInfo = {audioStreamInfo, false};
+    GetServerPtr()->audioPolicyService_.connectedA2dpDeviceMap_.insert({"activeBTDevice", configInfo});
+    GetServerPtr()->audioPolicyService_.connectedA2dpDeviceMap_.insert({"A2dpDeviceCommon", {}});
+    GetServerPtr()->audioPolicyService_.currentActiveDevice_.networkId_ = LOCAL_NETWORK_ID;
+    GetServerPtr()->audioPolicyService_.currentActiveDevice_.deviceType_ = DEVICE_TYPE_BLUETOOTH_A2DP;
+
+    AudioModuleInfo audioModuleInfo = GetServerPtr()->
+        audioPolicyService_.ConstructRemoteAudioModuleInfo(LOCAL_NETWORK_ID, deviceRole, DEVICE_TYPE_BLUETOOTH_A2DP);
+    GetServerPtr()->audioPolicyService_.deviceClassInfo_.insert({ClassType::TYPE_A2DP, {audioModuleInfo}});
+
+    AudioIOHandle ioHandle = GetServerPtr()->audioPolicyService_.audioPolicyManager_.OpenAudioPort(audioModuleInfo);
+
+    GetServerPtr()->audioPolicyService_.IOHandles_.insert({audioModuleInfo.name, ioHandle});
+}
+
+void ThreadFunctionTest()
+{
+    GetServerPtr()->audioPolicyService_.isAdapterInfoMap_.store(true);
+}
+
+void AudioPolicyServiceSecondTest(const uint8_t* rawData, size_t size, AudioStreamInfo audioStreamInfo,
+    sptr<AudioDeviceDescriptor> remoteDeviceDescriptor)
+{
+    if (rawData == nullptr || size < LIMITSIZE) {
+        return;
+    }
+
+    GetServerPtr()->audioPolicyService_.LoadSinksForCapturer();
+    GetServerPtr()->audioPolicyService_.HandleRemoteCastDevice(true, audioStreamInfo);
+    GetServerPtr()->audioPolicyService_.HandleRemoteCastDevice(false, audioStreamInfo);
+    GetServerPtr()->audioPolicyService_.OnVoipConfigParsed(false);
+    GetServerPtr()->audioPolicyService_.GetVoipConfig();
+    pid_t clientPid = *reinterpret_cast<const pid_t*>(rawData);
+    GetServerPtr()->audioPolicyService_.ReduceAudioPolicyClientProxyMap(clientPid);
+    AudioStreamChangeInfo streamChangeInfo;
+    int32_t clientUID = *reinterpret_cast<const int32_t*>(rawData);
+    int32_t sessionId = *reinterpret_cast<const int32_t*>(rawData);
+    int32_t clientPid_1 = *reinterpret_cast<const int32_t*>(rawData);
+    streamChangeInfo.audioRendererChangeInfo.clientUID = clientUID;
+    streamChangeInfo.audioRendererChangeInfo.sessionId = sessionId;
+    streamChangeInfo.audioRendererChangeInfo.clientPid = clientPid_1;
+    streamChangeInfo.audioRendererChangeInfo.rendererState = *reinterpret_cast<const RendererState*>(rawData);
+    streamChangeInfo.audioRendererChangeInfo.rendererInfo = {};
+
+    auto samgr = SystemAbilityManagerClient::GetInstance().GetSystemAbilityManager();
+    sptr<IRemoteObject> object = samgr->GetSystemAbility(AUDIO_DISTRIBUTED_SERVICE_ID);
+    AudioMode mode = AUDIO_MODE_RECORD;
+    GetServerPtr()->audioPolicyService_.RegisterTracker(mode, streamChangeInfo, object, sessionId);
+    mode = AUDIO_MODE_PLAYBACK;
+    GetServerPtr()->audioPolicyService_.RegisterTracker(mode, streamChangeInfo, object, sessionId);
+    GetServerPtr()->audioPolicyService_.GetSinkIOHandle(DEVICE_TYPE_BLUETOOTH_SCO);
+    GetServerPtr()->audioPolicyService_.GetSinkIOHandle(DEVICE_TYPE_USB_ARM_HEADSET);
+    GetServerPtr()->audioPolicyService_.GetSinkIOHandle(DEVICE_TYPE_BLUETOOTH_A2DP);
+    GetServerPtr()->audioPolicyService_.GetSinkIOHandle(DEVICE_TYPE_FILE_SINK);
+    GetServerPtr()->audioPolicyService_.GetSinkIOHandle(DEVICE_TYPE_DP);
+    GetServerPtr()->audioPolicyService_.GetSourceIOHandle(DEVICE_TYPE_USB_ARM_HEADSET);
+    GetServerPtr()->audioPolicyService_.GetSourceIOHandle(DEVICE_TYPE_MIC);
+    GetServerPtr()->audioPolicyService_.GetSourceIOHandle(DEVICE_TYPE_FILE_SOURCE);
+    GetServerPtr()->audioPolicyService_.GetSourceIOHandle(DEVICE_TYPE_DP);
+    SinkInput sinkInput = {};
+    SourceOutput sourceOutput = {};
+    GetServerPtr()->audioPolicyService_.WriteOutDeviceChangedSysEvents(remoteDeviceDescriptor, sinkInput);
+    GetServerPtr()->audioPolicyService_.WriteInDeviceChangedSysEvents(remoteDeviceDescriptor, sourceOutput);
+}
+
+void AudioPolicyServiceThirdTest(const uint8_t* rawData, size_t size)
+{
+    if (rawData == nullptr || size < LIMITSIZE) {
+        return;
+    }
+
+    AudioProcessConfig config = InitProcessConfig();
+    std::thread t1(ThreadFunctionTest);
+    t1.join();
+    StreamPropInfo streamPropInfo;
+    AudioAdapterInfo adapterInfo = {};
+    adapterInfo.adapterName_ = "wakeup_input";
+    adapterInfo.adaptersupportScene_ = "supportScene";
+    std::list<PipeInfo> pipeInfos_;
+    PipeInfo pipeInfo = {};
+    pipeInfo.name_ = "wakeup_input";
+    pipeInfo.streamPropInfos_.push_back(streamPropInfo);
+    pipeInfos_.push_back(pipeInfo);
+    adapterInfo.pipeInfos_ = pipeInfos_;
+    GetServerPtr()->audioPolicyService_.adapterInfoMap_ = {};
+    GetServerPtr()->audioPolicyService_.adapterInfoMap_.
+        insert({AdaptersType::TYPE_PRIMARY, adapterInfo});
+    GetServerPtr()->audioPolicyService_.SetWakeUpAudioCapturerFromAudioServer(config);
+
+    vector<unique_ptr<AudioCapturerChangeInfo>> audioCapturerChangeInfos;
+    AudioStreamManager::GetInstance()->GetCurrentCapturerChangeInfos(audioCapturerChangeInfos);
+    unique_ptr<AudioDeviceDescriptor> remoteDeviceDescriptor = make_unique<AudioDeviceDescriptor>();
+    GetServerPtr()->audioPolicyService_.MoveToNewInputDevice(*audioCapturerChangeInfos.begin(), remoteDeviceDescriptor);
+    remoteDeviceDescriptor->networkId_ = REMOTE_NETWORK_ID;
+    GetServerPtr()->audioPolicyService_.MoveToNewInputDevice(*audioCapturerChangeInfos.begin(), remoteDeviceDescriptor);
+    GetServerPtr()->audioPolicyService_.RegisterRemoteDevStatusCallback();
+    GetServerPtr()->audioPolicyService_.currentActiveDevice_.deviceType_ = DEVICE_TYPE_BLUETOOTH_A2DP;
+    uint32_t channelcount = *reinterpret_cast<const uint32_t*>(rawData);
+    GetServerPtr()->audioPolicyService_.ReconfigureAudioChannel(channelcount, DEVICE_TYPE_FILE_SINK);
+    GetServerPtr()->audioPolicyService_.currentActiveDevice_.deviceType_ = DEVICE_TYPE_FILE_SINK;
+    GetServerPtr()->audioPolicyService_.ReconfigureAudioChannel(channelcount, DEVICE_TYPE_FILE_SINK);
+    GetServerPtr()->audioPolicyService_.ReconfigureAudioChannel(channelcount, DEVICE_TYPE_FILE_SOURCE);
+    DeviceType deviceType = DEVICE_TYPE_BLUETOOTH_SCO;
+    GetServerPtr()->audioPolicyService_.IsBlueTooth(deviceType);
+    GetServerPtr()->audioPolicyService_.activeSafeTimeBt_ = ACTIVEBTTIME;
+    GetServerPtr()->audioPolicyService_.CheckBlueToothActiveMusicTime(1);
+    GetServerPtr()->audioPolicyService_.CheckWiredActiveMusicTime(1);
+    int32_t safeVolume = *reinterpret_cast<const int32_t*>(rawData);
+    GetServerPtr()->audioPolicyService_.CheckBlueToothActiveMusicTime(safeVolume);
+    GetServerPtr()->audioPolicyService_.CheckWiredActiveMusicTime(safeVolume);
+}
+
+void MakeAdapterInfoMap()
+{
+    AudioAdapterInfo adapterInfo = {};
+    adapterInfo.adapterName_ = "wakeup_input";
+    adapterInfo.adaptersupportScene_ = "supportScene";
+    std::list<PipeInfo> pipeInfos_;
+    PipeInfo pipeInfo = {};
+    pipeInfo.name_ = "primary_input";
+    StreamPropInfo streamPropInfo;
+    pipeInfo.streamPropInfos_.push_back(streamPropInfo);
+    pipeInfos_.push_back(pipeInfo);
+    adapterInfo.pipeInfos_ = pipeInfos_;
+    GetServerPtr()->audioPolicyService_.adapterInfoMap_.
+        insert({AdaptersType::TYPE_PRIMARY, adapterInfo});
+}
+
+void AudioPolicyServiceTest(const uint8_t *rawData, size_t size)
+{
+    if (rawData == nullptr || size < LIMITSIZE) {
+        return;
+    }
+
+    AudioStreamInfo streamInfo;
+    streamInfo.samplingRate = AudioSamplingRate::SAMPLE_RATE_48000;
+    streamInfo.channels = AudioChannel::STEREO;
+    streamInfo.format = AudioSampleFormat::SAMPLE_S16LE;
+    SessionInfo sessionInfo;
+    sessionInfo.sourceType = SOURCE_TYPE_VOICE_CALL;
+    sessionInfo.rate = RATE;
+    sessionInfo.channels = CHANNELS;
+    MakeAdapterInfoMap();
+    GetServerPtr()->audioPolicyService_.OnCapturerSessionAdded(SESSIONID, sessionInfo, streamInfo);
+    uint32_t deviceRole_int = *reinterpret_cast<const uint32_t*>(rawData);
+    deviceRole_int = (deviceRole_int % ENUM_NUM) - 1;
+    DeviceRole deviceRole = static_cast<DeviceRole>(deviceRole_int);
+    sptr<AudioDeviceDescriptor> remoteDeviceDescriptor = new AudioDeviceDescriptor();
+    GetServerPtr()->audioPolicyService_.OpenRemoteAudioDevice(REMOTE_NETWORK_ID,
+        deviceRole, DEVICE_TYPE_EARPIECE, remoteDeviceDescriptor);
+    AudioDeviceDescriptor fuzzAudioDeviceDescriptor;
+    AudioStreamInfo audioStreamInfo = {};
+    audioStreamInfo.samplingRate = *reinterpret_cast<const AudioSamplingRate *>(rawData);
+    audioStreamInfo.encoding = *reinterpret_cast<const AudioEncodingType *>(rawData);
+    audioStreamInfo.format = *reinterpret_cast<const AudioSampleFormat *>(rawData);
+    audioStreamInfo.channels = *reinterpret_cast<const AudioChannel *>(rawData);
+    InitGetServerService(rawData, size, deviceRole, audioStreamInfo);
+    GetServerPtr()->audioPolicyService_.OnDeviceConfigurationChanged(DEVICE_TYPE_BLUETOOTH_A2DP,
+        GetServerPtr()->audioPolicyService_.activeBTDevice_, "DeviceName", audioStreamInfo);
+    GetServerPtr()->audioPolicyService_.OnDeviceStatusUpdated(fuzzAudioDeviceDescriptor, true);
+    GetServerPtr()->audioPolicyService_.OnDeviceStatusUpdated(fuzzAudioDeviceDescriptor, false);
+    DStatusInfo statusInfo;
+    statusInfo.connectType = ConnectType::CONNECT_TYPE_DISTRIBUTED;
+    GetServerPtr()->audioPolicyService_.OnDeviceStatusUpdated(statusInfo, false);
+    GetServerPtr()->audioPolicyService_.OnDeviceStatusUpdated(statusInfo, true);
+    shared_ptr<AudioDeviceDescriptor> dis = make_shared<AudioDeviceDescriptor>();
+    dis->deviceType_ = DEVICE_TYPE_BLUETOOTH_SCO;
+    dis->macAddress_ = GetServerPtr()->audioPolicyService_.activeBTDevice_;
+    dis->deviceRole_ = OUTPUT_DEVICE;
+    GetServerPtr()->audioPolicyService_.audioDeviceManager_.connectedDevices_.push_back(dis);
+    GetServerPtr()->
+        audioPolicyService_.OnForcedDeviceSelected(DEVICE_TYPE_BLUETOOTH_A2DP,
+        GetServerPtr()->audioPolicyService_.activeBTDevice_);
+    GetServerPtr()->
+        audioPolicyService_.OnForcedDeviceSelected(DEVICE_TYPE_BLUETOOTH_SCO,
+        GetServerPtr()->audioPolicyService_.activeBTDevice_);
+    AudioPolicyServiceSecondTest(rawData, size, audioStreamInfo, remoteDeviceDescriptor);
+    AudioPolicyServiceThirdTest(rawData, size);
+}
+
+void AudioPolicyServiceMoreTest(const uint8_t* rawData, size_t size)
+{
+    if (rawData == nullptr || size < LIMITSIZE) {
+        return;
+    }
+    GetServerPtr()->audioPolicyService_.CreateSafeVolumeDialogThread();
+    int32_t volumeLevel = *reinterpret_cast<const int32_t*>(rawData);
+    GetServerPtr()->audioPolicyService_.DealWithSafeVolume(volumeLevel, true);
+    GetServerPtr()->audioPolicyService_.DealWithSafeVolume(volumeLevel, false);
+    AudioStreamInfo audioStreamInfo = {};
+    audioStreamInfo.samplingRate = *reinterpret_cast<const AudioSamplingRate *>(rawData);
+    audioStreamInfo.encoding = *reinterpret_cast<const AudioEncodingType *>(rawData);
+    audioStreamInfo.format = *reinterpret_cast<const AudioSampleFormat *>(rawData);
+    audioStreamInfo.channels = *reinterpret_cast<const AudioChannel *>(rawData);
+    A2dpDeviceConfigInfo configInfo = {audioStreamInfo, true};
+    volumeLevel = GetServerPtr()->audioPolicyService_.audioPolicyManager_.GetSafeVolumeLevel() + MOD_NUM_TWO;
+    GetServerPtr()->audioPolicyService_.connectedA2dpDeviceMap_.insert({"activeBTDevice_1", configInfo});
+    GetServerPtr()->audioPolicyService_.SetA2dpDeviceVolume("activeBTDevice_1", volumeLevel, true);
+    GetServerPtr()->audioPolicyService_.SetA2dpDeviceVolume("activeBTDevice_1", volumeLevel, false);
+    GetServerPtr()->audioPolicyService_.OnMicrophoneBlockedUpdate(DEVICE_TYPE_BLUETOOTH_SCO, DEVICE_UNBLOCKED);
+    vector<unique_ptr<AudioCapturerChangeInfo>> audioCapturerChangeInfos;
+    AudioStreamManager::GetInstance()->GetCurrentCapturerChangeInfos(audioCapturerChangeInfos);
+    for (auto &capturerChangeInfo : audioCapturerChangeInfos) {
+        capturerChangeInfo->capturerInfo.sourceType = SOURCE_TYPE_VIRTUAL_CAPTURE;
+        capturerChangeInfo->capturerState = CAPTURER_PREPARED;
+    }
+    GetServerPtr()->
+        audioPolicyService_.FetchInputDevice(audioCapturerChangeInfos, AudioStreamDeviceChangeReason::UNKNOWN);
+}
+
+} // namespace AudioStandard
+} // namesapce OHOS
+
+extern "C" int LLVMFuzzerInitialize(const uint8_t *data, size_t size)
+{
+    OHOS::AudioStandard::AudioFuzzTestGetPermission();
+    return 0;
+}
+
+/* Fuzzer entry point */
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
+{
+    /* Run your code on data */
+    OHOS::AudioStandard::AudioPolicyServiceTest(data, size);
+    OHOS::AudioStandard::AudioPolicyServiceMoreTest(data, size);
+    return 0;
+}

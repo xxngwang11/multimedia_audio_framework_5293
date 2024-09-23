@@ -13,26 +13,30 @@
  * limitations under the License.
  */
 
-#ifndef AUDIO_ENHANCE_CHAIN_MANAGER_UNIT_TEST_H
-#define AUDIO_ENHANCE_CHAIN_MANAGER_UNIT_TEST_H
+#ifndef HDI_ADAPTER_MANAGER_H
+#define HDI_ADAPTER_MANAGER_H
 
-#include "gtest/gtest.h"
-#include "audio_enhance_chain_manager.h"
+#include <cinttypes>
+#include <string>
+
+#include "i_audio_capturer_source.h"
 
 namespace OHOS {
 namespace AudioStandard {
-class AudioEnhanceChainManagerUnitTest : public testing::Test {
-public:
-    // SetUpTestCase: Called before all test cases
-    static void SetUpTestCase(void);
-    // TearDownTestCase: Called after all test case
-    static void TearDownTestCase(void);
-    // SetUp: Called before each test cases
-    void SetUp(void);
-    // TearDown: Called after each test cases
-    void TearDown(void);
-};
-}
-}
 
-#endif
+class HdiAdapterManager {
+public:
+    static HdiAdapterManager *GetInstance();
+
+    IAudioCapturerSource *CreateCapture(CaptureAttr *attr);
+
+    void ReleaseCapture(IAudioCapturerSource *capture);
+
+private:
+    HdiAdapterManager();
+    virtual ~HdiAdapterManager();
+};
+
+} // namespace AudioStandard
+} // namespace OHOS
+#endif // HDI_ADAPTER_MANAGER_H

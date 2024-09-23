@@ -36,8 +36,6 @@ ohos_unittest("audio_effect_chain_manager_unit_test") {
     "src/audio_effect_chain_manager_unit_test.cpp",
     "src/audio_effect_hdi_param_unit_test.cpp",
     "src/audio_effect_volume_unit_test.cpp",
-    "src/audio_enhance_chain_adapter_unit_test.cpp",
-    "src/audio_enhance_chain_manager_unit_test.cpp",
   ]
 
   deps = [

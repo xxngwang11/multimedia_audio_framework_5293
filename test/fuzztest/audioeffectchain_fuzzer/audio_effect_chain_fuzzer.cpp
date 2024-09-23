@@ -34,7 +34,7 @@ const char* EFFECTDEFAULT = "EFFECT_DEFAULT";
 const uint32_t AUDIOEFFECTSCENE_LENGTH = 6;
 const uint32_t AUDIOENCODINGTYPE_LENGTH = 3;
 const string EXTRASCENETYPE = "2";
-
+const uint64_t COMMON_UINT64_NUM = 2;
 vector<EffectChain> DEFAULT_EFFECT_CHAINS = {{"EFFECTCHAIN_SPK_MUSIC", {}, ""}, {"EFFECTCHAIN_BT_MUSIC", {}, ""}};
 vector<shared_ptr<AudioEffectLibEntry>> DEFAULT_EFFECT_LIBRARY_LIST = {};
 EffectChainManagerParam DEFAULT_MAP{
@@ -166,7 +166,7 @@ void EffectChainManagerReturnEffectChannelInfoFuzzTest(const uint8_t* rawData, s
     EffectChainManagerAddSessionInfo(sceneType, sessionid, pack);
 
     uint32_t processChannels = *reinterpret_cast<const uint32_t*>(rawData);
-    uint64_t processChannelLayout = *reinterpret_cast<const uint64_t*>(rawData+sizeof(processChannels));
+    uint64_t processChannelLayout = COMMON_UINT64_NUM;
     EffectChainManagerReturnEffectChannelInfo(sceneType, &processChannels, &processChannelLayout);
 }
 
@@ -183,7 +183,7 @@ void EffectChainManagerReturnMultiChannelInfoFuzzTest(const uint8_t* rawData, si
     EffectChainManagerInitCb(sceneType);
 
     uint32_t processChannels = *reinterpret_cast<const uint32_t*>(rawData);
-    uint64_t processChannelLayout = *reinterpret_cast<const uint64_t*>(rawData+sizeof(processChannels));
+    uint64_t processChannelLayout = COMMON_UINT64_NUM;
     EffectChainManagerReturnMultiChannelInfo(&processChannels, &processChannelLayout);
 }
 
@@ -290,7 +290,7 @@ void EffectChainManagerVolumeUpdateFuzzTest(const uint8_t* rawData, size_t size)
 void AudioEffectChainManagerFirst(const uint8_t* rawData, size_t size,
     std::shared_ptr<AudioEffectChain> audioEffectChain)
 {
-    if (rawData == nullptr || size < LIMITSIZE || size < sizeof(uint64_t)) {
+    if (rawData == nullptr || size < LIMITSIZE) {
         return;
     }
     audioEffectChain->SetEffectMode("EFFECT_DEFAULT");
@@ -311,15 +311,15 @@ void AudioEffectChainManagerFirst(const uint8_t* rawData, size_t size,
     audioEffectChain->IsEmptyEffectHandles();
     audioEffectChain->Dump();
     const uint32_t channels = *reinterpret_cast<const uint32_t*>(rawData);
-    const uint64_t channelLayout = *reinterpret_cast<const uint64_t*>(rawData);
+    const uint64_t channelLayout = COMMON_UINT64_NUM;
     audioEffectChain->UpdateMultichannelIoBufferConfig(channels, channelLayout);
-    std::string sceneMode(reinterpret_cast<const char*>(rawData), size-1);
+    std::string sceneMode = "EFFECT_DEFAULT";
     AudioEffectConfig ioBufferConfig;
     AudioBufferConfig inputCfg;
     uint32_t samplingRate = *reinterpret_cast<const uint32_t*>(rawData);
     uint32_t channel = *reinterpret_cast<const uint32_t*>(rawData);
     uint8_t format = *reinterpret_cast<const uint8_t*>(rawData);
-    uint64_t channelLayouts = *reinterpret_cast<const uint64_t*>(rawData);
+    uint64_t channelLayouts = COMMON_UINT64_NUM;
     uint32_t encoding_int = *reinterpret_cast<const uint32_t*>(rawData);
     encoding_int = (encoding_int%AUDIOENCODINGTYPE_LENGTH)-1;
     AudioEncodingType encoding = static_cast<AudioEncodingType>(encoding_int);
@@ -335,7 +335,7 @@ void AudioEffectChainManagerFirst(const uint8_t* rawData, size_t size,
 
 void AudioEffectChainFuzzTest(const uint8_t* rawData, size_t size)
 {
-    if (rawData == nullptr || size < LIMITSIZE || size < sizeof(uint64_t)) {
+    if (rawData == nullptr || size < LIMITSIZE) {
         return;
     }
     std::shared_ptr<AudioEffectChain> audioEffectChain = nullptr;

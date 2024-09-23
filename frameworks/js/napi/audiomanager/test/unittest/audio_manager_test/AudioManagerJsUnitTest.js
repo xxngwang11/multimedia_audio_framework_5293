@@ -349,7 +349,7 @@ describe("AudioManagerJsUnitTest", function () {
         try {
             audioManager.getExtraParameters('mmi').then((value) => {
                 console.info(`SUB_AUDIO_MANAGER_GET_EXTRA_PARAMETERS_004 SUCCESS ` + value.length);
-                expect(value.length).assertEqual(17);
+                expect(value.length).assertEqual(18);
                 done();
             }).catch(err => {
                 console.info(`SUB_AUDIO_MANAGER_GET_EXTRA_PARAMETERS_004 FAIL: ${err.code}.`);

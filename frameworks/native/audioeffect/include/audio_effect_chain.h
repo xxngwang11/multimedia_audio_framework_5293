@@ -62,7 +62,8 @@ public:
     void SetEffectCurrSceneType(AudioEffectScene currSceneType);
     void SetSpatializationSceneType(AudioSpatializationSceneType spatializationSceneType);
     void SetSpatializationEnabled(bool enabled);
-    void AddEffectHandle(AudioEffectHandle effectHandle, AudioEffectLibrary *libHandle, AudioEffectScene currSceneType);
+    void AddEffectHandle(AudioEffectHandle effectHandle, AudioEffectLibrary *libHandle, AudioEffectScene currSceneType,
+        const std::string &effectName, const std::string &property);
     void ApplyEffectChain(float *bufIn, float *bufOut, uint32_t frameLen, AudioEffectProcInfo procInfo);
     bool IsEmptyEffectHandles();
     void Dump();
@@ -76,7 +77,7 @@ public:
     void SetFinalVolume(float volume);
     float GetFinalVolume();
     void SetSpatialDeviceType(AudioSpatialDeviceType spatialDeviceType);
-
+    int32_t SetEffectProperty(const std::string &effect, const std::string &property);
 private:
     AudioEffectConfig GetIoBufferConfig();
     void ReleaseEffectChain();
@@ -90,6 +91,7 @@ private:
     uint32_t extraEffectChainType_ = 0;
     AudioEffectScene currSceneType_ = SCENE_MUSIC;
     std::vector<AudioEffectHandle> standByEffectHandles_;
+    std::vector<std::string> effectNames_;
     std::vector<AudioEffectLibrary *> libHandles_;
     AudioEffectConfig ioBufferConfig_ = {};
     AudioBuffer audioBufIn_ = {};
@@ -97,11 +99,11 @@ private:
     FILE *dumpFileInput_ = nullptr;
     FILE *dumpFileOutput_ = nullptr;
     float finalVolume_ = 1.0f;
-    std::string dumpNameIn_ = "";
-    std::string dumpNameOut_ = "";
     AudioSpatialDeviceType spatialDeviceType_{ EARPHONE_TYPE_OTHERS };
     AudioSpatializationSceneType spatializationSceneType_ = SPATIALIZATION_SCENE_TYPE_DEFAULT;
     bool spatializationEnabled_ = false;
+    std::string dumpNameIn_ = "";
+    std::string dumpNameOut_ = "";
 
 #ifdef SENSOR_ENABLE
     std::shared_ptr<HeadTracker> headTracker_;
