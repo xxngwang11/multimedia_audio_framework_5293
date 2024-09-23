@@ -35,8 +35,6 @@ ohos_shared_library("pulse_audio_service_adapter") {
 
   deps = [ "../audioutils:audio_utils" ]
 
-  public_configs = [ ":audio_external_library_config" ]
-
   external_deps = [
     "c_utils:utils",
     "hilog:libhilog",
@@ -49,8 +47,4 @@ ohos_shared_library("pulse_audio_service_adapter") {
   ]
   part_name = "audio_framework"
   subsystem_name = "multimedia"
-}
-
-config("audio_external_library_config") {
-  include_dirs = [ "../../../interfaces/inner_api/native/audiocommon/include" ]
 }

@@ -26,7 +26,7 @@
 #include <thread>
 
 #include "audio_errors.h"
-#include "audio_common_log.h"
+#include "audio_log.h"
 #include "audio_info.h"
 #include "audio_utils.h"
 #include "hisysevent.h"
@@ -37,6 +37,8 @@
 #include "event_bean.h"
 #include "pa_adapter_tools.h"
 
+#undef LOG_DOMAIN
+#define LOG_DOMAIN 0xD002B88
 using namespace std;
 
 namespace OHOS {
@@ -154,7 +156,7 @@ bool PulseAudioServiceAdapterImpl::ConnectToPulseAudio()
 
     CHECK_AND_RETURN_RET_LOG(mContext != nullptr, false, "creating pa context failed");
 
-    pa_context_set_state_callback(mContext,  PulseAudioServiceAdapterImpl::PaContextStateCb, this);
+    pa_context_set_state_callback(mContext, PulseAudioServiceAdapterImpl::PaContextStateCb, this);
     if (pa_context_connect(mContext, nullptr, PA_CONTEXT_NOFAIL, nullptr) < 0) {
         if (pa_context_errno(mContext) == PA_ERR_INVALID) {
             AUDIO_ERR_LOG("pa context connect failed: %{public}s",
