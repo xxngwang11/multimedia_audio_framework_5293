@@ -166,7 +166,7 @@ int32_t PaRendererStreamImpl::Start()
 
     streamCmdStatus_ = 0;
     operation = pa_stream_cork(paStream_, 0, PAStreamStartSuccessCb, reinterpret_cast<void *>(this));
-    CHECK_AND_RETURN_RET_LOG(operation != nullptr, ERR_OPERATION_FAILED, "pa_stream_cork failed");
+    CHECK_AND_RETURN_RET_LOG(operation != nullptr, ERR_OPERATION_FAILED, "pa_stream_cork operation is null");
     pa_operation_unref(operation);
 
     std::shared_ptr<AudioEffectVolume> audioEffectVolume = AudioEffectVolume::GetInstance();
@@ -211,7 +211,7 @@ int32_t PaRendererStreamImpl::Pause(bool isStandby)
     isStandbyPause_ = isStandby;
     operation = pa_stream_cork(paStream_, 1, PAStreamPauseSuccessCb, reinterpret_cast<void *>(this));
     pa_operation_unref(operation);
-    CHECK_AND_RETURN_RET_LOG(operation != nullptr, ERR_OPERATION_FAILED, "pa_stream_cork pause failed");
+    CHECK_AND_RETURN_RET_LOG(operation != nullptr, ERR_OPERATION_FAILED, "pa_stream_cork operation is null");
     palock.Unlock();
 
     if (effectMode_ == EFFECT_DEFAULT) {
@@ -296,7 +296,7 @@ int32_t PaRendererStreamImpl::Stop()
 
     pa_operation *operation = pa_stream_cork(paStream_, 1, PaRendererStreamImpl::PAStreamAsyncStopSuccessCb,
         reinterpret_cast<void *>(this));
-    CHECK_AND_RETURN_RET_LOG(operation != nullptr, ERR_OPERATION_FAILED, "pa_stream_cork stop failed");
+    CHECK_AND_RETURN_RET_LOG(operation != nullptr, ERR_OPERATION_FAILED, "pa_stream_cork operation is null");
     pa_operation_unref(operation);
 
     if (effectMode_ == EFFECT_DEFAULT) {
@@ -876,7 +876,7 @@ void PaRendererStreamImpl::PAStreamDrainInStopCb(pa_stream *stream, int32_t succ
     pa_operation *operation = pa_stream_cork(streamImpl->paStream_, 1,
         PaRendererStreamImpl::PAStreamAsyncStopSuccessCb, userdata);
 
-    CHECK_AND_RETURN_RET_LOG(operation != nullptr, ERR_OPERATION_FAILED, "pa_stream_cork is nullptr");
+    CHECK_AND_RETURN_RET_LOG(operation != nullptr, ERR_OPERATION_FAILED, "pa_stream_cork operation is null");
 
     pa_operation_unref(operation);
     streamImpl->streamDrainStatus_ = success;
