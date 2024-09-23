@@ -196,6 +196,7 @@ void AudioPolicyServer::OnAddSystemAbility(int32_t systemAbilityId, const std::s
             SubscribeCommonEvent("usual.event.DATA_SHARE_READY");
             SubscribeCommonEvent("usual.event.dms.rotation_changed");
             SubscribeCommonEvent("usual.event.bluetooth.remotedevice.NAME_UPDATE");
+            SubscribeCommonEvent("usual.event.SCREEN_ON");
             break;
         default:
             OnAddSystemAbilityExtract(systemAbilityId, deviceId);
@@ -533,6 +534,9 @@ void AudioPolicyServer::OnReceiveEvent(const EventFwk::CommonEventData &eventDat
         std::string deviceName  = want.GetStringParam("remoteName");
         std::string macAddress = want.GetStringParam("deviceAddr");
         audioPolicyService_.OnReceiveBluetoothEvent(macAddress, deviceName);
+    } else if (action == "usual.event.SCREEN_ON") {
+        AUDIO_INFO_LOG("receive SCREEN_ON action, control audio focus if need");
+        powerStateListener_->ControlAudioFocus(false);
     }
 }
 
