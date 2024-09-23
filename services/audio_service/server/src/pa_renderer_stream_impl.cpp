@@ -1241,6 +1241,7 @@ int32_t PaRendererStreamImpl::SetClientVolume(float clientVolume)
     pa_operation *updatePropOperation = pa_stream_proplist_update(paStream_, PA_UPDATE_REPLACE, propList,
         nullptr, nullptr);
     pa_proplist_free(propList);
+    CHECK_AND_RETURN_RET_LOG(updatePropOperation != nullptr, ERR_OPERATION_FAILED, "pa_stream_proplist_update error");
     pa_operation_unref(updatePropOperation);
     AUDIO_PRERELEASE_LOGI("set client volume success");
 
