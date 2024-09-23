@@ -1148,7 +1148,7 @@ static void HandleFading(pa_sink *si, pa_sink_input *sinkIn, pa_mix_info *infoIn
     infoIn->userdata = pa_sink_input_ref(sinkIn);
     pa_assert(infoIn->chunk.memblock);
     pa_assert(infoIn->chunk.length > 0);
-    PreparePrimaryFading(sinkIn, InfoIn, si);
+    PreparePrimaryFading(sinkIn, infoIn, si);
     CheckPrimaryFadeinIsDone(si, sinkIn);
 
     const char *sinkFadeoutPause = pa_proplist_gets(sinkIn->proplist, "fadeoutPause");
@@ -1553,21 +1553,6 @@ static void SinkRenderPrimaryAfterProcess(pa_sink *si, size_t length, pa_memchun
     chunkIn->index = 0;
     chunkIn->length = length;
     pa_memblock_release(chunkIn->memblock);
-
-    int fadeDirection = (u->streamAvailable != 0) && (u->lastStreamAvailable == 0) ? 0 :
-                        (u->streamAvailable == 0 && u->lastStreamAvailable != 0) ? 1 : -1;
-
-    if (fadeDirection != -1) {
-        AUDIO_INFO_LOG("do %{public}s for MIXED DATA", fadeDirection ? "fade-out" : "fade-in");
-        pa_memchunk_make_writable(chunkIn, 0);
-        void *data = pa_memblock_acquire_chunk(chunkIn);
-        DoFading(data, chunkIn->length, u, fadeDirection);
-        pa_memblock_release(chunkIn->memblock);
-    }
-    if (u->streamAvailable == 0 && u->lastStreamAvailable == 0) {
-        pa_silence_memchunk(chunkIn, &si->sample_spec);
-    }
-    u->lastStreamAvailable = u->streamAvailable;
 }
 
 static char *HandleSinkSceneType(struct Userdata *u, time_t currentTime, int32_t i)
@@ -1799,6 +1784,18 @@ static void UpdateStreamAvailableMap(struct Userdata *u, const char *sceneType)
     pa_hashmap_put(u->streamAvailableMap, scene, num);
 }
 
+static void ResetBufferAttr(struct Userdata *u)
+{
+    size_t memsetInLen = sizeof(float) * DEFAULT_FRAMELEN * IN_CHANNEL_NUM_MAX;
+    size_t memsetOutLen = sizeof(float) * DEFAULT_FRAMELEN * OUT_CHANNEL_NUM_MAX;
+    if (memset_s(u->bufferAttr->tempBufIn, u->processSize, 0, memsetInLen) != EOK) {
+        AUDIO_WARNING_LOG("SinkRenderBufIn memset_s failed");
+    }
+    if (memset_s(u->bufferAttr->tempBufOut, u->processSize, 0, memsetOutLen) != EOK) {
+        AUDIO_WARNING_LOG("SinkRenderBufOut memset_s failed");
+    }
+}
+
 static void SinkRenderPrimaryProcess(pa_sink *si, size_t length, pa_memchunk *chunkIn)
 {
     if (GetInnerCapturerState()) {
@@ -1810,14 +1807,7 @@ static void SinkRenderPrimaryProcess(pa_sink *si, size_t length, pa_memchunk *ch
     struct Userdata *u;
     pa_assert_se(u = si->userdata);
 
-    size_t memsetInLen = sizeof(float) * DEFAULT_FRAMELEN * IN_CHANNEL_NUM_MAX;
-    size_t memsetOutLen = sizeof(float) * DEFAULT_FRAMELEN * OUT_CHANNEL_NUM_MAX;
-    if (memset_s(u->bufferAttr->tempBufIn, u->processSize, 0, memsetInLen) != EOK) {
-        AUDIO_WARNING_LOG("SinkRenderBufIn memset_s failed");
-    }
-    if (memset_s(u->bufferAttr->tempBufOut, u->processSize, 0, memsetOutLen) != EOK) {
-        AUDIO_WARNING_LOG("SinkRenderBufOut memset_s failed");
-    }
+    ResetBufferAttr(u);
     int32_t bitSize = (int32_t)pa_sample_size_of_format(u->format);
     chunkIn->memblock = pa_memblock_new(si->core->mempool, length * IN_CHANNEL_NUM_MAX / DEFAULT_IN_CHANNEL_NUM);
     time_t currentTime = time(NULL);
@@ -1828,7 +1818,6 @@ static void SinkRenderPrimaryProcess(pa_sink *si, size_t length, pa_memchunk *ch
     UpdateSceneToCountMap(u->sceneToCountMap);
     // to do update resampler when output device change
     void *state = NULL;
-    u->streamAvailable = 0;
     while ((pa_hashmap_iterate(u->sceneToCountMap, &state, &sceneType))) {
         u->streamAvailable = 0;
         uint32_t processChannels = DEFAULT_NUM_CHANNEL;
