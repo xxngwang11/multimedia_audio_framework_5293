@@ -180,16 +180,14 @@ int32_t PaRendererStreamImpl::Start()
 int32_t PaRendererStreamImpl::Pause(bool isStandby)
 {
     AUDIO_INFO_LOG("Enter");
-    pa_threaded_mainloop_lock(mainloop_);
+    PaLockGuard palock(mainloop_);
     if (CheckReturnIfStreamInvalid(paStream_, ERR_ILLEGAL_STATE) < 0) {
-        pa_threaded_mainloop_unlock(mainloop_);
         return ERR_ILLEGAL_STATE;
     }
     pa_operation *operation = nullptr;
     pa_stream_state_t state = pa_stream_get_state(paStream_);
     if (state != PA_STREAM_READY) {
         AUDIO_ERR_LOG("Stream Stop Failed");
-        pa_threaded_mainloop_unlock(mainloop_);
         return ERR_OPERATION_FAILED;
     }
     pa_proplist *propList = pa_proplist_new();
@@ -201,18 +199,18 @@ int32_t PaRendererStreamImpl::Pause(bool isStandby)
         CHECK_AND_RETURN_RET_LOG(updatePropOperation != nullptr, ERR_OPERATION_FAILED, "pa_stream_proplist_update failed");
         pa_operation_unref(updatePropOperation);
         AUDIO_INFO_LOG("pa_stream_proplist_update done");
-        pa_threaded_mainloop_unlock(mainloop_);
+        palock.Unlock();
         {
             std::unique_lock<std::mutex> lock(fadingMutex_);
             const int32_t WAIT_TIME_MS = 40;
             fadingCondition_.wait_for(lock, std::chrono::milliseconds(WAIT_TIME_MS));
         }
-        pa_threaded_mainloop_lock(mainloop_);
+        palock.Relock();
     }
     isStandbyPause_ = isStandby;
     operation = pa_stream_cork(paStream_, 1, PAStreamPauseSuccessCb, reinterpret_cast<void *>(this));
     pa_operation_unref(operation);
-    pa_threaded_mainloop_unlock(mainloop_);
+    palock.Unlock();
 
     if (effectMode_ == EFFECT_DEFAULT) {
         AudioEffectChainManager *audioEffectChainManager = AudioEffectChainManager::GetInstance();

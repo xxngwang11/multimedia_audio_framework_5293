@@ -44,6 +44,14 @@ public:
             isUnlocked_ = true;
         }
     }
+
+    void Relock()
+    {
+        if (!isInMainloop_ && isUnlocked_) {
+            isUnlocked_ = false;
+            pa_threaded_mainloop_lock(mainloop_);
+        }
+    }
 private:
     bool isUnlocked_ = false;
     bool isInMainloop_ = false;
