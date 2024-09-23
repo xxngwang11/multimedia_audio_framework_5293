@@ -211,6 +211,7 @@ int32_t PaRendererStreamImpl::Pause(bool isStandby)
     isStandbyPause_ = isStandby;
     operation = pa_stream_cork(paStream_, 1, PAStreamPauseSuccessCb, reinterpret_cast<void *>(this));
     pa_operation_unref(operation);
+    CHECK_AND_RETURN_RET_LOG(operation != nullptr, ERR_OPERATION_FAILED, "pa_stream_cork pause failed");
     palock.Unlock();
 
     if (effectMode_ == EFFECT_DEFAULT) {
@@ -295,7 +296,7 @@ int32_t PaRendererStreamImpl::Stop()
 
     pa_operation *operation = pa_stream_cork(paStream_, 1, PaRendererStreamImpl::PAStreamAsyncStopSuccessCb,
         reinterpret_cast<void *>(this));
-    CHECK_AND_RETURN_RET_LOG(operation != nullptr, ERR_OPERATION_FAILED, "pa_stream_cork operation is null");
+    CHECK_AND_RETURN_RET_LOG(operation != nullptr, ERR_OPERATION_FAILED, "pa_stream_cork stop failed");
     pa_operation_unref(operation);
 
     if (effectMode_ == EFFECT_DEFAULT) {
