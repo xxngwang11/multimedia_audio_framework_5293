@@ -68,18 +68,6 @@ static bool IsChannelLayoutSupported(const uint64_t channelLayout)
         AUDIO_EFFECT_SUPPORTED_CHANNELLAYOUTS.end(), channelLayout) != AUDIO_EFFECT_SUPPORTED_CHANNELLAYOUTS.end();
 }
 
-static void FindMaxSessionID(uint32_t &maxSessionID, std::string &sceneType,
-    const std::string &scenePairType, std::set<std::string> &sessions)
-{
-    for (auto& sessionID : sessions) {
-        uint32_t sessionIDInt = static_cast<uint32_t>(std::stoul(sessionID));
-        if (sessionIDInt > maxSessionID) {
-            maxSessionID = sessionIDInt;
-            sceneType = scenePairType;
-        }
-    }
-}
-
 AudioEffectChainManager::AudioEffectChainManager()
 {
     effectToLibraryEntryMap_.clear();
@@ -380,6 +368,8 @@ int32_t AudioEffectChainManager::SetAudioEffectChainDynamic(const std::string &s
     audioEffectChain->SetEffectMode(effectMode);
     audioEffectChain->SetExtraSceneType(extraSceneType_);
     audioEffectChain->SetSpatialDeviceType(spatialDeviceType_);
+    audioEffectChain->SetSpatializationSceneType(spatializationSceneType_);
+    audioEffectChain->SetSpatializationEnabled(spatializationEnabled_);
     std::string tSceneType = (sceneType == DEFAULT_SCENE_TYPE ? DEFAULT_PRESET_SCENE : sceneType);
     for (std::string effect: effectChainToEffectsMap_[effectChain]) {
         AudioEffectHandle handle = nullptr;
@@ -1021,6 +1011,14 @@ int32_t AudioEffectChainManager::SetSpatializationSceneType(AudioSpatializationS
 
     UpdateEffectChainParams(sceneType);
 
+    effectHdiInput_[0] = HDI_SPATIALIZATION_SCENE_TYPE;
+    effectHdiInput_[1] = static_cast<int32_t>(spatializationSceneType_);
+    if (audioEffectHdiParam_->UpdateHdiState(effectHdiInput_) != SUCCESS) {
+        AUDIO_WARNING_LOG("set hdi spatialization scene type failed");
+    }
+
+    SetSpatializationSceneTypeToChains();
+
     return SUCCESS;
 }
 
@@ -1082,6 +1080,36 @@ void AudioEffectChainManager::UpdateEffectChainParams(AudioEffectScene sceneType
             continue;
         }
         audioEffectChain->SetEffectCurrSceneType(sceneType);
+        if (audioEffectChain->UpdateEffectParam() != SUCCESS) {
+            AUDIO_WARNING_LOG("Update param to effect chain failed");
+            continue;
+        }
+    }
+}
+
+void AudioEffectChainManager::SetSpatializationSceneTypeToChains()
+{
+    for (auto it = sceneTypeToEffectChainMap_.begin(); it != sceneTypeToEffectChainMap_.end(); ++it) {
+        auto audioEffectChain = it->second;
+        if (audioEffectChain == nullptr) {
+            continue;
+        }
+        audioEffectChain->SetSpatializationSceneType(spatializationSceneType_);
+        if (audioEffectChain->UpdateEffectParam() != SUCCESS) {
+            AUDIO_WARNING_LOG("Update param to effect chain failed");
+            continue;
+        }
+    }
+}
+
+void AudioEffectChainManager::SetSpatializationEnabledToChains()
+{
+    for (auto it = sceneTypeToEffectChainMap_.begin(); it != sceneTypeToEffectChainMap_.end(); ++it) {
+        auto audioEffectChain = it->second;
+        if (audioEffectChain == nullptr) {
+            continue;
+        }
+        audioEffectChain->SetSpatializationEnabled(spatializationEnabled_);
         if (audioEffectChain->UpdateEffectParam() != SUCCESS) {
             AUDIO_WARNING_LOG("Update param to effect chain failed");
             continue;
@@ -1286,6 +1314,7 @@ void AudioEffectChainManager::UpdateSpatializationEnabled(AudioSpatializationSta
             AUDIO_INFO_LOG("A2dp-hal, enter ARM processing");
             btOffloadEnabled_ = false;
             RecoverAllChains();
+            SetSpatializationEnabledToChains();
             return;
         }
         effectHdiInput_[0] = HDI_INIT;
@@ -1311,6 +1340,7 @@ void AudioEffectChainManager::UpdateSpatializationEnabled(AudioSpatializationSta
         }
         btOffloadEnabled_ = false;
     }
+    SetSpatializationEnabledToChains();
 }
 // for AISS temporarily
 bool AudioEffectChainManager::CheckIfSpkDsp()
@@ -1438,6 +1468,21 @@ uint32_t AudioEffectChainManager::GetSceneTypeToChainCount(const std::string &sc
         }
     }
     return 0;
+}
+
+void AudioEffectChainManager::FindMaxSessionID(uint32_t &maxSessionID, std::string &sceneType,
+    const std::string &scenePairType, std::set<std::string> &sessions)
+{
+    for (auto &sessionID : sessions) {
+        if (sessionIDToEffectInfoMap_[sessionID].sceneMode == "EFFECT_NONE") {
+            continue;
+        }
+        uint32_t sessionIDInt = static_cast<uint32_t>(std::stoul(sessionID));
+        if (sessionIDInt > maxSessionID) {
+            maxSessionID = sessionIDInt;
+            sceneType = scenePairType;
+        }
+    }
 }
 } // namespace AudioStandard
 } // namespace OHOS
