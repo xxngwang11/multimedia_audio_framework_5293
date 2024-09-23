@@ -198,6 +198,7 @@ int32_t PaRendererStreamImpl::Pause(bool isStandby)
         pa_operation *updatePropOperation = pa_stream_proplist_update(paStream_, PA_UPDATE_REPLACE, propList,
             nullptr, nullptr);
         pa_proplist_free(propList);
+        CHECK_AND_RETURN_RET_LOG(updatePropOperation != nullptr, ERR_OPERATION_FAILED, "pa_stream_proplist_update failed");
         pa_operation_unref(updatePropOperation);
         AUDIO_INFO_LOG("pa_stream_proplist_update done");
         pa_threaded_mainloop_unlock(mainloop_);
