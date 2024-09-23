@@ -27,6 +27,7 @@ group("audio_policy_packages") {
     ":audio_strategy_router",
     ":audio_usage_strategy",
     ":audio_volume_config",
+    "safe_volume_notification:audio_safe_volume_notification_impl",
   ]
 
   if (audio_framework_feature_dtmf_tone) {
@@ -53,6 +54,7 @@ config("audio_policy_public_config") {
     "server/src/service/concurrency",
     "server/src/service/interrupt",
     "server/src/service/session",
+    "safe_volume_notification/include",
     "../audio_service/client/include",
     "../audio_service/common/include",
     "../../frameworks/native/audioinnercall/include",

@@ -193,10 +193,7 @@ void AudioPolicyServer::OnAddSystemAbility(int32_t systemAbilityId, const std::s
             break;
         case COMMON_EVENT_SERVICE_ID:
             AUDIO_INFO_LOG("OnAddSystemAbility common event service start");
-            SubscribeCommonEvent("usual.event.DATA_SHARE_READY");
-            SubscribeCommonEvent("usual.event.dms.rotation_changed");
-            SubscribeCommonEvent("usual.event.bluetooth.remotedevice.NAME_UPDATE");
-            SubscribeCommonEvent("usual.event.SCREEN_ON");
+            SubscribeCommonEventExecute();
             break;
         default:
             OnAddSystemAbilityExtract(systemAbilityId, deviceId);
@@ -391,6 +388,12 @@ void AudioPolicyServer::SubscribeVolumeKeyEvents()
 }
 #endif
 
+void AudioPolicyServer::SubscribeSafeVolumeEvent()
+{
+    AUDIO_INFO_LOG("SubscribeSafeVolumeEvent enter");
+    audioPolicyService_.SubscribeSafeVolumeEvent();
+}
+
 bool AudioPolicyServer::IsVolumeTypeValid(AudioStreamType streamType)
 {
     bool result = false;
@@ -494,6 +497,15 @@ void AudioCommonEventSubscriber::OnReceiveEvent(const EventFwk::CommonEventData 
     }
     AUDIO_INFO_LOG("receive DATA_SHARE_READY action success");
     eventReceiver_(eventData);
+}
+
+void AudioPolicyServer::SubscribeCommonEventExecute()
+{
+    SubscribeCommonEvent("usual.event.DATA_SHARE_READY");
+    SubscribeCommonEvent("usual.event.dms.rotation_changed");
+    SubscribeCommonEvent("usual.event.bluetooth.remotedevice.NAME_UPDATE");
+    SubscribeCommonEvent("usual.event.SCREEN_ON");
+    SubscribeSafeVolumeEvent();
 }
 
 void AudioPolicyServer::SubscribeCommonEvent(const std::string event)
