@@ -26,7 +26,7 @@
 #include <thread>
 
 #include "audio_errors.h"
-#include "audio_log.h"
+#include "audio_pulseaudio_log.h"
 #include "audio_info.h"
 #include "audio_utils.h"
 #include "hisysevent.h"
@@ -37,8 +37,6 @@
 #include "event_bean.h"
 #include "pa_adapter_tools.h"
 
-#undef LOG_DOMAIN
-#define LOG_DOMAIN 0xD002B88
 using namespace std;
 
 namespace OHOS {
