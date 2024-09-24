@@ -1453,15 +1453,24 @@ int32_t AudioPolicyService::MoveToLocalOutputDevice(std::vector<SinkInput> sinkI
     for (size_t i = 0; i < sinkInputIds.size(); i++) {
         AudioPipeType pipeType = PIPE_TYPE_UNKNOWN;
         streamCollector_.GetPipeType(sinkInputIds[i].streamId, pipeType);
-        std::string sinkName = GetSinkPortName(localDeviceDescriptor->deviceType_, pipeType);
+        std::string oldSinkName = GetSinkPortName(localDeviceDescriptor->deviceType_, pipeType);
+        std::string sinkName = CheckStreamMultichannelMode(sinkInputIds[i].streamId) ?
+            MCH_PRIMARY_SPEAKER : oldSinkName;
+        AUDIO_INFO_LOG("oldSinkName: %{public}s sinkName: {public}s", oldSinkName, sinkName);
         if (sinkName == MCH_PRIMARY_SPEAKER) {
-            sinkName = CheckStreamMultichannelMode(sinkInputIds[i].streamId) ? sinkName : PRIMARY_SPEAKER;
+            if (IOHandles_.find(MCH_PRIMARY_SPEAKER) == IOHandles_.end()) {
+                LoadMchModule();
+            }
+            MuteSinkPort(oldSinkName, sinkName, AudioStreamDeviceChangeReason::OVERRODE);
         }
         AUDIO_INFO_LOG("move for session [%{public}d], portName %{public}s pipeType %{public}d",
             sinkInputIds[i].streamId, sinkName.c_str(), pipeType);
         int32_t ret = audioPolicyManager_.MoveSinkInputByIndexOrName(sinkInputIds[i].paStreamId, sinkId, sinkName);
         CHECK_AND_RETURN_RET_LOG(ret == SUCCESS, ERROR,
             "move [%{public}d] to local failed", sinkInputIds[i].streamId);
+        if (sinkName == MCH_PRIMARY_SPEAKER) {
+            streamCollector_.UpdateRendererPipeInfo(sinkInputIds[i].streamId, PIPE_TYPE_MULTICHANNEL);
+        }
         std::lock_guard<std::mutex> lock(routerMapMutex_);
         routerMap_[sinkInputIds[i].uid] = std::pair(LOCAL_NETWORK_ID, sinkInputIds[i].pid);
     }
