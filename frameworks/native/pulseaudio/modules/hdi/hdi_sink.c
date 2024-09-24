@@ -1204,11 +1204,6 @@ static unsigned SinkRenderPrimaryCluster(pa_sink *si, size_t *length, pa_mix_inf
 
             HandleFading(si, sinkIn, infoIn);
 
-            const char *sinkFadeoutPause = pa_proplist_gets(sinkIn->proplist, "fadeoutPause");
-            if (pa_safe_streq(sinkFadeoutPause, "0")) {
-                u->streamAvailable++;
-            }
-
             infoIn++;
             n++;
             maxInfo--;
