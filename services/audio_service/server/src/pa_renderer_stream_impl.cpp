@@ -876,7 +876,7 @@ void PaRendererStreamImpl::PAStreamDrainInStopCb(pa_stream *stream, int32_t succ
     pa_operation *operation = pa_stream_cork(streamImpl->paStream_, 1,
         PaRendererStreamImpl::PAStreamAsyncStopSuccessCb, userdata);
 
-    CHECK_AND_RETURN_RET_LOG(operation != nullptr, ERR_OPERATION_FAILED, "pa_stream_cork operation is null");
+    CHECK_AND_RETURN_LOG(operation != nullptr, "pa_stream_cork operation is null");
 
     pa_operation_unref(operation);
     streamImpl->streamDrainStatus_ = success;
