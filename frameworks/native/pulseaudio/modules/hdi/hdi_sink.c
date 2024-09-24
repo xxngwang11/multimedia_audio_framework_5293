@@ -3777,7 +3777,7 @@ static pa_sink *PaHdiSinkInit(struct Userdata *u, pa_modargs *ma, const char *dr
         sink = pa_sink_new(m->core, &data, PA_SINK_HARDWARE | PA_SINK_LATENCY);
     } else {
         sink = pa_sink_new(m->core, &data,
-                       PA_SINK_HARDWARE | PA_SINK_LATENCY | PA_SINK_DYNAMIC_LATENCY);
+            PA_SINK_HARDWARE | PA_SINK_LATENCY | PA_SINK_DYNAMIC_LATENCY);
     }
     pa_sink_new_data_done(&data);
 
