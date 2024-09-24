@@ -24,6 +24,7 @@ namespace Bluetooth {
 constexpr int32_t WEAR_ENABLED = 1;
 const int32_t BT_VIRTUAL_DEVICE_ADD = 0;
 const int32_t BT_VIRTUAL_DEVICE_REMOVE = 1;
+constexpr const uint8_t CONN_REASON_MANUAL_VIRTUAL_CONNECT_PREEMPT_FLAG = 0x03;
 
 enum BluetoothDeviceAction : int32_t {
     WEAR_ACTION = 0,
