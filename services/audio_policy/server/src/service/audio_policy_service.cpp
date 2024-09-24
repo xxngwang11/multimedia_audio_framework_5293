@@ -1456,7 +1456,7 @@ int32_t AudioPolicyService::MoveToLocalOutputDevice(std::vector<SinkInput> sinkI
         std::string oldSinkName = GetSinkPortName(localDeviceDescriptor->deviceType_, pipeType);
         std::string sinkName = CheckStreamMultichannelMode(sinkInputIds[i].streamId) ?
             MCH_PRIMARY_SPEAKER : oldSinkName;
-        AUDIO_INFO_LOG("oldSinkName: %{public}s sinkName: {public}s", oldSinkName.c_str(), sinkName.c_str());
+        AUDIO_INFO_LOG("oldSinkName: %{public}s sinkName: %{public}s", oldSinkName.c_str(), sinkName.c_str());
         if (sinkName == MCH_PRIMARY_SPEAKER) {
             if (IOHandles_.find(MCH_PRIMARY_SPEAKER) == IOHandles_.end()) {
                 LoadMchModule();
