@@ -26,7 +26,7 @@
 #include <thread>
 
 #include "audio_errors.h"
-#include "audio_common_log.h"
+#include "audio_pulseaudio_log.h"
 #include "audio_info.h"
 #include "audio_utils.h"
 #include "hisysevent.h"
@@ -154,7 +154,7 @@ bool PulseAudioServiceAdapterImpl::ConnectToPulseAudio()
 
     CHECK_AND_RETURN_RET_LOG(mContext != nullptr, false, "creating pa context failed");
 
-    pa_context_set_state_callback(mContext,  PulseAudioServiceAdapterImpl::PaContextStateCb, this);
+    pa_context_set_state_callback(mContext, PulseAudioServiceAdapterImpl::PaContextStateCb, this);
     if (pa_context_connect(mContext, nullptr, PA_CONTEXT_NOFAIL, nullptr) < 0) {
         if (pa_context_errno(mContext) == PA_ERR_INVALID) {
             AUDIO_ERR_LOG("pa context connect failed: %{public}s",
