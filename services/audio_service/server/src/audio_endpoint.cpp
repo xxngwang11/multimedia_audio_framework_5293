@@ -1820,7 +1820,7 @@ void AudioEndpointInner::AsyncGetPosTime()
             DelayStopDevice();
             continue;
         }
-        if (endpointStatus_ == IDEL && !isStarted_) {
+        if (!isStarted_) {
             continue;
         }
         // get signaled, call get pos-time
