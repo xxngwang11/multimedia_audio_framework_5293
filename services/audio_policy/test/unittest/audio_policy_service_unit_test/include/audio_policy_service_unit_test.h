@@ -16,9 +16,13 @@
 #ifndef AUDIO_POLICY_SERVICE_UNIT_TEST_H
 #define AUDIO_POLICY_SERVICE_UNIT_TEST_H
 
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
+
 #include "audio_policy_service.h"
 #include "audio_policy_server.h"
+#include "message_parcel.h"
+#include "nativetoken_kit.h"
+#include "token_setproc.h"
 
 namespace OHOS {
 namespace AudioStandard {
