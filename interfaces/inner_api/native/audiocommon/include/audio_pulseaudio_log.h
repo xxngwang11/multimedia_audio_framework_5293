@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef OHOS_AUDIO_COMMON_LOG_H
-#define OHOS_AUDIO_COMMON_LOG_H
+#ifndef OHOS_AUDIO_PULSEAUDIO_LOG_H
+#define OHOS_AUDIO_PULSEAUDIO_LOG_H
 
 #include "audio_log.h"
 
