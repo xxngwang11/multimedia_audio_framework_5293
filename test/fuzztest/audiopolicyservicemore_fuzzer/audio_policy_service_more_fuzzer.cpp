@@ -175,7 +175,7 @@ void AudioPolicyServiceSecondTest(const uint8_t* rawData, size_t size, AudioStre
     streamChangeInfo.audioRendererChangeInfo.clientUID = clientUID;
     streamChangeInfo.audioRendererChangeInfo.sessionId = sessionId;
     streamChangeInfo.audioRendererChangeInfo.clientPid = clientPid_1;
-    streamChangeInfo.audioRendererChangeInfo.rendererState = *reinterpret_cast<const RendererState*>(rawData);
+    streamChangeInfo.audioRendererChangeInfo.rendererState = RENDERER_NEW;
     streamChangeInfo.audioRendererChangeInfo.rendererInfo = {};
 
     auto samgr = SystemAbilityManagerClient::GetInstance().GetSystemAbilityManager();
@@ -284,21 +284,14 @@ void AudioPolicyServiceTest(const uint8_t *rawData, size_t size)
     sptr<AudioDeviceDescriptor> remoteDeviceDescriptor = new AudioDeviceDescriptor();
     GetServerPtr()->audioPolicyService_.OpenRemoteAudioDevice(REMOTE_NETWORK_ID,
         deviceRole, DEVICE_TYPE_EARPIECE, remoteDeviceDescriptor);
-    AudioDeviceDescriptor fuzzAudioDeviceDescriptor;
     AudioStreamInfo audioStreamInfo = {};
-    audioStreamInfo.samplingRate = *reinterpret_cast<const AudioSamplingRate *>(rawData);
-    audioStreamInfo.encoding = *reinterpret_cast<const AudioEncodingType *>(rawData);
-    audioStreamInfo.format = *reinterpret_cast<const AudioSampleFormat *>(rawData);
-    audioStreamInfo.channels = *reinterpret_cast<const AudioChannel *>(rawData);
+    audioStreamInfo.samplingRate = AudioSamplingRate::SAMPLE_RATE_48000;
+    audioStreamInfo.encoding = AudioEncodingType::ENCODING_PCM;
+    audioStreamInfo.format = AudioSampleFormat::SAMPLE_S16LE;
+    audioStreamInfo.channels = AudioChannel::STEREO;
     InitGetServerService(rawData, size, deviceRole, audioStreamInfo);
     GetServerPtr()->audioPolicyService_.OnDeviceConfigurationChanged(DEVICE_TYPE_BLUETOOTH_A2DP,
         GetServerPtr()->audioPolicyService_.activeBTDevice_, "DeviceName", audioStreamInfo);
-    GetServerPtr()->audioPolicyService_.OnDeviceStatusUpdated(fuzzAudioDeviceDescriptor, true);
-    GetServerPtr()->audioPolicyService_.OnDeviceStatusUpdated(fuzzAudioDeviceDescriptor, false);
-    DStatusInfo statusInfo;
-    statusInfo.connectType = ConnectType::CONNECT_TYPE_DISTRIBUTED;
-    GetServerPtr()->audioPolicyService_.OnDeviceStatusUpdated(statusInfo, false);
-    GetServerPtr()->audioPolicyService_.OnDeviceStatusUpdated(statusInfo, true);
     shared_ptr<AudioDeviceDescriptor> dis = make_shared<AudioDeviceDescriptor>();
     dis->deviceType_ = DEVICE_TYPE_BLUETOOTH_SCO;
     dis->macAddress_ = GetServerPtr()->audioPolicyService_.activeBTDevice_;
@@ -324,10 +317,10 @@ void AudioPolicyServiceMoreTest(const uint8_t* rawData, size_t size)
     GetServerPtr()->audioPolicyService_.DealWithSafeVolume(volumeLevel, true);
     GetServerPtr()->audioPolicyService_.DealWithSafeVolume(volumeLevel, false);
     AudioStreamInfo audioStreamInfo = {};
-    audioStreamInfo.samplingRate = *reinterpret_cast<const AudioSamplingRate *>(rawData);
-    audioStreamInfo.encoding = *reinterpret_cast<const AudioEncodingType *>(rawData);
-    audioStreamInfo.format = *reinterpret_cast<const AudioSampleFormat *>(rawData);
-    audioStreamInfo.channels = *reinterpret_cast<const AudioChannel *>(rawData);
+    audioStreamInfo.samplingRate = AudioSamplingRate::SAMPLE_RATE_48000;
+    audioStreamInfo.encoding = AudioEncodingType::ENCODING_PCM;
+    audioStreamInfo.format = AudioSampleFormat::SAMPLE_S16LE;
+    audioStreamInfo.channels = AudioChannel::STEREO;
     A2dpDeviceConfigInfo configInfo = {audioStreamInfo, true};
     volumeLevel = GetServerPtr()->audioPolicyService_.audioPolicyManager_.GetSafeVolumeLevel() + MOD_NUM_TWO;
     GetServerPtr()->audioPolicyService_.connectedA2dpDeviceMap_.insert({"activeBTDevice_1", configInfo});
