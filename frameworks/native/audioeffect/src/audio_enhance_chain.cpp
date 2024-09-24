@@ -138,10 +138,10 @@ int32_t AudioEnhanceChain::SetInputDevice(const std::string &inputDevice)
     algoParam_.preDevice = inputDevice;
     AUDIO_INFO_LOG("update input device %{public}s", inputDevice.c_str());
     std::lock_guard<std::mutex> lock(chainMutex_);
-    int32_t size = standByEnhanceHandles_.size();
+    uint32_t size = standByEnhanceHandles_.size();
     AudioEffectTransInfo cmdInfo = {};
     AudioEffectTransInfo replyInfo = {};
-    for (int32_t index = 0; index < size; index++) {
+    for (uint32_t index = 0; index < size; index++) {
         auto &handle = standByEnhanceHandles_[index];
         CHECK_AND_RETURN_RET_LOG(SetEnhanceParamToHandle(handle) == SUCCESS, ERROR,
             "[%{public}s] effect EFFECT_CMD_SET_PARAM fail", sceneType_.c_str());
@@ -369,10 +369,10 @@ int32_t AudioEnhanceChain::SetEnhanceProperty(const std::string &enhance, const 
 {
     if (property.empty()) { return SUCCESS; }
     std::lock_guard<std::mutex> lock(chainMutex_);
-    int32_t size = standByEnhanceHandles_.size();
+    uint32_t size = standByEnhanceHandles_.size();
     AudioEffectTransInfo cmdInfo{};
     AudioEffectTransInfo replyInfo{};
-    for (int32_t index = 0; index < size; index++) {
+    for (uint32_t index = 0; index < size; index++) {
         auto &handle = standByEnhanceHandles_[index];
         auto const &enhanceName = enhanceNames_[index];
         if (enhance == enhanceName) {

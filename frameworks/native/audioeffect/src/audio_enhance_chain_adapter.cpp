@@ -102,7 +102,7 @@ int32_t EnhanceChainManagerGetAlgoConfig(const uint32_t sceneKeyCode, pa_sample_
     AudioBufferConfig ecConfig = {};
     AudioBufferConfig micRefConfig = {};
 
-    uint32_t ret = audioEnhanceChainMananger->AudioEnhanceChainGetAlgoConfig(sceneKeyCode, micConfig, ecConfig,
+    int32_t ret = audioEnhanceChainMananger->AudioEnhanceChainGetAlgoConfig(sceneKeyCode, micConfig, ecConfig,
         micRefConfig);
     if (ret != 0 || micConfig.samplingRate == 0) {
         return ERROR;
