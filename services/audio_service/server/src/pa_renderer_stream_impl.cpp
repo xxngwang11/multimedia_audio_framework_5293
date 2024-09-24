@@ -166,6 +166,7 @@ int32_t PaRendererStreamImpl::Start()
 
     streamCmdStatus_ = 0;
     operation = pa_stream_cork(paStream_, 0, PAStreamStartSuccessCb, reinterpret_cast<void *>(this));
+    CHECK_AND_RETURN_RET_LOG(operation != nullptr, ERR_OPERATION_FAILED, "pa_stream_cork operation is null");
     pa_operation_unref(operation);
 
     std::shared_ptr<AudioEffectVolume> audioEffectVolume = AudioEffectVolume::GetInstance();
@@ -180,16 +181,14 @@ int32_t PaRendererStreamImpl::Start()
 int32_t PaRendererStreamImpl::Pause(bool isStandby)
 {
     AUDIO_INFO_LOG("Enter");
-    pa_threaded_mainloop_lock(mainloop_);
+    PaLockGuard palock(mainloop_, 1);
     if (CheckReturnIfStreamInvalid(paStream_, ERR_ILLEGAL_STATE) < 0) {
-        pa_threaded_mainloop_unlock(mainloop_);
         return ERR_ILLEGAL_STATE;
     }
     pa_operation *operation = nullptr;
     pa_stream_state_t state = pa_stream_get_state(paStream_);
     if (state != PA_STREAM_READY) {
         AUDIO_ERR_LOG("Stream Stop Failed");
-        pa_threaded_mainloop_unlock(mainloop_);
         return ERR_OPERATION_FAILED;
     }
     pa_proplist *propList = pa_proplist_new();
@@ -198,20 +197,22 @@ int32_t PaRendererStreamImpl::Pause(bool isStandby)
         pa_operation *updatePropOperation = pa_stream_proplist_update(paStream_, PA_UPDATE_REPLACE, propList,
             nullptr, nullptr);
         pa_proplist_free(propList);
+        CHECK_AND_RETURN_RET_LOG(updatePropOperation != nullptr, ERR_OPERATION_FAILED, "updatePropOp is nullptr");
         pa_operation_unref(updatePropOperation);
         AUDIO_INFO_LOG("pa_stream_proplist_update done");
-        pa_threaded_mainloop_unlock(mainloop_);
+        palock.Unlock();
         {
             std::unique_lock<std::mutex> lock(fadingMutex_);
             const int32_t WAIT_TIME_MS = 40;
             fadingCondition_.wait_for(lock, std::chrono::milliseconds(WAIT_TIME_MS));
         }
-        pa_threaded_mainloop_lock(mainloop_);
+        palock.Relock();
     }
     isStandbyPause_ = isStandby;
     operation = pa_stream_cork(paStream_, 1, PAStreamPauseSuccessCb, reinterpret_cast<void *>(this));
     pa_operation_unref(operation);
-    pa_threaded_mainloop_unlock(mainloop_);
+    CHECK_AND_RETURN_RET_LOG(operation != nullptr, ERR_OPERATION_FAILED, "pa_stream_cork operation is null");
+    palock.Unlock();
 
     if (effectMode_ == EFFECT_DEFAULT) {
         AudioEffectChainManager *audioEffectChainManager = AudioEffectChainManager::GetInstance();
@@ -575,6 +576,7 @@ int32_t PaRendererStreamImpl::SetLowPowerVolume(float powerVolume)
     pa_operation *updatePropOperation = pa_stream_proplist_update(paStream_, PA_UPDATE_REPLACE, propList,
         nullptr, nullptr);
     pa_proplist_free(propList);
+    CHECK_AND_RETURN_RET_LOG(updatePropOperation != nullptr, ERR_OPERATION_FAILED, "updatePropOperation is nullptr");
     pa_operation_unref(updatePropOperation);
 
     // In plan: Call reset volume
@@ -609,6 +611,7 @@ int32_t PaRendererStreamImpl::SetAudioEffectMode(int32_t effectMode)
     pa_operation *updatePropOperation = pa_stream_proplist_update(paStream_, PA_UPDATE_REPLACE, propList,
         nullptr, nullptr);
     pa_proplist_free(propList);
+    CHECK_AND_RETURN_RET_LOG(updatePropOperation != nullptr, ERR_OPERATION_FAILED, "updatePropOperation is nullptr");
     pa_operation_unref(updatePropOperation);
 
     return SUCCESS;
@@ -681,16 +684,10 @@ int32_t PaRendererStreamImpl::EnqueueBuffer(const BufferDesc &bufferDesc)
     }
 
     // EnqueueBuffer is called in mainloop in most cases and don't need lock.
-    bool isInMainloop = pa_threaded_mainloop_in_thread(mainloop_) ? true : false;
-    if (!isInMainloop) {
-        pa_threaded_mainloop_lock(mainloop_);
-    }
+    PaLockGuard palock(mainloop_, 1);
 
     if (paStream_ == nullptr) {
         AUDIO_ERR_LOG("paStream is nullptr");
-        if (!isInMainloop) {
-            pa_threaded_mainloop_unlock(mainloop_);
-        }
         return ERR_ILLEGAL_STATE;
     }
 
@@ -699,10 +696,6 @@ int32_t PaRendererStreamImpl::EnqueueBuffer(const BufferDesc &bufferDesc)
     if (error < 0) {
         AUDIO_ERR_LOG("Write stream failed");
         pa_stream_cancel_write(paStream_);
-    }
-
-    if (!isInMainloop) {
-        pa_threaded_mainloop_unlock(mainloop_);
     }
     totalBytesWritten_ += bufferDesc.bufLength;
     return SUCCESS;
@@ -883,6 +876,8 @@ void PaRendererStreamImpl::PAStreamDrainInStopCb(pa_stream *stream, int32_t succ
     pa_operation *operation = pa_stream_cork(streamImpl->paStream_, 1,
         PaRendererStreamImpl::PAStreamAsyncStopSuccessCb, userdata);
 
+    CHECK_AND_RETURN_LOG(operation != nullptr, "pa_stream_cork operation is null");
+
     pa_operation_unref(operation);
     streamImpl->streamDrainStatus_ = success;
 }
@@ -937,7 +932,7 @@ uint32_t PaRendererStreamImpl::GetStreamIndex()
 // offload
 size_t PaRendererStreamImpl::GetWritableSize()
 {
-    PaLockGuard lock(mainloop_);
+    PaLockGuard lock(mainloop_, 1);
     if (paStream_ == nullptr) {
         return 0;
     }
@@ -976,6 +971,7 @@ int32_t PaRendererStreamImpl::UpdateSpatializationState(bool spatializationEnabl
     pa_operation *updatePropOperation = pa_stream_proplist_update(paStream_, PA_UPDATE_REPLACE, propList,
         nullptr, nullptr);
     pa_proplist_free(propList);
+    CHECK_AND_RETURN_RET_LOG(updatePropOperation != nullptr, ERR_OPERATION_FAILED, "updatePropOperation is nullptr");
     pa_operation_unref(updatePropOperation);
 
     return SUCCESS;
@@ -1094,7 +1090,7 @@ int32_t PaRendererStreamImpl::OffloadUpdatePolicy(AudioOffloadType statePolicy, 
         AUDIO_DEBUG_LOG("Update statePolicy immediately: %{public}d -> %{public}d, force(%d)",
             offloadStatePolicy_, statePolicy, force);
         lastOffloadUpdateFinishTime_ = 0;
-        PaLockGuard lock(mainloop_);
+        PaLockGuard lock(mainloop_, 1);
         if (CheckReturnIfStreamInvalid(paStream_, ERR_ILLEGAL_STATE) < 0) {
             AUDIO_ERR_LOG("Set offload mode: invalid stream state, quit SetStreamOffloadMode due err");
             return ERR_ILLEGAL_STATE;
@@ -1252,6 +1248,7 @@ int32_t PaRendererStreamImpl::SetClientVolume(float clientVolume)
     pa_operation *updatePropOperation = pa_stream_proplist_update(paStream_, PA_UPDATE_REPLACE, propList,
         nullptr, nullptr);
     pa_proplist_free(propList);
+    CHECK_AND_RETURN_RET_LOG(updatePropOperation != nullptr, ERR_OPERATION_FAILED, "updatePropOperation is nullptr");
     pa_operation_unref(updatePropOperation);
     AUDIO_PRERELEASE_LOGI("set client volume success");
 

@@ -1087,6 +1087,7 @@ static void PreparePrimaryFading(pa_sink_input *sinkIn, pa_mix_info *infoIn, pa_
         void *data = pa_memblock_acquire_chunk(&infoIn->chunk);
         DoFading(data, infoIn->chunk.length, format, (uint32_t)u->ss.channels, 1);
         pa_proplist_sets(sinkIn->proplist, "fadeoutPause", "2");
+        pa_memblock_release(infoIn->chunk.memblock);
     }
 }
 
@@ -1848,16 +1849,6 @@ static void SinkRenderPrimaryProcess(pa_sink *si, size_t length, pa_memchunk *ch
 
 static void SinkRenderPrimary(pa_sink *si, size_t length, pa_memchunk *chunkIn)
 {
-    pa_sink_assert_ref(si);
-    pa_sink_assert_io_context(si);
-    pa_assert(PA_SINK_IS_LINKED(si->thread_info.state));
-    pa_assert(length > 0);
-    pa_assert(pa_frame_aligned(length, &si->sample_spec));
-    pa_assert(chunkIn);
-
-    pa_assert(!si->thread_info.rewind_requested);
-    pa_assert(si->thread_info.rewind_nbytes == 0);
-
     pa_sink_ref(si);
 
     size_t blockSizeMax;
@@ -1865,6 +1856,7 @@ static void SinkRenderPrimary(pa_sink *si, size_t length, pa_memchunk *chunkIn)
     pa_sink_assert_ref(si);
     pa_sink_assert_io_context(si);
     pa_assert(PA_SINK_IS_LINKED(si->thread_info.state));
+    pa_assert(length > 0);
     pa_assert(pa_frame_aligned(length, &si->sample_spec));
     pa_assert(chunkIn);
 
@@ -2084,8 +2076,6 @@ static size_t GetOffloadRenderLength(struct Userdata *u, pa_sink_input *i, bool 
             length = waitable ? 0 : length;
             if (ps->memblockq->missing > 0) {
                 playback_stream_request_bytes(ps);
-            } else if (ps->memblockq->missing < 0 && ps->memblockq->requested > (int64_t)ps->memblockq->minreq) {
-                pa_sink_input_send_event(i, "signal_mainloop", NULL);
             }
         }
     }
@@ -2314,7 +2304,6 @@ static int32_t ProcessRenderUseTimingOffload(struct Userdata *u, bool *wait, int
     pa_sink_assert_io_context(s);
     pa_assert(PA_SINK_IS_LINKED(s->thread_info.state));
 
-    pa_assert(!s->thread_info.rewind_requested);
     pa_assert(s->thread_info.rewind_nbytes == 0);
 
     if (s->thread_info.state == PA_SINK_SUSPENDED) {
@@ -2732,14 +2721,6 @@ static void PaInputStateChangeCb(pa_sink_input *i, pa_sink_input_state_t state)
         return;
     }
 
-    pa_proplist *propList = pa_proplist_new();
-    if (propList != NULL) {
-        pa_proplist_sets(propList, "old_state", GetInputStateInfo(i->thread_info.state));
-        pa_proplist_sets(propList, "new_state", GetInputStateInfo(state));
-        pa_sink_input_send_event(i, "state_changed", propList);
-        pa_proplist_free(propList);
-    }
-
     const bool corking = i->thread_info.state == PA_SINK_INPUT_RUNNING && state == PA_SINK_INPUT_CORKED;
     const bool starting = i->thread_info.state == PA_SINK_INPUT_CORKED && state == PA_SINK_INPUT_RUNNING;
     const bool stopping = state == PA_SINK_INPUT_UNLINKED;
@@ -2837,16 +2818,6 @@ static void SinkRenderMultiChannelProcess(pa_sink *si, size_t length, pa_memchun
 
 static void SinkRenderMultiChannel(pa_sink *si, size_t length, pa_memchunk *chunkIn)
 {
-    pa_sink_assert_ref(si);
-    pa_sink_assert_io_context(si);
-    pa_assert(PA_SINK_IS_LINKED(si->thread_info.state));
-    pa_assert(length > 0);
-    pa_assert(pa_frame_aligned(length, &si->sample_spec));
-    pa_assert(chunkIn);
-
-    pa_assert(!si->thread_info.rewind_requested);
-    pa_assert(si->thread_info.rewind_nbytes == 0);
-
     pa_sink_ref(si);
 
     size_t blockSizeMax;
@@ -2854,6 +2825,7 @@ static void SinkRenderMultiChannel(pa_sink *si, size_t length, pa_memchunk *chun
     pa_sink_assert_ref(si);
     pa_sink_assert_io_context(si);
     pa_assert(PA_SINK_IS_LINKED(si->thread_info.state));
+    pa_assert(length > 0);
     pa_assert(pa_frame_aligned(length, &si->sample_spec));
     pa_assert(chunkIn);
 
@@ -3833,8 +3805,12 @@ static pa_sink *PaHdiSinkInit(struct Userdata *u, pa_modargs *ma, const char *dr
         goto fail;
     }
 
-    sink = pa_sink_new(m->core, &data,
-                       PA_SINK_HARDWARE | PA_SINK_LATENCY | PA_SINK_DYNAMIC_LATENCY);
+    if (u->fixed_latency) {
+        sink = pa_sink_new(m->core, &data, PA_SINK_HARDWARE | PA_SINK_LATENCY);
+    } else {
+        sink = pa_sink_new(m->core, &data,
+            PA_SINK_HARDWARE | PA_SINK_LATENCY | PA_SINK_DYNAMIC_LATENCY);
+    }
     pa_sink_new_data_done(&data);
 
     return sink;
