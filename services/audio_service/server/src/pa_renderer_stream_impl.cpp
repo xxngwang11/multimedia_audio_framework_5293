@@ -181,7 +181,7 @@ int32_t PaRendererStreamImpl::Start()
 int32_t PaRendererStreamImpl::Pause(bool isStandby)
 {
     AUDIO_INFO_LOG("Enter");
-    PaLockGuard palock(mainloop_);
+    PaLockGuard palock(mainloop_, 1);
     if (CheckReturnIfStreamInvalid(paStream_, ERR_ILLEGAL_STATE) < 0) {
         return ERR_ILLEGAL_STATE;
     }
@@ -197,7 +197,7 @@ int32_t PaRendererStreamImpl::Pause(bool isStandby)
         pa_operation *updatePropOperation = pa_stream_proplist_update(paStream_, PA_UPDATE_REPLACE, propList,
             nullptr, nullptr);
         pa_proplist_free(propList);
-        CHECK_AND_RETURN_RET_LOG(updatePropOperation != nullptr, ERR_OPERATION_FAILED, "updatePropOperation is nullptr");
+        CHECK_AND_RETURN_RET_LOG(updatePropOperation != nullptr, ERR_OPERATION_FAILED, "updatePropOp is nullptr");
         pa_operation_unref(updatePropOperation);
         AUDIO_INFO_LOG("pa_stream_proplist_update done");
         palock.Unlock();
@@ -684,7 +684,7 @@ int32_t PaRendererStreamImpl::EnqueueBuffer(const BufferDesc &bufferDesc)
     }
 
     // EnqueueBuffer is called in mainloop in most cases and don't need lock.
-    PaLockGuard palock(mainloop_);
+    PaLockGuard palock(mainloop_, 1);
 
     if (paStream_ == nullptr) {
         AUDIO_ERR_LOG("paStream is nullptr");
@@ -932,7 +932,7 @@ uint32_t PaRendererStreamImpl::GetStreamIndex()
 // offload
 size_t PaRendererStreamImpl::GetWritableSize()
 {
-    PaLockGuard lock(mainloop_);
+    PaLockGuard lock(mainloop_, 1);
     if (paStream_ == nullptr) {
         return 0;
     }
@@ -1090,7 +1090,7 @@ int32_t PaRendererStreamImpl::OffloadUpdatePolicy(AudioOffloadType statePolicy, 
         AUDIO_DEBUG_LOG("Update statePolicy immediately: %{public}d -> %{public}d, force(%d)",
             offloadStatePolicy_, statePolicy, force);
         lastOffloadUpdateFinishTime_ = 0;
-        PaLockGuard lock(mainloop_);
+        PaLockGuard lock(mainloop_, 1);
         if (CheckReturnIfStreamInvalid(paStream_, ERR_ILLEGAL_STATE) < 0) {
             AUDIO_ERR_LOG("Set offload mode: invalid stream state, quit SetStreamOffloadMode due err");
             return ERR_ILLEGAL_STATE;

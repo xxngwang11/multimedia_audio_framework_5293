@@ -985,7 +985,6 @@ void PulseAudioServiceAdapterImpl::ProcessSourceOutputEvent(pa_context *c, pa_su
     PulseAudioServiceAdapterImpl *thiz = reinterpret_cast<PulseAudioServiceAdapterImpl*>(userdata);
     userData->thiz = thiz;
     if ((t & PA_SUBSCRIPTION_EVENT_TYPE_MASK) == PA_SUBSCRIPTION_EVENT_NEW) {
-        PaLockGuard lock(thiz->mMainLoop);
         pa_operation *operation = pa_context_get_source_output_info(c, idx,
             PulseAudioServiceAdapterImpl::PaGetSourceOutputNoSignalCb, reinterpret_cast<void*>(userData.get()));
         if (operation == nullptr) {
