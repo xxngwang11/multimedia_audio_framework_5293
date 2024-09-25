@@ -1528,8 +1528,8 @@ void AudioEndpointInner::GetAllReadyProcessData(std::vector<AudioStreamData> &au
         DeviceType deviceType = PolicyHandler::GetInstance().GetActiveOutPutDevice();
         bool muteFlag = processList_[i]->GetMuteFlag();
         if (deviceInfo_.networkId == LOCAL_NETWORK_ID &&
-            (deviceInfo_.deviceType != DEVICE_TYPE_BLUETOOTH_A2DP ||
-            !PolicyHandler::GetInstance().IsAbsVolumeSupported()) &&
+            !(deviceInfo_.deviceType == DEVICE_TYPE_BLUETOOTH_A2DP && streamType == STREAM_MUSIC &&
+                PolicyHandler::GetInstance().IsAbsVolumeSupported()) &&
             PolicyHandler::GetInstance().GetSharedVolume(volumeType, deviceType, vol)) {
             streamData.volumeStart = vol.isMute ? 0 : static_cast<int32_t>(curReadSpan->volumeStart * vol.volumeFloat);
         } else {
