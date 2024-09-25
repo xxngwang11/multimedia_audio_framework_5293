@@ -458,15 +458,17 @@ void AudioAdapterManager::SetAudioVolume(AudioStreamType streamType, float volum
     auto audioVolume = AudioVolume::GetInstance();
     CHECK_AND_RETURN_LOG(audioVolume != nullptr, "audioVolume handle null");
     auto it = deviceClassMap.find(GetActiveDevice());
-    if (it != deviceClassMap.end()) {
-        for (auto &deviceClass : it->second) {
-            SystemVolume systemVolume(volumeType, deviceClass, volumeDb, volumeLevel, isMuted);
-            if (deviceClass != OFFLOAD_CLASS) {
-                audioVolume->SetSystemVolume(systemVolume);
-            } else if (deviceClass == OFFLOAD_CLASS && volumeType == STREAM_MUSIC) {
-                audioVolume->SetSystemVolume(systemVolume);
-                SetOffloadVolume(volumeType, volumeDb);
-            }
+    if (it == deviceClassMap.end()) {
+        AUDIO_ERR_LOG("unkown device type %{public}d", GetActiveDevice());
+        return;
+    }
+    for (auto &deviceClass : it->second) {
+        SystemVolume systemVolume(volumeType, deviceClass, volumeDb, volumeLevel, isMuted);
+        if (deviceClass != OFFLOAD_CLASS) {
+            audioVolume->SetSystemVolume(systemVolume);
+        } else if (deviceClass == OFFLOAD_CLASS && volumeType == STREAM_MUSIC) {
+            audioVolume->SetSystemVolume(systemVolume);
+            SetOffloadVolume(volumeType, volumeDb);
         }
     }
 }
@@ -646,6 +648,8 @@ bool AudioAdapterManager::SetSinkMute(const std::string &sinkName, bool isMute, 
         } else if (sinkName.find("_out") != std::string::npos &&
             sinkName.find(LOCAL_NETWORK_ID) == std::string::npos) {
             audioVolume->SetSystemVolumeMute(volumeType, REMOTE_CLASS, isMute);
+        } else{
+            AUDIO_ERR_LOG("unkown sink name %{public}s", sinkName.c_str());
         }
     }
 

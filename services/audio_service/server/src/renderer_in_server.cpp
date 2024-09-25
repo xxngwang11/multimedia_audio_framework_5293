@@ -1137,6 +1137,11 @@ bool RendererInServer::IsHighResolution() const noexcept
 int32_t RendererInServer::SetSilentModeAndMixWithOthers(bool on)
 {
     silentModeAndMixWithOthers_ = on;
+    if (silentModeAndMixWithOthers_) {
+        AudioVolume::GetInstance()->SetStreamVolume(streamIndex_, 0.0f);
+    } else {
+        AudioVolume::GetInstance()->SetStreamVolume(streamIndex_, 1.0f);
+    }
     return SUCCESS;
 }
 
@@ -1157,6 +1162,16 @@ int32_t RendererInServer::SetClientVolume(bool isStreamVolumeChange, bool isMedi
         AudioVolume::GetInstance()->SetStreamVolume(streamIndex_, 1.0f);
     }
     return ret;
+}
+
+int32_t RendererInServer::SetMute(bool isMute)
+{
+    if (isMute) {
+        AudioVolume::GetInstance()->SetStreamVolume(streamIndex_, 0.0f);
+    } else {
+        AudioVolume::GetInstance()->SetStreamVolume(streamIndex_, 1.0f);
+    }
+    return SUCCESS;
 }
 
 int32_t RendererInServer::SetStreamVolumeInfoForEnhanceChain()

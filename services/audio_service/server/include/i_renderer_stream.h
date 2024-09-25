@@ -60,6 +60,7 @@ public:
     virtual int32_t ReturnIndex(int32_t index) = 0;
     virtual AudioProcessConfig GetAudioProcessConfig() const noexcept = 0;
     virtual int32_t SetClientVolume(float clientVolume) = 0;
+    virtual int32_t SetMute(bool isMute) = 0;
 };
 } // namespace AudioStandard
 } // namespace OHOS
