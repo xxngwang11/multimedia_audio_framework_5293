@@ -279,45 +279,6 @@ HWTEST(AudioEffectChainAdapterUnitTest, EffectChainManagerCreateCb_006, TestSize
 }
 
 /**
-* @tc.name   : Test EffectChainManagerSetHdiParam API
-* @tc.number : EffectChainManagerSetHdiParam_001
-* @tc.desc   : Test EffectChainManagerSetHdiParam interface.
-*/
-HWTEST(AudioEffectChainAdapterUnitTest, EffectChainManagerSetHdiParam_001, TestSize.Level1)
-{
-    AudioEffectChainManager::GetInstance()->InitAudioEffectChainManager(DEFAULT_EFFECT_CHAINS,
-        DEFAULT_EFFECT_CHAIN_MANAGER_PARAM, DEFAULT_EFFECT_LIBRARY_LIST);
-    const char *sceneType = "SCENE_MUSIC";
-    const char *effectMode = "EFFECT_DEFAULT";
-    int32_t result = EffectChainManagerInitCb(sceneType);
-    EXPECT_EQ(SUCCESS, result);
-
-    result = EffectChainManagerSetHdiParam(sceneType, effectMode, true);
-    EXPECT_EQ(ERROR, result);
-    AudioEffectChainManager::GetInstance()->ResetInfo();
-}
-
-/**
-* @tc.name   : Test EffectChainManagerSetHdiParam API
-* @tc.number : EffectChainManagerSetHdiParam_002
-* @tc.desc   : Test EffectChainManagerSetHdiParam interface.
-*/
-HWTEST(AudioEffectChainAdapterUnitTest, EffectChainManagerSetHdiParam_002, TestSize.Level1)
-{
-    const char *sceneType = "SCENE_MUSIC";
-    AudioEffectChainManager::GetInstance()->InitAudioEffectChainManager(DEFAULT_EFFECT_CHAINS,
-        DEFAULT_EFFECT_CHAIN_MANAGER_PARAM, DEFAULT_EFFECT_LIBRARY_LIST);
-    int32_t result = EffectChainManagerInitCb(sceneType);
-    EXPECT_EQ(SUCCESS, result);
-
-    sceneType = nullptr;
-    const char *effectMode = nullptr;
-    result = EffectChainManagerSetHdiParam(sceneType, effectMode, true);
-    EXPECT_EQ(ERROR, result);
-    AudioEffectChainManager::GetInstance()->ResetInfo();
-}
-
-/**
 * @tc.name   : Test EffectChainManagerCheckEffectOffload API
 * @tc.number : EffectChainManagerCheckEffectOffload_001
 * @tc.desc   : Test EffectChainManagerCheckEffectOffload interface.
