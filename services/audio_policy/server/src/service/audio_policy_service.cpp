@@ -8475,6 +8475,12 @@ int32_t  AudioPolicyService::LoadSplitModule(const std::string &splitArgs, const
     if (openRet != 0) {
         AUDIO_ERR_LOG("open fail, OpenPortAndInsertIOHandle ret: %{public}d", openRet);
     }
+    const sptr<IStandardAudioService> gsp = GetAudioServerProxy();
+    if (gsp != nullptr) {
+        std::string identity = IPCSkeleton::ResetCallingIdentity();
+        gsp->NotifyDeviceInfo(networkId, true);
+        IPCSkeleton::SetCallingIdentity(identity);
+    }
     return openRet;
 }
 
