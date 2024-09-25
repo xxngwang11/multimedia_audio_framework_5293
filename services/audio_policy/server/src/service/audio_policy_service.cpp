@@ -611,7 +611,7 @@ int32_t AudioPolicyService::SelectDealSafeVolume(AudioStreamType streamType, int
 {
     int32_t sVolumeLevel = volumeLevel;
     if (sVolumeLevel > audioPolicyManager_.GetSafeVolumeLevel() &&
-        GetStreamForVolumeMap(streamType) == STREAM_MUSIC) {
+        VolumeUtils::GetVolumeTypeFromStreamType(streamType) == STREAM_MUSIC) {
         switch (currentActiveDevice_.deviceType_) {
             case DEVICE_TYPE_BLUETOOTH_A2DP:
             case DEVICE_TYPE_BLUETOOTH_SCO:
