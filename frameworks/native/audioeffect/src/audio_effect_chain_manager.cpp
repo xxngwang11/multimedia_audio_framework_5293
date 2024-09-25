@@ -1475,17 +1475,5 @@ void AudioEffectChainManager::FindMaxSessionID(uint32_t &maxSessionID, std::stri
         }
     }
 }
-
-void AudioEffectChainManager::FindMaxSessionIDToSceneType(std:: &sceneType)
-{
-    std::string sceneType = "";
-    for (auto& scenePair : sceneTypeToSessionIDMap_) {
-        if (!sceneTypeToSpecialEffectSet_.count(scenePair.first) &&
-            std::find(priorSceneList_.begin(), priorSceneList_.end(), sceneType) == priorSceneList_.end()) {
-            std::set<std::string> &sessions = scenePair.second;
-            FindMaxSessionID(maxSessionID, sceneType, scenePair.first, sessions);
-        }
-    }
-}
 } // namespace AudioStandard
 } // namespace OHOS
