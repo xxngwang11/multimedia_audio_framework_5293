@@ -369,7 +369,8 @@ void RemoteFastAudioCapturerSourceInner::InitAttrs(struct AudioSampleAttributes 
     attrs.startThreshold = DEEP_BUFFER_CAPTURER_PERIOD_SIZE / (attrs.frameSize);
     attrs.stopThreshold = INT_32_MAX;
     attrs.silenceThreshold = attr_.bufferSize;
-    attrs.streamId = GenerateUniqueID(AUDIO_HDI_CAPTURE_ID_BASE, HDI_CAPTURE_OFFSET_REMOTE_FAST);
+    attrs.streamId = static_cast<int32_t>(GenerateUniqueID(AUDIO_HDI_CAPTURE_ID_BASE,
+        HDI_CAPTURE_OFFSET_REMOTE_FAST));
 }
 
 AudioFormat RemoteFastAudioCapturerSourceInner::ConvertToHdiFormat(HdiAdapterFormat format)
@@ -692,7 +693,8 @@ int32_t RemoteFastAudioCapturerSourceInner::SetInputRoute(DeviceType inputDevice
     sink.role = AudioPortRole::AUDIO_PORT_SINK_ROLE;
     sink.type = AudioPortType::AUDIO_PORT_MIX_TYPE;
     sink.ext.mix.moduleId = 0;
-    sink.ext.mix.streamId = GenerateUniqueID(AUDIO_HDI_CAPTURE_ID_BASE, HDI_CAPTURE_OFFSET_REMOTE_FAST);
+    sink.ext.mix.streamId = static_cast<int32_t>(GenerateUniqueID(AUDIO_HDI_CAPTURE_ID_BASE,
+        HDI_CAPTURE_OFFSET_REMOTE_FAST));
 
     AudioRoute route;
     route.sources.push_back(source);

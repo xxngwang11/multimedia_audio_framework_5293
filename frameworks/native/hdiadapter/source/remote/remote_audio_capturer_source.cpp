@@ -313,7 +313,7 @@ int32_t RemoteAudioCapturerSourceInner::CreateCapture(const struct AudioPort &ca
     struct AudioSampleAttributes param;
     param.type = AudioCategory::AUDIO_IN_MEDIA;
     param.period = deepBufferCapturePeriodSize;
-    param.streamId = GenerateUniqueID(AUDIO_HDI_CAPTURE_ID_BASE, HDI_CAPTURE_OFFSET_REMOTE);
+    param.streamId = static_cast<int32_t>(GenerateUniqueID(AUDIO_HDI_CAPTURE_ID_BASE, HDI_CAPTURE_OFFSET_REMOTE));
     param.isSignedData = true;
     param.stopThreshold = maxInt32;
     param.silenceThreshold = audioBufferSize;
@@ -605,7 +605,8 @@ int32_t RemoteAudioCapturerSourceInner::SetInputRoute(DeviceType inputDevice)
     sink.role = AudioPortRole::AUDIO_PORT_SINK_ROLE;
     sink.type = AudioPortType::AUDIO_PORT_MIX_TYPE;
     sink.ext.mix.moduleId = 0;
-    sink.ext.mix.streamId = GenerateUniqueID(AUDIO_HDI_CAPTURE_ID_BASE, HDI_CAPTURE_OFFSET_REMOTE);
+    sink.ext.mix.streamId = static_cast<int32_t>(GenerateUniqueID(AUDIO_HDI_CAPTURE_ID_BASE,
+        HDI_CAPTURE_OFFSET_REMOTE));
 
     AudioRoute route;
     route.sources.push_back(source);

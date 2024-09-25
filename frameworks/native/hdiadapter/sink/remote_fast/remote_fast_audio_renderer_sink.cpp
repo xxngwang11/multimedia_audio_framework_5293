@@ -439,7 +439,7 @@ void RemoteFastAudioRendererSinkInner::InitAttrs(struct AudioSampleAttributes &a
     attrs.channelCount = AUDIO_CHANNELCOUNT;
     attrs.sampleRate = AUDIO_SAMPLE_RATE_48K;
     attrs.interleaved = 0;
-    attrs.streamId = GenerateUniqueID(AUDIO_HDI_RENDER_ID_BASE, HDI_RENDER_OFFSET_REMOTE_FAST);
+    attrs.streamId = static_cast<int32_t>(GenerateUniqueID(AUDIO_HDI_RENDER_ID_BASE, HDI_RENDER_OFFSET_REMOTE_FAST));
     attrs.period = DEEP_BUFFER_RENDER_PERIOD_SIZE;
     attrs.isBigEndian = false;
     attrs.isSignedData = true;
