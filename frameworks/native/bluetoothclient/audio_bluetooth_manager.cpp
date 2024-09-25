@@ -290,8 +290,10 @@ int32_t AudioA2dpManager::Connect(const std::string &macAddress)
             macAddress.c_str());
         return SUCCESS;
     }
-    int32_t ret = a2dpInstance_->Connect(BluetoothRemoteDevice(macAddress));
+    BluetoothRemoteDevice virtualDevice = BluetoothRemoteDevice(macAddress);
+    int32_t ret = a2dpInstance_->Connect(virtualDevice);
     CHECK_AND_RETURN_RET_LOG(ret == 0, ERROR, "A2dp Connect Failed");
+    virtualDevice.SetVirtualAutoConnectType(CONN_REASON_MANUAL_VIRTUAL_CONNECT_PREEMPT_FLAG, 0);
     return SUCCESS;
 }
 
@@ -300,6 +302,9 @@ void AudioA2dpListener::OnConnectionStateChanged(const BluetoothRemoteDevice &de
     AUDIO_INFO_LOG("AudioA2dpListener OnConnectionStateChanged: state: %{public}d", state);
     // Record connection state and device for hdi start time to check
     AudioA2dpManager::SetConnectionState(state);
+    if (state == static_cast<int>(BTConnectState::CONNECTING)) {
+        MediaBluetoothDeviceManager::SetMediaStack(device, BluetoothDeviceAction::CONNECTING_ACTION);
+    }
     if (state == static_cast<int>(BTConnectState::CONNECTED)) {
         MediaBluetoothDeviceManager::SetMediaStack(device, BluetoothDeviceAction::CONNECT_ACTION);
     }
@@ -594,8 +599,10 @@ int32_t AudioHfpManager::Connect(const std::string &macAddress)
             macAddress.c_str());
         return SUCCESS;
     }
-    int32_t ret = hfpInstance_->Connect(BluetoothRemoteDevice(macAddress));
+    BluetoothRemoteDevice virtualDevice = BluetoothRemoteDevice(macAddress);
+    int32_t ret = hfpInstance_->Connect(virtualDevice);
     CHECK_AND_RETURN_RET_LOG(ret == 0, ERROR, "Hfp Connect Failed");
+    virtualDevice.SetVirtualAutoConnectType(CONN_REASON_MANUAL_VIRTUAL_CONNECT_PREEMPT_FLAG, 0);
     return SUCCESS;
 }
 
@@ -628,6 +635,9 @@ void AudioHfpListener::OnScoStateChanged(const BluetoothRemoteDevice &device, in
 void AudioHfpListener::OnConnectionStateChanged(const BluetoothRemoteDevice &device, int state, int cause)
 {
     AUDIO_INFO_LOG("AudioHfpListener::OnConnectionStateChanged: state: %{public}d", state);
+    if (state == static_cast<int>(BTConnectState::CONNECTING)) {
+        HfpBluetoothDeviceManager::SetHfpStack(device, BluetoothDeviceAction::CONNECTING_ACTION);
+    }
     if (state == static_cast<int>(BTConnectState::CONNECTED)) {
         HfpBluetoothDeviceManager::SetHfpStack(device, BluetoothDeviceAction::CONNECT_ACTION);
     }

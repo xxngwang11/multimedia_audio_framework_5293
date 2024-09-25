@@ -648,7 +648,7 @@ bool AudioAdapterManager::SetSinkMute(const std::string &sinkName, bool isMute, 
         } else if (sinkName.find("_out") != std::string::npos &&
             sinkName.find(LOCAL_NETWORK_ID) == std::string::npos) {
             audioVolume->SetSystemVolumeMute(volumeType, REMOTE_CLASS, isMute);
-        } else{
+        } else {
             AUDIO_ERR_LOG("unkown sink name %{public}s", sinkName.c_str());
         }
     }

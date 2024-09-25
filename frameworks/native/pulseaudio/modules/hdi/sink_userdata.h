@@ -116,6 +116,12 @@ struct Userdata {
         pa_atomic_t fadingFlagForPrimary; // 1：do fade in, 0: no need
         int32_t primaryFadingInDone;
         int32_t primarySinkInIndex;
+        bool speakerPaAllStreamVolumeZero;
+        bool onlyPrimarySpeakerPaLoading;
+        bool paHaveDisabled;
+        time_t speakerPaAllStreamStartVolZeroTime;
+        bool speakerPaHaveClosed;
+        time_t speakerPaClosedTime;
     } primary;
     struct {
         bool used;

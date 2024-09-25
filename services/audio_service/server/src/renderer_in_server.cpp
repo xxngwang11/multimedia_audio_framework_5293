@@ -1053,6 +1053,12 @@ int32_t RendererInServer::SetOffloadMode(int32_t state, bool isAppBack)
             dualToneStream_->UpdateMaxLength(350); // 350 for cover offload
         }
     }
+    // monitor
+    AudioVolumeType volumeType = VolumeUtils::GetVolumeTypeFromStreamType(processConfig_.streamType);
+    float volume = AudioVolume::GetInstance()->GetVolume(streamIndex_, volumeType, "offload");
+    AUDIO_DEBUG_LOG("sessionId %{public}u monitor volume:%{public}f [volumeType:%{public}d]",
+        streamIndex_, volume, volumeType);
+    AudioVolume::GetInstance()->Monitor(streamIndex_, true);
     return ret;
 }
 
@@ -1138,9 +1144,9 @@ int32_t RendererInServer::SetSilentModeAndMixWithOthers(bool on)
 {
     silentModeAndMixWithOthers_ = on;
     if (silentModeAndMixWithOthers_) {
-        AudioVolume::GetInstance()->SetStreamVolume(streamIndex_, 0.0f);
+        AudioVolume::GetInstance()->SetStreamVolumeMute(streamIndex_, true);
     } else {
-        AudioVolume::GetInstance()->SetStreamVolume(streamIndex_, 1.0f);
+        AudioVolume::GetInstance()->SetStreamVolumeMute(streamIndex_, false);
     }
     return SUCCESS;
 }
@@ -1167,9 +1173,9 @@ int32_t RendererInServer::SetClientVolume(bool isStreamVolumeChange, bool isMedi
 int32_t RendererInServer::SetMute(bool isMute)
 {
     if (isMute) {
-        AudioVolume::GetInstance()->SetStreamVolume(streamIndex_, 0.0f);
+        AudioVolume::GetInstance()->SetStreamVolumeMute(streamIndex_, true);
     } else {
-        AudioVolume::GetInstance()->SetStreamVolume(streamIndex_, 1.0f);
+        AudioVolume::GetInstance()->SetStreamVolumeMute(streamIndex_, false);
     }
     return SUCCESS;
 }

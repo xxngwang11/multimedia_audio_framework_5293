@@ -237,7 +237,7 @@ static void SetSinkVolumeBySinkName(pa_sink *s)
     }
 }
 
-static void UnSetSinkVolume(pa_sink *s)
+static void UnsetSinkVolume(pa_sink *s)
 {
     pa_assert(s);
     void *state = NULL;
@@ -286,7 +286,7 @@ static void ProcessRender(struct userdata *u, pa_usec_t now)
     }
 
     if (u->update_volume) {
-        UnSetSinkVolume(u->sink);
+        UnsetSinkVolume(u->sink);
     }
 }
 

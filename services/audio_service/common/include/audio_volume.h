@@ -40,6 +40,7 @@ public:
     void SetStreamVolume(uint32_t sessionId, float volume);
     void SetStreamVolumeDuckFactor(uint32_t sessionId, float duckFactor);
     void SetStreamVolumeLowPowerFactor(uint32_t sessionId, float lowPowerFactor);
+    void SetStreamVolumeMute(uint32_t sessionId, bool isMuted);
     void SetStreamVolumeFade(uint32_t sessionId, float fadeBegin, float fadeEnd);
     std::pair<float, float> GetStreamVolumeFade(uint32_t sessionId);
 
@@ -79,6 +80,7 @@ public:
     float volume_ = 1.0f;
     float duckFactor_ = 1.0f;
     float lowPowerFactor_ = 1.0f;
+    bool isMuted_ = false;
     float fadeBegin_ = 1.0f;
     float fadeEnd_ = 1.0f;
 

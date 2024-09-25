@@ -111,12 +111,6 @@ const char *DP_SINK_NAME = "DP_speaker";
 
 const int32_t WAIT_CLOSE_PA_OR_EFFECT_TIME = 4; // secs
 const int32_t MONITOR_CLOSE_PA_TIME_SEC = 5 * 60; // 5min
-bool g_speakerPaAllStreamVolumeZero = false;
-bool g_onlyPrimarySpeakerPaLoading = false;
-bool g_paHaveDisabled = false;
-time_t g_speakerPaAllStreamStartVolZeroTime = 0;
-bool g_speakerPaHaveClosed = false;
-time_t g_speakerPaClosedTime = 0;
 bool g_effectAllStreamVolumeZeroMap[SCENE_TYPE_NUM] = {false, false, false, false, false, false, false};
 bool g_effectHaveDisabledMap[SCENE_TYPE_NUM] = {false, false, false, false, false, false, false};
 time_t g_effectStartVolZeroTimeMap[SCENE_TYPE_NUM] = {0, 0, 0, 0, 0, 0, 0};
@@ -1254,8 +1248,6 @@ static unsigned SinkRenderPrimaryCluster(pa_sink *si, size_t *length, pa_mix_inf
 
             HandleFading(si, sinkIn, infoIn);
 
-            if (pa_safe_streq(pa_proplist_gets(sinkIn->proplist, "fadeoutPause"), "0")) {u->streamAvailable++;}
-
             infoIn++;
             n++;
             maxInfo--;
@@ -1676,64 +1668,65 @@ static char *CheckAndDealEffectZeroVolume(struct Userdata *u, time_t currentTime
 
 static void CheckOnlyPrimarySpeakerPaLoading(struct Userdata *u)
 {
-    pa_sink *s;
-    pa_core *c = u->core;
-    uint32_t idx;
-    PA_IDXSET_FOREACH(s, c->sinks, idx) {
-        bool isHdiSink = !strncmp(s->driver, "module_hdi_sink", 15); // 15 cmp length
-        if (isHdiSink && strcmp(s->name, "Speaker")) {
-            AUDIO_DEBUG_LOG("Have new routing:[%{public}s] on primary, dont close it.", s->name);
-            g_onlyPrimarySpeakerPaLoading = false;
-            g_speakerPaAllStreamVolumeZero = false;
-            g_speakerPaAllStreamStartVolZeroTime = 0;
-            break;
-        }
+    if (pa_atomic_load(&u->primary.isHDISinkStarted) == 1 && strcmp(u->sink->name, "Speaker")) {
+        AUDIO_DEBUG_LOG("Have new routing:[%{public}s] on primary, dont close it.", u->sink->name);
+        u->primary.onlyPrimarySpeakerPaLoading = false;
+        u->primary.speakerPaAllStreamVolumeZero = false;
+        u->primary.speakerPaAllStreamStartVolZeroTime = 0;
     }
 
     if (strcmp(GetDeviceClass(u->primary.sinkAdapter->deviceClass), "primary")) {
         AUDIO_DEBUG_LOG("Sink[%{public}s] -- no primary, dont close it.",
             GetDeviceClass(u->primary.sinkAdapter->deviceClass));
-        g_onlyPrimarySpeakerPaLoading = false;
-        g_speakerPaAllStreamVolumeZero = false;
-        g_speakerPaAllStreamStartVolZeroTime = 0;
+        u->primary.onlyPrimarySpeakerPaLoading = false;
+        u->primary.speakerPaAllStreamVolumeZero = false;
+        u->primary.speakerPaAllStreamStartVolZeroTime = 0;
     }
 
-    if (PA_SINK_IS_RUNNING(u->sink->thread_info.state) && !g_onlyPrimarySpeakerPaLoading && g_paHaveDisabled) {
+    if (u->offload.isHDISinkStarted || u->multiChannel.isHDISinkStarted) {
+        AUDIO_DEBUG_LOG("offload or multichannel started, dont close it.");
+        u->primary.onlyPrimarySpeakerPaLoading = false;
+        u->primary.speakerPaAllStreamVolumeZero = false;
+        u->primary.speakerPaAllStreamStartVolZeroTime = 0;
+    }
+
+    if (PA_SINK_IS_RUNNING(u->sink->thread_info.state) && !u->primary.onlyPrimarySpeakerPaLoading &&
+        u->primary.paHaveDisabled) {
         int32_t ret = u->primary.sinkAdapter->RendererSinkSetPaPower(u->primary.sinkAdapter, 1);
         AUDIO_INFO_LOG("sink running, open closed pa:[%{public}s] -- [%{public}s], ret:%{public}d", u->sink->name,
             (ret == 0 ? "success" : "failed"), ret);
-        g_paHaveDisabled = false;
-        g_speakerPaHaveClosed = false;
+        u->primary.paHaveDisabled = false;
+        u->primary.speakerPaHaveClosed = false;
     }
 }
 
 static void HandleClosePa(struct Userdata *u)
 {
-    if (!g_paHaveDisabled) {
+    if (!u->primary.paHaveDisabled) {
         int32_t ret = u->primary.sinkAdapter->RendererSinkSetPaPower(u->primary.sinkAdapter, 0);
         AUDIO_INFO_LOG("Speaker pa volume change to zero over [%{public}d]s, close %{public}s pa [%{public}s], "
             "ret:%{public}d", WAIT_CLOSE_PA_OR_EFFECT_TIME, u->sink->name, (ret == 0 ? "success" : "failed"), ret);
-        g_paHaveDisabled = true;
-        g_speakerPaAllStreamStartVolZeroTime = 0;
-        g_speakerPaHaveClosed = true;
-        time(&g_speakerPaClosedTime);
+        u->primary.paHaveDisabled = true;
+        u->primary.speakerPaAllStreamStartVolZeroTime = 0;
+        u->primary.speakerPaHaveClosed = true;
+        time(&u->primary.speakerPaClosedTime);
     }
 }
 
 static void HandleOpenPa(struct Userdata *u)
 {
-    if (g_paHaveDisabled) {
+    if (u->primary.paHaveDisabled) {
         int32_t ret = u->primary.sinkAdapter->RendererSinkSetPaPower(u->primary.sinkAdapter, 1);
         AUDIO_INFO_LOG("volume change to non zero, open closed pa:[%{public}s] -- [%{public}s], ret:%{public}d",
             u->sink->name, (ret == 0 ? "success" : "failed"), ret);
-        g_paHaveDisabled = false;
-        g_speakerPaHaveClosed = false;
+        u->primary.paHaveDisabled = false;
+        u->primary.speakerPaHaveClosed = false;
     }
 }
 
 static void CheckAndDealSpeakerPaZeroVolume(struct Userdata *u, time_t currentTime)
 {
-    if (!g_onlyPrimarySpeakerPaLoading) {
+    if (!u->primary.onlyPrimarySpeakerPaLoading) {
         AUDIO_DEBUG_LOG("Not only the speaker pa, dont deal speaker pa.");
         return;
     }
@@ -1752,34 +1745,63 @@ static void CheckAndDealSpeakerPaZeroVolume(struct Userdata *u, time_t currentTi
         float volume = GetCurVolume(sessionID, streamType, deviceClass);
         bool isZeroVolume = IsSameVolume(volume, 0.0f) || pa_safe_streq(clientVolumeIsZero, "true");
         if (!strcmp(u->sink->name, "Speaker") && !isZeroVolume) {
-            g_speakerPaAllStreamVolumeZero = false;
-            g_speakerPaAllStreamStartVolZeroTime = 0;
+            u->primary.speakerPaAllStreamVolumeZero = false;
+            u->primary.speakerPaAllStreamStartVolZeroTime = 0;
             break;
         }
     }
 
-    if (g_speakerPaAllStreamVolumeZero && !g_paHaveDisabled && (g_speakerPaAllStreamStartVolZeroTime == 0) &&
-        PA_SINK_IS_RUNNING(u->sink->thread_info.state)) {
+    if (u->primary.speakerPaAllStreamVolumeZero && !u->primary.paHaveDisabled &&
+        (u->primary.speakerPaAllStreamStartVolZeroTime == 0) && PA_SINK_IS_RUNNING(u->sink->thread_info.state)) {
         AUDIO_INFO_LOG("Timing begins, will close speaker after [%{public}d]s", WAIT_CLOSE_PA_OR_EFFECT_TIME);
-        time(&g_speakerPaAllStreamStartVolZeroTime);
+        time(&u->primary.speakerPaAllStreamStartVolZeroTime);
     }
-    if (g_speakerPaAllStreamVolumeZero && PA_SINK_IS_RUNNING(u->sink->thread_info.state) &&
-        difftime(currentTime, g_speakerPaAllStreamStartVolZeroTime) > WAIT_CLOSE_PA_OR_EFFECT_TIME) {
+    if (u->primary.speakerPaAllStreamVolumeZero && PA_SINK_IS_RUNNING(u->sink->thread_info.state) &&
+        difftime(currentTime, u->primary.speakerPaAllStreamStartVolZeroTime) > WAIT_CLOSE_PA_OR_EFFECT_TIME) {
         HandleClosePa(u);
     } else {
         HandleOpenPa(u);
     }
 
-    if (g_speakerPaHaveClosed && difftime(currentTime, g_speakerPaClosedTime) >= MONITOR_CLOSE_PA_TIME_SEC) {
-        time(&g_speakerPaClosedTime);
+    if (u->primary.speakerPaHaveClosed &&
+        difftime(currentTime, u->primary.speakerPaClosedTime) >= MONITOR_CLOSE_PA_TIME_SEC) {
+        time(&u->primary.speakerPaClosedTime);
         AUDIO_INFO_LOG("Speaker pa have closed [%{public}d]s.", MONITOR_CLOSE_PA_TIME_SEC);
     }
+}
+
+static void UpdateStreamAvailableMap(struct Userdata *u, const char *sceneType)
+{
+    if (u->streamAvailableMap == NULL) {
+        AUDIO_ERR_LOG("streamAvailableMap is null");
+        return;
+    }
+    uint32_t *num = (uint32_t *)pa_hashmap_get(u->streamAvailableMap, sceneType);
+    if (num == NULL) {
+        num = pa_xnew0(uint32_t, 1);
+        (*num) = 0;
+    }
+    int32_t fadeDirection = (u->streamAvailable != 0) && ((*num) == 0) ? 0 :
+                    (u->streamAvailable == 0 && (*num) != 0) ? 1 : -1;
+    int32_t outLength = u->bufferAttr->frameLen * u->bufferAttr->numChanOut * sizeof(float);
+    if (fadeDirection != -1) {
+        AUDIO_INFO_LOG("do %{public}s for MIXED DATA", fadeDirection ? "fade-out" : "fade-in");
+        DoFading(u->bufferAttr->bufOut, outLength, (uint32_t)SAMPLE_F32, (uint32_t)u->ss.channels, fadeDirection);
+    }
+    if (u->streamAvailable == 0 && (*num) == 0) {
+        memset_s(u->bufferAttr->bufOut, outLength, 0, outLength);
+    }
+
+    char *scene = strdup(sceneType);
+    (*num) = u->streamAvailable;
+    pa_hashmap_put(u->streamAvailableMap, scene, num);
 }
 
 static void PrimaryEffectProcess(struct Userdata *u, pa_memchunk *chunkIn, char *sinkSceneType)
 {
     AUTO_CTRACE("hdi_sink::EffectChainManagerProcess:%s", sinkSceneType);
     EffectChainManagerProcess(sinkSceneType, u->bufferAttr);
+    UpdateStreamAvailableMap(u, sinkSceneType);
     for (int32_t k = 0; k < u->bufferAttr->frameLen * u->bufferAttr->numChanOut; k++) {
         u->bufferAttr->tempBufOut[k] += u->bufferAttr->bufOut[k];
     }
@@ -1811,33 +1833,6 @@ static void UpdateSceneToCountMap(pa_hashmap *sceneMap)
             }
         }
     }
-}
-
-static void UpdateStreamAvailableMap(struct Userdata *u, const char *sceneType)
-{
-    if (u->streamAvailableMap == NULL) {
-        AUDIO_ERR_LOG("streamAvailableMap is null");
-        return;
-    }
-    uint32_t *num = (uint32_t *)pa_hashmap_get(u->streamAvailableMap, sceneType);
-    if (num == NULL) {
-        num = pa_xnew0(uint32_t, 1);
-        (*num) = 0;
-    }
-    int32_t fadeDirection = (u->streamAvailable != 0) && ((*num) == 0) ? 0 :
-                    (u->streamAvailable == 0 && (*num) != 0) ? 1 : -1;
-    int32_t outLength = u->bufferAttr->frameLen * u->bufferAttr->numChanOut * sizeof(float);
-    if (fadeDirection != -1) {
-        AUDIO_INFO_LOG("do %{public}s for MIXED DATA", fadeDirection ? "fade-out" : "fade-in");
-        DoFading(u->bufferAttr->tempBufOut, outLength, (uint32_t)SAMPLE_F32, (uint32_t)u->ss.channels, fadeDirection);
-    }
-    if (u->streamAvailable == 0 && (*num) == 0) {
-        memset_s(u->bufferAttr->tempBufOut, outLength, 0, outLength);
-    }
-
-    char *scene = strdup(sceneType);
-    (*num) = u->streamAvailable;
-    pa_hashmap_put(u->streamAvailableMap, scene, num);
 }
 
 static void ResetBufferAttr(struct Userdata *u)
@@ -1895,7 +1890,6 @@ static void SinkRenderPrimaryProcess(pa_sink *si, size_t length, pa_memchunk *ch
         u->bufferAttr->numChanIn = (int32_t)processChannels;
         u->bufferAttr->frameLen = frameLen / u->bufferAttr->numChanIn;
         PrimaryEffectProcess(u, chunkIn, sinkSceneType);
-        UpdateStreamAvailableMap(u, (char *)sceneType);
     }
     if (g_effectProcessFrameCount == PRINT_INTERVAL_FRAME_COUNT) { g_effectProcessFrameCount = 0; }
     CheckAndDealSpeakerPaZeroVolume(u, currentTime);
@@ -1958,7 +1952,7 @@ static void SetSinkVolumeByDeviceClass(pa_sink *s, const char *deviceClass)
     }
 }
 
-static void UnSetSinkVolume(pa_sink *s)
+static void UnsetSinkVolume(pa_sink *s)
 {
     pa_assert(s);
     void *state = NULL;
@@ -1984,9 +1978,10 @@ static void ProcessRenderUseTiming(struct Userdata *u, pa_usec_t now)
     // Change from pa_sink_render to pa_sink_render_full for alignment issue in 3516
 
     if (!strcmp(u->sink->name, DP_SINK_NAME)) {
-        SetSinkVolumeByDeviceClass(u->sink, GetDeviceClass(u->primary.sinkAdapter->deviceClass)); // update volume
+        // dp update volume
+        SetSinkVolumeByDeviceClass(u->sink, GetDeviceClass(u->primary.sinkAdapter->deviceClass));
         pa_sink_render_full(u->sink, u->sink->thread_info.max_request, &chunk);
-        UnSetSinkVolume(u->sink); // reset volume 1.0f
+        UnsetSinkVolume(u->sink); // reset volume 1.0f
     } else {
         SinkRenderPrimary(u->sink, u->sink->thread_info.max_request, &chunk);
     }
@@ -2600,7 +2595,7 @@ static void PaInputStateChangeCbOffload(struct Userdata *u, pa_sink_input *i, pa
     } else if (stopping) {
         u->offload.sinkAdapter->RendererSinkFlush(u->offload.sinkAdapter);
         OffloadReset(u);
-        g_speakerPaAllStreamStartVolZeroTime = 0;
+        u->primary.speakerPaAllStreamStartVolZeroTime = 0;
     }
 }
 
@@ -2765,7 +2760,7 @@ static void PaInputStateChangeCbMultiChannel(struct Userdata *u, pa_sink_input *
         AUDIO_INFO_LOG("PaInputStateChangeCbMultiChannel, deinit mch renderer");
         u->multiChannel.isHDISinkStarted = false;
         u->multiChannel.isHDISinkInited = false;
-        g_speakerPaAllStreamStartVolZeroTime = 0;
+        u->primary.speakerPaAllStreamStartVolZeroTime = 0;
     } else if (corking) {
         u->multiChannel.sinkAdapter->RendererSinkStop(u->multiChannel.sinkAdapter);
         u->multiChannel.sinkAdapter->RendererSinkDeInit(u->multiChannel.sinkAdapter);
@@ -3185,8 +3180,8 @@ static void ThreadFuncRendererTimerProcessData(struct Userdata *u)
         logCnt = 0;
     }
 
-    g_onlyPrimarySpeakerPaLoading = true;
-    g_speakerPaAllStreamVolumeZero = true;
+    u->primary.onlyPrimarySpeakerPaLoading = true;
+    u->primary.speakerPaAllStreamVolumeZero = true;
     CheckOnlyPrimarySpeakerPaLoading(u);
     if (!strcmp(u->sink->name, MCH_SINK_NAME)) {
         ProcessMCHData(u);
@@ -3634,7 +3629,7 @@ static void OffloadSinkStateChangeCb(pa_sink *sink, pa_sink_state_t newState)
             u->offload.sinkAdapter->RendererSinkDeInit(u->offload.sinkAdapter);
             AUDIO_INFO_LOG("DeInited Offload HDI renderer");
         }
-        g_speakerPaAllStreamStartVolZeroTime = 0;
+        u->primary.speakerPaAllStreamStartVolZeroTime = 0;
     }
 }
 
@@ -4097,7 +4092,7 @@ static int32_t PaHdiSinkNewInitUserDataAndSink(pa_module *m, pa_modargs *ma, con
         pa_xfree, pa_xfree);
     u->streamAvailableMap = pa_hashmap_new_full(pa_idxset_string_hash_func, pa_idxset_string_compare_func,
         pa_xfree, pa_xfree);
-    
+
     char *sceneType = strdup("EFFECT_NONE");
     uint32_t *num = NULL;
     num = pa_xnew0(uint32_t, 1);

@@ -12,6 +12,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#ifndef LOG_TAG
+#define LOG_TAG "AudioConcurrencyService"
+#endif
+
 #include "audio_concurrency_service.h"
 #include "audio_concurrency_state_listener_proxy.h"
 
