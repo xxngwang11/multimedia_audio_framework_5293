@@ -34,6 +34,8 @@ void SetStreamVolumeFade(uint32_t sessionId, float fadeBegin, float fadeEnd);
 
 bool IsSameVolume(float volumeA, float volumeB);
 
+void MonitorVolume(uint32_t sessionId, bool isOutput);
+
 #ifdef __cplusplus
 }
 #endif

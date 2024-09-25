@@ -1177,6 +1177,7 @@ static void ProcessAudioVolume(pa_sink_input *sinkIn, size_t length, pa_memchunk
             sessionIDStr, length, volumeBeg, volumeEnd, fadeBeg, fadeEnd);
         if (volumeBeg != volumeEnd) {
             SetPreVolume(sessionID, volumeEnd);
+            MonitorVolume(sessionID, true);
         }
         if (fadeBeg != fadeEnd) {
             SetStreamVolumeFade(sessionID, fadeEnd, fadeEnd);
@@ -2586,8 +2587,7 @@ static void ResetVolumeBySinkInputState(pa_sink_input *i, pa_sink_input_state_t 
 {
     pa_assert(i);
     const bool corking = i->thread_info.state == PA_SINK_INPUT_RUNNING && state == PA_SINK_INPUT_CORKED;
-    const bool stopping = state == PA_SINK_INPUT_UNLINKED;
-    if (corking || stopping) {
+    if (corking) {
         const char *sessionIDStr = safeProplistGets(i->proplist, "stream.sessionID", "NULL");
         uint32_t sessionID = sessionIDStr != NULL ? atoi(sessionIDStr) : 0;
         SetPreVolume(sessionID, 0.0f);

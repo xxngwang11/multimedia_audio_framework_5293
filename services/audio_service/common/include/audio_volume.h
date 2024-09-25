@@ -35,7 +35,7 @@ public:
     void SetHistoryVolume(uint32_t sessionId, float volume);
 
     // stream volume
-    void AddStreamVolume(uint32_t sessionId);
+    void AddStreamVolume(uint32_t sessionId, int32_t streamType, int32_t streamUsage, int32_t uid, int32_t pid);
     void RemoveStreamVolume(uint32_t sessionId);
     void SetStreamVolume(uint32_t sessionId, float volume);
     void SetStreamVolumeDuckFactor(uint32_t sessionId, float duckFactor);
@@ -52,6 +52,7 @@ public:
     int32_t ConvertStreamTypeStrToInt(const std::string &streamType);
     bool IsSameVolume(float x, float y);
     void Dump(std::string &dumpString);
+    void Monitor(uint32_t sessionId, bool isOutput);
 
 private:
     AudioVolume();
@@ -60,13 +61,19 @@ private:
     std::unordered_map<uint32_t, StreamVolume> streamVolume_ {};
     std::unordered_map<std::string, SystemVolume> systemVolume_ {};
     std::unordered_map<uint32_t, float> historyVolume_ {};
+    std::unordered_map<uint32_t, std::pair<float, int32_t>> monitorVolume_ {};
 };
 
 class StreamVolume {
 public:
-    StreamVolume(uint32_t sessionId) : sessionId_(sessionId) {};
+    StreamVolume(uint32_t sessionId, int32_t streamType, int32_t streamUsage, int32_t uid, int32_t pid)
+        : sessionId_(sessionId), streamType_(streamType), streamUsage_(streamUsage), appUid_(uid), appPid_(pid) {};
     ~StreamVolume() = default;
     uint32_t GetSessionId() {return sessionId_;};
+    int32_t GetStreamType() {return streamType_;};
+    int32_t GetStreamUsage() {return streamUsage_;};
+    int32_t GetAppUid() {return appUid_;};
+    int32_t GetAppPid() {return appPid_;};
 
 public:
     float volume_ = 1.0f;
@@ -77,6 +84,10 @@ public:
 
 private:
     uint32_t sessionId_ = 0;
+    int32_t streamType_ = 0;
+    int32_t streamUsage_ = 0;
+    int32_t appUid_ = 0;
+    int32_t appPid_ = 0;
 };
 
 class SystemVolume {

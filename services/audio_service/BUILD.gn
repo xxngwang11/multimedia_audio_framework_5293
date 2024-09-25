@@ -77,6 +77,8 @@ ohos_shared_library("audio_common") {
     "hilog:libhilog",
     "hisysevent:libhisysevent",
     "ipc:ipc_single",
+    "media_foundation:media_monitor_client",
+    "media_foundation:media_monitor_common",
   ]
 
   if (sonic_enable == true) {

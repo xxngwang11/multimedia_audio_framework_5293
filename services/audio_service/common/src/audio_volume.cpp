@@ -22,6 +22,8 @@
 #include "audio_service_log.h"
 #include "audio_utils.h"
 #include "audio_stream_info.h"
+#include "media_monitor_manager.h"
+#include "event_bean.h"
 
 namespace OHOS {
 namespace AudioStandard {
@@ -67,6 +69,7 @@ AudioVolume::~AudioVolume()
     streamVolume_.clear();
     systemVolume_.clear();
     historyVolume_.clear();
+    monitorVolume_.clear();
 }
 
 float AudioVolume::GetVolume(uint32_t sessionId, int32_t volumeType, const std::string &deviceClass)
@@ -83,10 +86,12 @@ float AudioVolume::GetVolume(uint32_t sessionId, int32_t volumeType, const std::
             sessionId, streamVolume_.size());
     }
 
+    int32_t volumeLevel = 0;
     float volumeSystem = 1.0f;
     std::string key = std::to_string(volumeType) + deviceClass;
     auto itSV = systemVolume_.find(key);
     if (itSV != systemVolume_.end()) {
+        volumeLevel = itSV->second.volumeLevel_;
         volumeSystem = itSV->second.isMuted_ ? 0.0f : itSV->second.volume_;
         AUDIO_DEBUG_LOG("system volume, volumeType:%{public}d, deviceClass:%{public}s,"
             " volume:%{public}f, isMuted:%{public}d, systemVolumeSize:%{public}zu",
@@ -95,7 +100,11 @@ float AudioVolume::GetVolume(uint32_t sessionId, int32_t volumeType, const std::
         AUDIO_ERR_LOG("system volume not exist, volumeType:%{public}d, deviceClass:%{public}s,"
             " systemVolumeSize:%{public}zu", volumeType, deviceClass.c_str(), systemVolume_.size());
     }
-    return volumeStream * volumeSystem;
+    float volumeFloat = volumeStream * volumeSystem;
+    if (monitorVolume_.find(sessionId) != monitorVolume_.end()) {
+        monitorVolume_[sessionId] = {volumeFloat, volumeLevel};
+    }
+    return volumeFloat;
 }
 
 float AudioVolume::GetHistoryVolume(uint32_t sessionId)
@@ -109,15 +118,22 @@ float AudioVolume::GetHistoryVolume(uint32_t sessionId)
 
 void AudioVolume::SetHistoryVolume(uint32_t sessionId, float volume)
 {
-    historyVolume_[sessionId] = volume;
+    AUDIO_INFO_LOG("history volume, sessionId:%{public}u, volume:%{public}f", sessionId, volume);
+    auto it = historyVolume_.find(sessionId);
+    if (it != historyVolume_.end()) {
+        it->second = volume;
+    }
 }
 
-void AudioVolume::AddStreamVolume(uint32_t sessionId)
+void AudioVolume::AddStreamVolume(uint32_t sessionId, int32_t streamType, int32_t streamUsage,
+    int32_t uid, int32_t pid)
 {
     AUDIO_INFO_LOG("stream volume, sessionId:%{public}u", sessionId);
     auto it = streamVolume_.find(sessionId);
     if (it == streamVolume_.end()) {
-        streamVolume_.insert(std::make_pair(sessionId, StreamVolume(sessionId)));
+        streamVolume_.insert(std::make_pair(sessionId, StreamVolume(sessionId, streamType, streamUsage, uid, pid)));
+        historyVolume_.insert(sessionId, 0.0f);
+        monitorVolume_.insert(std::make_pair(sessionId, std::make_pair(0.0f, 0)));
     } else {
         AUDIO_ERR_LOG("stream volume already exist, sessionId:%{public}u", sessionId);
     }
@@ -135,6 +151,10 @@ void AudioVolume::RemoveStreamVolume(uint32_t sessionId)
     auto itHistory = historyVolume_.find(sessionId);
     if (itHistory != historyVolume_.end()) {
         historyVolume_.erase(sessionId);
+    }
+    auto itMonitor = monitorVolume_.find(sessionId);
+    if (itMonitor != monitorVolume_.end()) {
+        monitorVolume_.erase(sessionId);
     }
 }
 
@@ -291,14 +311,46 @@ void AudioVolume::Dump(std::string &dumpString)
     std::sort(streamVolumeList.begin(), streamVolumeList.end(), [](StreamVolume &a, StreamVolume &b) {
         return a.GetSessionId() < b.GetSessionId();
     });
-    AppendFormat(dumpString, "\n  - audio stream volume size: %zu\n", streamVolumeList.size());
+    AppendFormat(dumpString, "\n  - audio stream volume size: %zu, his volume size: %zu, mon volume size: %zu\n",
+        streamVolumeList.size(), historyVolume_.size(), monitorVolume_.size());
     for (auto &streamVolume : streamVolumeList) {
+        auto monVol = monitorVolume_.find(streamVolume.GetSessionId());
         AppendFormat(dumpString, "  sessionId: %u ", streamVolume.GetSessionId());
-        AppendFormat(dumpString, "  volFloat: %f ", streamVolume.volume_);
+        AppendFormat(dumpString, "  streamType: %d ", streamVolume.GetStreamType());
+        AppendFormat(dumpString, "  streamUsage: %d ", streamVolume.GetStreamUsage());
+        AppendFormat(dumpString, "  appUid: %d ", streamVolume.GetAppUid());
+        AppendFormat(dumpString, "  appPid: %d ", streamVolume.GetAppPid());
+        AppendFormat(dumpString, "  volume: %f ", monVol != monitorVolume_.end() ? monVol->second.first : 0.0f);
+        AppendFormat(dumpString, "  volumeLevel: %d ",  monVol != monitorVolume_.end() ? monVol->second.second : 0);
+        AppendFormat(dumpString, "  volFactor: %f ", streamVolume.volume_);
         AppendFormat(dumpString, "  duckFactor: %f ", streamVolume.duckFactor_);
-        AppendFormat(dumpString, "  lowpowerFactor: %f ", streamVolume.lowPowerFactor_);
+        AppendFormat(dumpString, "  powerFactor: %f ", streamVolume.lowPowerFactor_);
         AppendFormat(dumpString, "  fadeBegin: %f ", streamVolume.fadeBegin_);
         AppendFormat(dumpString, "  fadeEnd: %f \n", streamVolume.fadeEnd_);
+    }
+}
+
+void AudioVolume::Monitor(uint32_t sessionId, bool isOutput)
+{
+    auto streamVolume = streamVolume_.find(sessionId);
+    if (streamVolume != streamVolume_.end()) {
+        auto monVol = monitorVolume_.find(sessionId);
+        std::shared_ptr<Media::MediaMonitor::EventBean> bean = std::make_shared<Media::MediaMonitor::EventBean>(
+            Media::MediaMonitor::AUDIO, Media::MediaMonitor::VOLUME_CHANGE,
+            Media::MediaMonitor::BEHAVIOR_EVENT);
+        bean->Add("ISOUTPUT", isOutput ? 1 : 0);
+        bean->Add("STREAMID", static_cast<int32_t>(sessionID));
+        bean->Add("APP_UID", streamVolume->second.GetAppUid());
+        bean->Add("APP_PID", streamVolume->second.GetAppPid());
+        bean->Add("STREAMTYPE", streamVolume->second.GetStreamType());
+        bean->Add("STREAM_TYPE", streamVolume->second.GetStreamUsage());
+        bean->Add("VOLUME", monVol != monitorVolume_.end() ? monVol->second.first : 0.0f);
+        bean->Add("SYSVOLUME", monVol != monitorVolume_.end() ? monVol->second.second : 0);
+        bean->Add("VOLUMEFACTOR", volumeFactor);
+        bean->Add("POWERVOLUMEFACTOR", powerVolumeFactor);
+        Media::MediaMonitor::MediaMonitorManager::GetInstance().WriteLogMsg(bean);
+    } else {
+        AUDIO_ERR_LOG("stream volume not exist, sessionId:%{public}u", sessionId);
     }
 }
 } // namespace AudioStandard
@@ -343,6 +395,11 @@ void SetStreamVolumeFade(uint32_t sessionId, float fadeBegin, float fadeEnd)
 bool IsSameVolume(float x, float y)
 {
     return AudioVolume::GetInstance()->IsSameVolume(x, y);
+}
+
+void MonitorVolume(uint32_t sessionId, bool isOutput)
+{
+    AudioVolume::GetInstance()->Monitor(sessionId, isOutput);
 }
 #ifdef __cplusplus
 }
