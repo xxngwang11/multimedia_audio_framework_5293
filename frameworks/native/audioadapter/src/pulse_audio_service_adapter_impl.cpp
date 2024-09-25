@@ -26,7 +26,7 @@
 #include <thread>
 
 #include "audio_errors.h"
-#include "audio_common_log.h"
+#include "audio_pulseaudio_log.h"
 #include "audio_info.h"
 #include "audio_utils.h"
 #include "hisysevent.h"
@@ -153,7 +153,7 @@ bool PulseAudioServiceAdapterImpl::ConnectToPulseAudio()
 
     CHECK_AND_RETURN_RET_LOG(mContext != nullptr, false, "creating pa context failed");
 
-    pa_context_set_state_callback(mContext,  PulseAudioServiceAdapterImpl::PaContextStateCb, this);
+    pa_context_set_state_callback(mContext, PulseAudioServiceAdapterImpl::PaContextStateCb, this);
     if (pa_context_connect(mContext, nullptr, PA_CONTEXT_NOFAIL, nullptr) < 0) {
         if (pa_context_errno(mContext) == PA_ERR_INVALID) {
             AUDIO_ERR_LOG("pa context connect failed: %{public}s",
@@ -885,7 +885,6 @@ void PulseAudioServiceAdapterImpl::ProcessSourceOutputEvent(pa_context *c, pa_su
     PulseAudioServiceAdapterImpl *thiz = reinterpret_cast<PulseAudioServiceAdapterImpl*>(userdata);
     userData->thiz = thiz;
     if ((t & PA_SUBSCRIPTION_EVENT_TYPE_MASK) == PA_SUBSCRIPTION_EVENT_NEW) {
-        PaLockGuard lock(thiz->mMainLoop);
         pa_operation *operation = pa_context_get_source_output_info(c, idx,
             PulseAudioServiceAdapterImpl::PaGetSourceOutputNoSignalCb, reinterpret_cast<void*>(userData.get()));
         if (operation == nullptr) {

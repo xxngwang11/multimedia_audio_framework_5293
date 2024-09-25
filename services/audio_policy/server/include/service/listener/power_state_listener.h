@@ -54,10 +54,11 @@ public:
     virtual ~PowerStateListener() {}
     void OnSyncSleep(bool OnForceSleep) override;
     void OnSyncWakeup(bool OnForceSleep) override;
+    void ControlAudioFocus(bool applyFocus);
 
 private:
-    void ControlAudioFocus(bool applyFocus);
     sptr<AudioPolicyServer> audioPolicyServer_;
+    bool isAudioFocusApplied_ {false};
 };
  
 class SyncHibernateListenerStub : public IRemoteStub<ISyncHibernateCallback> {

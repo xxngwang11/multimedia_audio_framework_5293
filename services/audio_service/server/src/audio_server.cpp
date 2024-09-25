@@ -44,6 +44,8 @@
 #include "audio_manager_listener_proxy.h"
 #include "audio_service.h"
 #include "audio_schedule.h"
+#include "audio_info.h"
+#include "audio_utils.h"
 #include "i_audio_capturer_source.h"
 #include "i_audio_renderer_sink.h"
 #include "audio_renderer_sink.h"
@@ -1217,7 +1219,7 @@ int32_t AudioServer::UpdateActiveDevicesRoute(std::vector<std::pair<DeviceType, 
 
 void AudioServer::SetAudioMonoState(bool audioMono)
 {
-    AUDIO_DEBUG_LOG("audioMono = %{public}s", audioMono? "true": "false");
+    AUDIO_INFO_LOG("AudioMonoState = [%{public}s]", audioMono ? "true": "false");
     int32_t callingUid = IPCSkeleton::GetCallingUid();
     CHECK_AND_RETURN_LOG(PermissionUtil::VerifyIsAudio(), "refused for %{public}d", callingUid);
     // Set mono for audio_renderer_sink (primary)
@@ -1263,11 +1265,11 @@ void AudioServer::SetAudioMonoState(bool audioMono)
 
 void AudioServer::SetAudioBalanceValue(float audioBalance)
 {
+    AUDIO_INFO_LOG("AudioBalanceValue = [%{public}f]", audioBalance);
     int32_t callingUid = IPCSkeleton::GetCallingUid();
     CHECK_AND_RETURN_LOG(PermissionUtil::VerifyIsAudio(), "refused for %{public}d", callingUid);
     CHECK_AND_RETURN_LOG(audioBalance >= -1.0f && audioBalance <= 1.0f,
         "audioBalance value %{public}f is out of range [-1.0, 1.0]", audioBalance);
-    AUDIO_DEBUG_LOG("audioBalance = %{public}f", audioBalance);
 
     // Set balance for audio_renderer_sink (primary)
     IAudioRendererSink *audioRendererSinkInstance = IAudioRendererSink::GetInstance("primary", "");
@@ -1378,12 +1380,17 @@ void AudioServer::ResetRecordConfig(AudioProcessConfig &config)
     if (config.capturerInfo.sourceType == SOURCE_TYPE_PLAYBACK_CAPTURE) {
         config.isInnerCapturer = true;
         config.innerCapMode = LEGACY_INNER_CAP;
-        if (config.callerUid == MEDIA_SERVICE_UID) {
+        if (PermissionUtil::VerifyPermission(CAPTURE_PLAYBACK_PERMISSION, IPCSkeleton::GetCallingTokenID())) {
+            AUDIO_INFO_LOG("CAPTURE_PLAYBACK permission granted");
+            config.innerCapMode = MODERN_INNER_CAP;
+        } else if (config.callerUid == MEDIA_SERVICE_UID || config.callerUid == VASSISTANT_UID) {
             config.innerCapMode = MODERN_INNER_CAP;
         } else if (GetHapBuildApiVersion(config.callerUid) >= MODERN_INNER_API_VERSION) { // check build api-version
             config.innerCapMode = LEGACY_MUTE_CAP;
         }
+        AUDIO_INFO_LOG("callerUid %{public}d, innerCapMode %{public}d", config.callerUid, config.innerCapMode);
     } else {
+        AUDIO_INFO_LOG("CAPTURE_PLAYBACK permission denied");
         config.isInnerCapturer = false;
     }
 #ifdef AUDIO_BUILD_VARIANT_ROOT

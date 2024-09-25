@@ -101,14 +101,18 @@ void PowerStateListener::ControlAudioFocus(bool applyFocus)
     PowerListerMethods::InitAudioInterruptInfo(audioInterrupt);
 
     int32_t result = -1;
-    if (applyFocus) {
+    if (applyFocus == true && isAudioFocusApplied_ == false) {
         result = audioPolicyServer_->ActivateAudioInterrupt(audioInterrupt);
-        if (result != SUCCESS) {
+        if (result == SUCCESS) {
+            isAudioFocusApplied_ = true;
+        } else {
             AUDIO_WARNING_LOG("Activate audio interrupt failed, err = %{public}d", result);
         }
-    } else {
+    } else if (applyFocus == false && isAudioFocusApplied_ == true) {
         result = audioPolicyServer_->DeactivateAudioInterrupt(audioInterrupt);
-        if (result != SUCCESS) {
+        if (result == SUCCESS) {
+            isAudioFocusApplied_ = false;
+        } else {
             AUDIO_WARNING_LOG("Deactivate audio interrupt failed, err = %{public}d", result);
         }
     }

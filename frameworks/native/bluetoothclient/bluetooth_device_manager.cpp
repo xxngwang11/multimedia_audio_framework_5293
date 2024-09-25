@@ -209,6 +209,7 @@ void MediaBluetoothDeviceManager::HandleConnectDevice(const BluetoothRemoteDevic
     AudioDeviceDescriptor desc;
     desc.deviceCategory_ = bluetoothCategory;
     switch (bluetoothCategory) {
+        case BT_GLASSES:
         case BT_HEADPHONE:
             if (IsBTWearDetectionEnable(device)) {
                 AddDeviceInConfigVector(device, negativeDevices_);
@@ -216,9 +217,6 @@ void MediaBluetoothDeviceManager::HandleConnectDevice(const BluetoothRemoteDevic
             } else {
                 AddDeviceInConfigVector(device, privacyDevices_);
             }
-            break;
-        case BT_GLASSES:
-            AddDeviceInConfigVector(device, privacyDevices_);
             break;
         case BT_SOUNDBOX:
         case BT_CAR:

@@ -402,7 +402,7 @@ static int PaSetSourceProperties(pa_module *m, pa_modargs *ma, const pa_sample_s
         return -1;
     }
 
-    u->source = pa_source_new(m->core, &data, PA_SOURCE_HARDWARE | PA_SOURCE_LATENCY);
+    u->source = pa_source_new(m->core, &data, PA_SOURCE_HARDWARE | PA_SOURCE_LATENCY | PA_SOURCE_DYNAMIC_LATENCY);
     pa_source_new_data_done(&data);
 
     if (!u->source) {

@@ -116,6 +116,7 @@ RendererInClientInner::~RendererInClientInner()
         runnerReleased_ = true;
         callbackHandler_ = nullptr;
     }
+    UnregisterSpatializationStateEventListener(spatializationRegisteredSessionID_);
     AUDIO_INFO_LOG("[%{public}s] volume data counts: %{public}" PRId64, logUtilsTag_.c_str(), volumeDataCount_);
 }
 
