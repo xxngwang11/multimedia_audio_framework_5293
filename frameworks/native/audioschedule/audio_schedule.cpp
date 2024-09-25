@@ -12,6 +12,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#ifndef LOG_TAG
+#define LOG_TAG "AudioSchedule"
+#endif
 
 #include "audio_schedule.h"
 #include "audio_schedule_guard.h"
