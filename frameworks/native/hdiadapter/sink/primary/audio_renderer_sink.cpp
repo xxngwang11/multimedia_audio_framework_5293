@@ -594,7 +594,7 @@ void InitAttrs(struct AudioSampleAttributes &attrs)
     attrs.channelCount = AUDIO_CHANNELCOUNT;
     attrs.sampleRate = AUDIO_SAMPLE_RATE_48K;
     attrs.interleaved = true;
-    attrs.streamId = GenerateUniqueID(AUDIO_HDI_RENDER_ID_BASE, HDI_RENDER_OFFSET_PRIMARY);
+    attrs.streamId = static_cast<int32_t>(GenerateUniqueID(AUDIO_HDI_RENDER_ID_BASE, HDI_RENDER_OFFSET_PRIMARY));
     attrs.type = AUDIO_IN_MEDIA;
     attrs.period = DEEP_BUFFER_RENDER_PERIOD_SIZE;
     attrs.isBigEndian = false;
@@ -684,10 +684,10 @@ int32_t AudioRendererSinkInner::CreateRender(const struct AudioPort &renderPort)
         param.type = AUDIO_DP;
     } else if (halName_ == DIRECT_HAL_NAME) {
         param.type = AUDIO_DIRECT;
-        param.streamId = GenerateUniqueID(AUDIO_HDI_RENDER_ID_BASE, HDI_RENDER_OFFSET_DIRECT);
+        param.streamId = static_cast<int32_t>(GenerateUniqueID(AUDIO_HDI_RENDER_ID_BASE, HDI_RENDER_OFFSET_DIRECT));
     } else if (halName_ == VOIP_HAL_NAME) {
         param.type = AUDIO_IN_COMMUNICATION;
-        param.streamId = GenerateUniqueID(AUDIO_HDI_RENDER_ID_BASE, HDI_RENDER_OFFSET_VOIP);
+        param.streamId = static_cast<int32_t>(GenerateUniqueID(AUDIO_HDI_RENDER_ID_BASE, HDI_RENDER_OFFSET_VOIP));
     }
     param.format = ConvertToHdiFormat(attr_.format);
     param.frameSize = PcmFormatToBits(param.format) * param.channelCount / PCM_8_BIT;
@@ -1065,24 +1065,22 @@ int32_t AudioRendererSinkInner::SetOutputRoutes(std::vector<std::pair<DeviceType
         std::to_string(outputDevice));
     currentActiveDevice_ = outputDevice;
     currentDevicesSize_ = static_cast<int32_t>(outputDevices.size());
-    int32_t ret = SetAudioRouteInfoForEnhanceChain(currentActiveDevice_);
-    if (ret != SUCCESS) {
-        AUDIO_WARNING_LOG("SetAudioRouteInfoForEnhanceChain failed");
-    }
+    SetAudioRouteInfoForEnhanceChain(currentActiveDevice_);
 
     AudioRouteNode source = {};
     source.portId = static_cast<int32_t>(0);
     source.role = AUDIO_PORT_SOURCE_ROLE;
     source.type = AUDIO_PORT_MIX_TYPE;
     source.ext.mix.moduleId = static_cast<int32_t>(0);
-    source.ext.mix.streamId = GenerateUniqueID(AUDIO_HDI_RENDER_ID_BASE, HDI_RENDER_OFFSET_PRIMARY);
+    source.ext.mix.streamId = static_cast<int32_t>(
+        GenerateUniqueID(AUDIO_HDI_RENDER_ID_BASE, HDI_RENDER_OFFSET_PRIMARY));
     source.ext.device.desc = (char *)"";
 
     int32_t sinksSize = static_cast<int32_t>(outputDevices.size());
     AudioRouteNode* sinks = new AudioRouteNode[sinksSize];
 
     for (size_t i = 0; i < outputDevices.size(); i++) {
-        ret = SetOutputPortPin(outputDevices[i].first, sinks[i]);
+        int32_t ret = SetOutputPortPin(outputDevices[i].first, sinks[i]);
         if (ret != SUCCESS) {
             delete [] sinks;
             AUDIO_ERR_LOG("SetOutputRoutes FAILED: %{public}d", ret);
@@ -1104,12 +1102,12 @@ int32_t AudioRendererSinkInner::SetOutputRoutes(std::vector<std::pair<DeviceType
     route.sinks = sinks;
     route.sinksLen = static_cast<uint32_t>(sinksSize);
 
-    ret = SetAudioRoute(outputDevice, route);
+    int32_t result = SetAudioRoute(outputDevice, route);
     if (sinks != nullptr) {
         delete [] sinks;
         sinks = nullptr;
     }
-    return ret;
+    return result;
 }
 
 int32_t AudioRendererSinkInner::SetAudioScene(AudioScene audioScene, std::vector<DeviceType> &activeDevices)
