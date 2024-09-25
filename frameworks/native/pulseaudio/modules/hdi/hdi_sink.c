@@ -2896,16 +2896,6 @@ static bool POSSIBLY_UNUSED ThreadFuncRendererTimerMultiChannelFlagJudge(struct 
     return flag;
 }
 
-static int32_t GetSinkTypeNum(const char *sinkSceneType)
-{
-    for (int32_t i = 0; i < SCENE_TYPE_NUM; i++) {
-        if (pa_safe_streq(sinkSceneType, SCENE_TYPE_SET[i])) {
-            return i;
-        }
-    }
-    return -1;
-}
-
 static void ProcessNormalData(struct Userdata *u)
 {
     AUTO_CTRACE("ProcessNormalData");

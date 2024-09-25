@@ -54,7 +54,6 @@ const uint32_t BASE_TEN = 10;
 const std::string DEFAULT_DEVICE_SINK = "Speaker";
 const std::string BLUETOOTH_DEVICE_SINK = "Bt_Speaker";
 const uint32_t SIZE_OF_SPATIALIZATION_STATE = 2;
-const uint32_t HDI_ROOM_MODE_INDEX_TWO = 2;
 const uint32_t MAX_UINT_VOLUME_NUM = 10000;
 const uint32_t MAX_UINT_DSP_VOLUME = 65535;
 const std::string DEFAULT_SCENE_TYPE = "SCENE_DEFAULT";
