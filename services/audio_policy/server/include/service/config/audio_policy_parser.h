@@ -34,7 +34,7 @@ namespace AudioStandard {
 class AudioPolicyParser : public Parser {
 public:
     static constexpr char CHIP_PROD_CONFIG_FILE[] = "/chip_prod/etc/audio/audio_policy_config.xml";
-    static constexpr char CONFIG_FILE[] = "vendor/etc/audio/audio_policy_config.xml";
+    static constexpr char CONFIG_FILE[] = "/vendor/etc/audio/audio_policy_config.xml";
 
     bool LoadConfiguration() final;
     bool Parse() final;
