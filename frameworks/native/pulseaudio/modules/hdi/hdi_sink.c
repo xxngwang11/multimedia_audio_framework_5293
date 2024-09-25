@@ -1205,11 +1205,6 @@ static unsigned SinkRenderPrimaryCluster(pa_sink *si, size_t *length, pa_mix_inf
 
             HandleFading(si, sinkIn, infoIn);
 
-            const char *sinkFadeoutPause = pa_proplist_gets(sinkIn->proplist, "fadeoutPause");
-            if (pa_safe_streq(sinkFadeoutPause, "0")) {
-                u->streamAvailable++;
-            }
-
             infoIn++;
             n++;
             maxInfo--;
@@ -1721,10 +1716,38 @@ static void CheckAndDealSpeakerPaZeroVolume(struct Userdata *u, time_t currentTi
     }
 }
 
+static void UpdateStreamAvailableMap(struct Userdata *u, const char *sceneType)
+{
+    if (u->streamAvailableMap == NULL) {
+        AUDIO_ERR_LOG("streamAvailableMap is null");
+        return;
+    }
+    uint32_t *num = (uint32_t *)pa_hashmap_get(u->streamAvailableMap, sceneType);
+    if (num == NULL) {
+        num = pa_xnew0(uint32_t, 1);
+        (*num) = 0;
+    }
+    int32_t fadeDirection = (u->streamAvailable != 0) && ((*num) == 0) ? 0 :
+                    (u->streamAvailable == 0 && (*num) != 0) ? 1 : -1;
+    int32_t outLength = u->bufferAttr->frameLen * u->bufferAttr->numChanOut * sizeof(float);
+    if (fadeDirection != -1) {
+        AUDIO_INFO_LOG("do %{public}s for MIXED DATA", fadeDirection ? "fade-out" : "fade-in");
+        DoFading(u->bufferAttr->bufOut, outLength, (uint32_t)SAMPLE_F32, (uint32_t)u->ss.channels, fadeDirection);
+    }
+    if (u->streamAvailable == 0 && (*num) == 0) {
+        memset_s(u->bufferAttr->bufOut, outLength, 0, outLength);
+    }
+
+    char *scene = strdup(sceneType);
+    (*num) = u->streamAvailable;
+    pa_hashmap_put(u->streamAvailableMap, scene, num);
+}
+
 static void PrimaryEffectProcess(struct Userdata *u, pa_memchunk *chunkIn, char *sinkSceneType)
 {
     AUTO_CTRACE("hdi_sink::EffectChainManagerProcess:%s", sinkSceneType);
     EffectChainManagerProcess(sinkSceneType, u->bufferAttr);
+    UpdateStreamAvailableMap(u, sinkSceneType);
     for (int32_t k = 0; k < u->bufferAttr->frameLen * u->bufferAttr->numChanOut; k++) {
         u->bufferAttr->tempBufOut[k] += u->bufferAttr->bufOut[k];
     }
@@ -1756,33 +1779,6 @@ static void UpdateSceneToCountMap(pa_hashmap *sceneMap)
             }
         }
     }
-}
-
-static void UpdateStreamAvailableMap(struct Userdata *u, const char *sceneType)
-{
-    if (u->streamAvailableMap == NULL) {
-        AUDIO_ERR_LOG("streamAvailableMap is null");
-        return;
-    }
-    uint32_t *num = (uint32_t *)pa_hashmap_get(u->streamAvailableMap, sceneType);
-    if (num == NULL) {
-        num = pa_xnew0(uint32_t, 1);
-        (*num) = 0;
-    }
-    int32_t fadeDirection = (u->streamAvailable != 0) && ((*num) == 0) ? 0 :
-                    (u->streamAvailable == 0 && (*num) != 0) ? 1 : -1;
-    int32_t outLength = u->bufferAttr->frameLen * u->bufferAttr->numChanOut * sizeof(float);
-    if (fadeDirection != -1) {
-        AUDIO_INFO_LOG("do %{public}s for MIXED DATA", fadeDirection ? "fade-out" : "fade-in");
-        DoFading(u->bufferAttr->tempBufOut, outLength, (uint32_t)SAMPLE_F32, (uint32_t)u->ss.channels, fadeDirection);
-    }
-    if (u->streamAvailable == 0 && (*num) == 0) {
-        memset_s(u->bufferAttr->tempBufOut, outLength, 0, outLength);
-    }
-
-    char *scene = strdup(sceneType);
-    (*num) = u->streamAvailable;
-    pa_hashmap_put(u->streamAvailableMap, scene, num);
 }
 
 static void ResetBufferAttr(struct Userdata *u)
@@ -1840,7 +1836,6 @@ static void SinkRenderPrimaryProcess(pa_sink *si, size_t length, pa_memchunk *ch
         u->bufferAttr->numChanIn = (int32_t)processChannels;
         u->bufferAttr->frameLen = frameLen / u->bufferAttr->numChanIn;
         PrimaryEffectProcess(u, chunkIn, sinkSceneType);
-        UpdateStreamAvailableMap(u, (char *)sceneType);
     }
     if (g_effectProcessFrameCount == PRINT_INTERVAL_FRAME_COUNT) { g_effectProcessFrameCount = 0; }
     CheckAndDealSpeakerPaZeroVolume(u, currentTime);

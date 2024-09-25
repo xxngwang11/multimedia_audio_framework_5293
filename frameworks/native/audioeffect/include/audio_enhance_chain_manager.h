@@ -93,8 +93,8 @@ private:
     // for effect instances limit
     std::string defaultScene_;
     std::unordered_set<std::string> priorSceneSet_;
-    uint32_t normalSceneLimit_;
-    uint32_t chainNum_;
+    uint32_t normalSceneLimit_ = 0;
+    uint32_t chainNum_ = 0;
 
     std::unique_ptr<EnhanceBuffer> enhanceBuffer_ = nullptr;
     std::mutex chainManagerMutex_;
