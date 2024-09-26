@@ -1200,7 +1200,8 @@ int32_t AudioCapturerSourceInner::SetInputRoute(DeviceType inputDevice, AudioPor
                 AUDIO_WARNING_LOG("SetAudioRouteInfoForEnhanceChain failed.");
             }
         }
-        AUDIO_INFO_LOG("SetInputRoute input device not change. currentActiveDevice %{public}d", currentActiveDevice_);
+        AUDIO_INFO_LOG("input device or sourceType not change. currentActiveDevice %{public}d sourceType %{public}d",
+            currentActiveDevice_, attr_.sourceType);
         return SUCCESS;
     }
     attr_.sourceType = sourceType;
@@ -1689,7 +1690,6 @@ int32_t AudioCapturerSourceInner::UpdateSourceType(SourceType sourceType)
     std::lock_guard<std::mutex> lock(sourceAttrMutex_);
     AudioPortPin inputPortPin = PIN_IN_MIC;
     return SetInputRoute(currentActiveDevice_, inputPortPin, sourceType);
-    return SUCCESS;
 }
 
 int32_t AudioCapturerSourceWakeup::Init(const IAudioSourceAttr &attr)
