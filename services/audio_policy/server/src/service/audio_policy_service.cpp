@@ -8826,7 +8826,7 @@ int32_t AudioPolicyService::ResetRingerModeMute()
         std::unique_lock<std::mutex> lock(ringerModeMuteMutex_);
         bool resetWaiting = ringerModeMuteCondition_.wait_for(lock,
             std::chrono::milliseconds(WAIT_RINGER_MODE_MUTE_RESET_TIME),
-            [this] { !return ringerModeMute_.load(); }
+            [this] { return !ringerModeMute_.load(); }
         );
         if (!resetWaiting) {
             AUDIO_INFO_LOG("reset ringer mode mute after time out.");
