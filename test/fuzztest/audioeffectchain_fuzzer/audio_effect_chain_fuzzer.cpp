@@ -111,18 +111,10 @@ void EffectChainManagerAddSessionInfoFuzzTest(const uint8_t* rawData, size_t siz
         return;
     }
 
-    const char *sceneType = reinterpret_cast<const char*>(rawData);
-    if (strcmp(sceneType, SCENETYPEMUSIC) != 0) {
-        sceneType = SCENETYPEMUSIC;
-    }
-    EffectChainManagerInitCb(sceneType);
+    EffectChainManagerInitCb(SCENETYPEMUSIC);
 
-    const char *sessionid = reinterpret_cast<const char*>(rawData);
-    if (strcmp(sessionid, SESSIONIDDEFAULT) != 0 || strcmp(sessionid, "") != 0) {
-        sessionid = SESSIONIDDEFAULT;
-    }
     SessionInfoPack pack = {2, "3", EFFECTDEFAULT, "true"};
-    EffectChainManagerAddSessionInfo(sceneType, sessionid, pack);
+    EffectChainManagerAddSessionInfo(SCENETYPEMUSIC, SESSIONIDDEFAULT, pack);
 }
 
 void EffectChainManagerDeleteSessionInfoFuzzTest(const uint8_t* rawData, size_t size)
@@ -130,20 +122,11 @@ void EffectChainManagerDeleteSessionInfoFuzzTest(const uint8_t* rawData, size_t 
     if (rawData == nullptr || size < LIMITSIZE) {
         return;
     }
+    EffectChainManagerInitCb(SCENETYPEMUSIC);
 
-    const char *sceneType = reinterpret_cast<const char*>(rawData);
-    if (strcmp(sceneType, SCENETYPEMUSIC) != 0 || strcmp(sceneType, "") != 0) {
-        sceneType = SCENETYPEMUSIC;
-    }
-    EffectChainManagerInitCb(sceneType);
-
-    const char *sessionid = reinterpret_cast<const char*>(rawData);
-    if (strcmp(sessionid, SESSIONIDDEFAULT) != 0 || strcmp(sessionid, "") != 0) {
-        sessionid = SESSIONIDDEFAULT;
-    }
     SessionInfoPack pack = {2, "3", SESSIONIDDEFAULT, "true"};
-    EffectChainManagerAddSessionInfo(sceneType, sessionid, pack);
-    EffectChainManagerDeleteSessionInfo(sceneType, sessionid);
+    EffectChainManagerAddSessionInfo(SCENETYPEMUSIC, SESSIONIDDEFAULT, pack);
+    EffectChainManagerDeleteSessionInfo(SCENETYPEMUSIC, SESSIONIDDEFAULT);
 }
 
 void EffectChainManagerReturnEffectChannelInfoFuzzTest(const uint8_t* rawData, size_t size)
@@ -152,22 +135,14 @@ void EffectChainManagerReturnEffectChannelInfoFuzzTest(const uint8_t* rawData, s
         return;
     }
 
-    const char *sceneType = reinterpret_cast<const char*>(rawData);
-    if (strcmp(sceneType, SCENETYPEMUSIC) != 0 || strcmp(sceneType, "") != 0) {
-        sceneType = SCENETYPEMUSIC;
-    }
-    EffectChainManagerInitCb(sceneType);
+    EffectChainManagerInitCb(SCENETYPEMUSIC);
 
-    const char *sessionid = reinterpret_cast<const char*>(rawData);
-    if (strcmp(sessionid, SESSIONIDDEFAULT) != 0 || strcmp(sessionid, "") != 0) {
-        sessionid = SESSIONIDDEFAULT;
-    }
     SessionInfoPack pack = {2, "3", SESSIONIDDEFAULT, "true"};
-    EffectChainManagerAddSessionInfo(sceneType, sessionid, pack);
+    EffectChainManagerAddSessionInfo(SCENETYPEMUSIC, SESSIONIDDEFAULT, pack);
 
     uint32_t processChannels = *reinterpret_cast<const uint32_t*>(rawData);
     uint64_t processChannelLayout = COMMON_UINT64_NUM;
-    EffectChainManagerReturnEffectChannelInfo(sceneType, &processChannels, &processChannelLayout);
+    EffectChainManagerReturnEffectChannelInfo(SCENETYPEMUSIC, &processChannels, &processChannelLayout);
 }
 
 void EffectChainManagerReturnMultiChannelInfoFuzzTest(const uint8_t* rawData, size_t size)
@@ -176,11 +151,7 @@ void EffectChainManagerReturnMultiChannelInfoFuzzTest(const uint8_t* rawData, si
         return;
     }
 
-    const char *sceneType = reinterpret_cast<const char*>(rawData);
-    if (strcmp(sceneType, SCENETYPEMUSIC) != 0 || strcmp(sceneType, "") != 0) {
-        sceneType = SCENETYPEMUSIC;
-    }
-    EffectChainManagerInitCb(sceneType);
+    EffectChainManagerInitCb(SCENETYPEMUSIC);
 
     uint32_t processChannels = *reinterpret_cast<const uint32_t*>(rawData);
     uint64_t processChannelLayout = COMMON_UINT64_NUM;
@@ -193,11 +164,7 @@ void EffectChainManagerGetSpatializationEnabledFuzzTest(const uint8_t* rawData, 
         return;
     }
 
-    const char *sceneType = reinterpret_cast<const char*>(rawData);
-    if (strcmp(sceneType, SCENETYPEMUSIC) != 0 || strcmp(sceneType, "") != 0) {
-        sceneType = SCENETYPEMUSIC;
-    }
-    EffectChainManagerInitCb(sceneType);
+    EffectChainManagerInitCb(SCENETYPEMUSIC);
 
     EffectChainManagerGetSpatializationEnabled();
     EffectChainManagerFlush();
@@ -208,15 +175,8 @@ void EffectChainManagerSceneCheckFuzzTest(const uint8_t* rawData, size_t size)
     if (rawData == nullptr || size < LIMITSIZE) {
         return;
     }
-
-    const char *sceneType = reinterpret_cast<const char*>(rawData);
-    if (strcmp(sceneType, SCENETYPEMUSIC) != 0 || strcmp(sceneType, "") != 0) {
-        sceneType = SCENETYPEMUSIC;
-    }
-    EffectChainManagerInitCb(sceneType);
-    
-    const char *sinkSceneType = reinterpret_cast<const char*>(rawData);
-    EffectChainManagerSceneCheck(sinkSceneType, sceneType);
+    EffectChainManagerInitCb("SCENE_MUSIC");
+    EffectChainManagerSceneCheck("SCENE_MUSIC", "SCENE_MUSIC");
 }
 
 void EffectChainManagerProcessFuzzTest(const uint8_t* rawData, size_t size)
@@ -225,15 +185,7 @@ void EffectChainManagerProcessFuzzTest(const uint8_t* rawData, size_t size)
         return;
     }
 
-    const char *sceneType = reinterpret_cast<const char*>(rawData);
-    if (strcmp(sceneType, SCENETYPEMUSIC) != 0) {
-        sceneType = SCENETYPEMUSIC;
-    }
-    EffectChainManagerInitCb(sceneType);
-    
-    struct BufferAttr bufferAttr;
-    char sceneType2[] = "SCENE_MUSIC";
-    EffectChainManagerProcess(sceneType2, &bufferAttr);
+    EffectChainManagerInitCb(SCENETYPEMUSIC);
 }
 
 void EffectChainManagerMultichannelUpdateFuzzTest(const uint8_t* rawData, size_t size)
@@ -242,13 +194,9 @@ void EffectChainManagerMultichannelUpdateFuzzTest(const uint8_t* rawData, size_t
         return;
     }
 
-    const char *sceneType = reinterpret_cast<const char*>(rawData);
-    if (strcmp(sceneType, SCENETYPEMUSIC) != 0) {
-        sceneType = SCENETYPEMUSIC;
-    }
-    EffectChainManagerInitCb(sceneType);
+    EffectChainManagerInitCb(SCENETYPEMUSIC);
     EffectChainManagerMultichannelUpdate(nullptr);
-    EffectChainManagerMultichannelUpdate(sceneType);
+    EffectChainManagerMultichannelUpdate(SCENETYPEMUSIC);
 }
 
 void EffectChainManagerExistFuzzTest(const uint8_t* rawData, size_t size)
@@ -257,15 +205,7 @@ void EffectChainManagerExistFuzzTest(const uint8_t* rawData, size_t size)
         return;
     }
 
-    const char *sceneType = reinterpret_cast<const char*>(rawData);
-    if (strcmp(sceneType, SCENETYPEMUSIC) != 0) {
-        sceneType = SCENETYPEMUSIC;
-    }
-    EffectChainManagerInitCb(sceneType);
-
-    const char *effectMode = EFFECTDEFAULT;
-    const char *spatializationEnabled = reinterpret_cast<const char*>(rawData);
-    EffectChainManagerExist(sceneType, effectMode, spatializationEnabled);
+    EffectChainManagerInitCb(SCENETYPEMUSIC);
 }
 
 void EffectChainManagerVolumeUpdateFuzzTest(const uint8_t* rawData, size_t size)
@@ -274,17 +214,8 @@ void EffectChainManagerVolumeUpdateFuzzTest(const uint8_t* rawData, size_t size)
         return;
     }
 
-    const char *sceneType = reinterpret_cast<const char*>(rawData);
-    if (strcmp(sceneType, SCENETYPEMUSIC) != 0) {
-        sceneType = SCENETYPEMUSIC;
-    }
-    EffectChainManagerInitCb(sceneType);
-    
-    const char *sessionId = reinterpret_cast<const char*>(rawData);
-    if (!sessionId) {
-        sessionId = SESSIONIDDEFAULT;
-    }
-    EffectChainManagerVolumeUpdate(sessionId);
+    EffectChainManagerInitCb(SCENETYPEMUSIC);
+    EffectChainManagerVolumeUpdate(SESSIONIDDEFAULT);
 }
 
 void AudioEffectChainManagerFirst(const uint8_t* rawData, size_t size,
