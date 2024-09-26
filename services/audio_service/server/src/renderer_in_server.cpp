@@ -696,7 +696,6 @@ int32_t RendererInServer::Pause()
         if (dualToneStream_ != nullptr) {
             stream_->SetAudioEffectMode(effectModeWhenDual_);
             AUDIO_INFO_LOG("stream is SetAudioEffectMode: %{public}d", effectModeWhenDual_);
-
             {
                 std::lock_guard<std::mutex> lock(dualToneMutex_);
                 dualToneStream_->Pause();
