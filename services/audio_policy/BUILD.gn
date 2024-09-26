@@ -22,7 +22,6 @@ group("audio_policy_packages") {
     ":audio_affinity_config",
     ":audio_converter_config",
     ":audio_device_config",
-    ":audio_effect_config",
     ":audio_interrupt_policy_config",
     ":audio_policy_service",
     ":audio_strategy_router",
@@ -329,14 +328,6 @@ if (audio_framework_feature_dtmf_tone) {
     relative_install_dir = "audio"
     part_name = "audio_framework"
   }
-}
-
-ohos_prebuilt_etc("audio_effect_config") {
-  source = "server/config/audio_effect_config.xml"
-
-  subsystem_name = "multimedia"
-  relative_install_dir = "audio"
-  part_name = "audio_framework"
 }
 
 ohos_prebuilt_etc("audio_converter_config") {

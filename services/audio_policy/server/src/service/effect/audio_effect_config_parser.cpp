@@ -27,8 +27,6 @@ namespace OHOS {
 namespace AudioStandard {
 #ifdef USE_CONFIG_POLICY
 static constexpr char AUDIO_EFFECT_CONFIG_FILE[] = "etc/audio/audio_effect_config.xml";
-#else
-static constexpr char AUDIO_EFFECT_CONFIG_FILE[] = "system/etc/audio/audio_effect_config.xml";
 #endif
 static const std::string EFFECT_CONFIG_NAME[5] = {"libraries", "effects", "effectChains", "preProcess", "postProcess"};
 static constexpr int32_t FILE_CONTENT_ERROR = -2;
@@ -75,9 +73,6 @@ static int32_t ParseEffectConfigFile(xmlDoc* &doc)
         }
     }
     FreeCfgFiles(cfgFiles);
-#else
-    AUDIO_INFO_LOG("use default audio effect config file path: %{public}s", AUDIO_EFFECT_CONFIG_FILE);
-    doc = xmlReadFile(AUDIO_EFFECT_CONFIG_FILE, nullptr, XML_PARSE_NOERROR | XML_PARSE_NOWARNING);
 #endif
     if (doc == nullptr) {
         std::shared_ptr<Media::MediaMonitor::EventBean> bean = std::make_shared<Media::MediaMonitor::EventBean>(

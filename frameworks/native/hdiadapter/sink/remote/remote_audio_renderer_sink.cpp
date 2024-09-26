@@ -399,7 +399,7 @@ void RemoteAudioRendererSinkInner::InitAttrs(struct AudioSampleAttributes &attrs
     attrs.channelCount = AUDIO_CHANNELCOUNT;
     attrs.sampleRate = AUDIO_SAMPLE_RATE_48K;
     attrs.interleaved = 0;
-    attrs.streamId = GenerateUniqueID(AUDIO_HDI_RENDER_ID_BASE, HDI_RENDER_OFFSET_REMOTE);
+    attrs.streamId = static_cast<int32_t>(GenerateUniqueID(AUDIO_HDI_RENDER_ID_BASE, HDI_RENDER_OFFSET_REMOTE));
     attrs.period = DEEP_BUFFER_RENDER_PERIOD_SIZE;
     attrs.isBigEndian = false;
     attrs.isSignedData = true;
@@ -755,7 +755,8 @@ int32_t RemoteAudioRendererSinkInner::OpenOutput(DeviceType outputDevice)
     source.role = AudioPortRole::AUDIO_PORT_SOURCE_ROLE;
     source.type = AudioPortType::AUDIO_PORT_MIX_TYPE;
     source.ext.mix.moduleId = 0;
-    source.ext.mix.streamId = GenerateUniqueID(AUDIO_HDI_RENDER_ID_BASE, HDI_RENDER_OFFSET_REMOTE);
+    source.ext.mix.streamId = static_cast<int32_t>(
+        GenerateUniqueID(AUDIO_HDI_RENDER_ID_BASE, HDI_RENDER_OFFSET_REMOTE));
 
     if (audioPortMap_.find(AudioCategory::AUDIO_IN_MEDIA) == audioPortMap_.end()) {
         AUDIO_WARNING_LOG("audioPortMap_ is null, ret %{public}d.", ret);

@@ -80,7 +80,7 @@ static int32_t GetByteSizeByFormat(HdiAdapterFormat format)
     return byteSize;
 }
 
-static bool IsNonblockingSource(int32_t source, std::string adapterName)
+static bool IsNonblockingSource(int32_t source, const std::string &adapterName)
 {
     return (source == SOURCE_TYPE_EC && adapterName != "dp") || (source == SOURCE_TYPE_MIC_REF);
 }
@@ -204,13 +204,13 @@ private:
     void DfxOperation(BufferDesc &buffer, AudioSampleFormat format, AudioChannel channel) const;
 
     void CaptureThreadLoop();
-    void CaptureFrameEcInternal(RingBuffer &ringBuf);
+    void CaptureFrameEcInternal(const RingBuffer &ringBuf);
     int32_t StartNonblockingCapture();
     int32_t StopNonblockingCapture();
 
     int32_t DoStop();
 
-    CaptureAttr *hdiAttr_;
+    CaptureAttr *hdiAttr_ = nullptr;
     IAudioSourceAttr attr_ = {};
     bool sourceInited_ = false;
     bool captureInited_ = false;
@@ -448,9 +448,8 @@ AudioCapturerSourceInner::AudioCapturerSourceInner(const std::string &halName)
 AudioCapturerSourceInner::AudioCapturerSourceInner(CaptureAttr *attr)
     : sourceInited_(false), captureInited_(false), started_(false), paused_(false),
       leftVolume_(MAX_VOLUME_LEVEL), rightVolume_(MAX_VOLUME_LEVEL), openMic_(0),
-      audioManager_(nullptr), audioAdapter_(nullptr), audioCapture_(nullptr)
+      audioManager_(nullptr), audioAdapter_(nullptr), audioCapture_(nullptr), halName_("primary")
 {
-    halName_ = "primary";
     hdiAttr_ = attr;
     attr_ = {};
 }
@@ -798,7 +797,7 @@ int32_t AudioCapturerSourceInner::CaptureFrame(char *frame, uint64_t requestByte
     // only mic ref use this
     if (attr_.sourceType == SOURCE_TYPE_MIC_REF) {
         if (ringBuffer_ != nullptr) {
-            Trace trace("CaptureRefOutput");
+            Trace traceSec("CaptureRefOutput");
             RingBuffer buffer = ringBuffer_->AcquireOutputBuffer();
             int32_t ret = ringBuffer_->ReleaseOutputBuffer(buffer);
             CHECK_AND_RETURN_RET_LOG(ret == 0, ERR_READ_FAILED, "get data from ring buffer fail");
@@ -894,7 +893,7 @@ int32_t AudioCapturerSourceInner::CaptureFrameWithEc(
     return SUCCESS;
 }
 
-void AudioCapturerSourceInner::CaptureFrameEcInternal(RingBuffer &ringBuf)
+void AudioCapturerSourceInner::CaptureFrameEcInternal(const RingBuffer &ringBuf)
 {
     // mic frame just used for check, ec frame must be right
     struct AudioFrameLen frameLen = {};

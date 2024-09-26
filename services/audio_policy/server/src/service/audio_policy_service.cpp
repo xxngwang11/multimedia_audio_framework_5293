@@ -590,13 +590,32 @@ int32_t AudioPolicyService::SetSystemVolumeLevel(AudioStreamType streamType, int
         }
 #endif
     }
+    int32_t sVolumeLevel = SelectDealSafeVolume(streamType, volumeLevel);
+    CHECK_AND_RETURN_RET_LOG(sVolumeLevel == volumeLevel, ERROR, "safevolume did not deal");
+    result = audioPolicyManager_.SetSystemVolumeLevel(streamType, volumeLevel);
+    if (result == SUCCESS && (streamType == STREAM_VOICE_CALL || streamType == STREAM_VOICE_COMMUNICATION)) {
+        SetVoiceCallVolume(volumeLevel);
+    }
+    // todo
+    Volume vol = {false, 1.0f, 0};
+    vol.volumeFloat = GetSystemVolumeInDb(streamType, volumeLevel, currentActiveDevice_.deviceType_);
+    SetSharedVolume(streamType, currentActiveDevice_.deviceType_, vol);
+
+    return result;
+}
+
+int32_t AudioPolicyService::SelectDealSafeVolume(AudioStreamType streamType, int32_t volumeLevel)
+{
     int32_t sVolumeLevel = volumeLevel;
     if (sVolumeLevel > audioPolicyManager_.GetSafeVolumeLevel() &&
         VolumeUtils::GetVolumeTypeFromStreamType(streamType) == STREAM_MUSIC) {
         switch (currentActiveDevice_.deviceType_) {
             case DEVICE_TYPE_BLUETOOTH_A2DP:
             case DEVICE_TYPE_BLUETOOTH_SCO:
-                sVolumeLevel = DealWithSafeVolume(volumeLevel, true);
+                if (currentActiveDevice_.deviceCategory_ != BT_SOUNDBOX &&
+                    currentActiveDevice_.deviceCategory_ != BT_CAR) {
+                    sVolumeLevel = DealWithSafeVolume(volumeLevel, true);
+                }
                 break;
             case DEVICE_TYPE_WIRED_HEADSET:
             case DEVICE_TYPE_WIRED_HEADPHONES:
@@ -609,17 +628,7 @@ int32_t AudioPolicyService::SetSystemVolumeLevel(AudioStreamType streamType, int
                 break;
         }
     }
-    CHECK_AND_RETURN_RET_LOG(sVolumeLevel == volumeLevel, ERROR, "safevolume did not deal");
-    result = audioPolicyManager_.SetSystemVolumeLevel(streamType, volumeLevel);
-    if (result == SUCCESS && (streamType == STREAM_VOICE_CALL || streamType == STREAM_VOICE_COMMUNICATION)) {
-        SetVoiceCallVolume(volumeLevel);
-    }
-    // todo
-    Volume vol = {false, 1.0f, 0};
-    vol.volumeFloat = GetSystemVolumeInDb(streamType, volumeLevel, currentActiveDevice_.deviceType_);
-    SetSharedVolume(streamType, currentActiveDevice_.deviceType_, vol);
-
-    return result;
+    return sVolumeLevel;
 }
 
 void AudioPolicyService::SetVoiceCallVolume(int32_t volumeLevel)
