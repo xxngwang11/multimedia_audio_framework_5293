@@ -87,8 +87,6 @@ static constexpr int CB_QUEUE_CAPACITY = 3;
 constexpr int32_t MAX_BUFFER_SIZE = 100000;
 static constexpr int32_t ONE_MINUTE = 60;
 static const int32_t MEDIA_SERVICE_UID = 1013;
-const int32_t CONTINUE_DOWN_BARRIER = 5;
-const float DOWN_BARRIER_VOLUME = 0.31f;
 } // namespace
 
 static AppExecFwk::BundleInfo gBundleInfo_;
@@ -752,24 +750,12 @@ int32_t RendererInClientInner::SetVolume(float volume)
     if (volumeRamp_.IsActive()) {
         volumeRamp_.Terminate();
     }
-    float historyVolume = clientVolume_;
     clientVolume_ = volume;
-    if (getuid() == MEDIA_SERVICE_UID) {
-        if (offloadEnable_) {
-            SetInnerVolume(MAX_FLOAT_VOLUME); // so volume will not change in RendererInServer
-            CHECK_AND_RETURN_RET_LOG(ipcStream_ != nullptr, ERR_OPERATION_FAILED, "ipcStream is not inited!");
-            ipcStream_->OffloadSetVolume(volume);
-            return SUCCESS;
-        }
-        if (volume >= historyVolume) {
-            continueDownCount_ = 0;
-        } else {
-            continueDownCount_++;
-        }
-        if (continueDownCount_ > CONTINUE_DOWN_BARRIER && volume < DOWN_BARRIER_VOLUME) {
-            AUDIO_INFO_LOG("sessionId:%{public}d set acturally volume:0.0", sessionId_);
-            return SetInnerVolume(MIN_FLOAT_VOLUME);
-        }
+    if (offloadEnable_) {
+        SetInnerVolume(MAX_FLOAT_VOLUME); // so volume will not change in RendererInServer
+        CHECK_AND_RETURN_RET_LOG(ipcStream_ != nullptr, ERR_OPERATION_FAILED, "ipcStream is not inited!");
+        ipcStream_->OffloadSetVolume(duckVolume_ * volume);
+        return SUCCESS;
     }
 
     return SetInnerVolume(volume);
@@ -788,6 +774,12 @@ int32_t RendererInClientInner::SetMute(bool mute)
     muteVolume_ = mute ? 0.0f : 1.0f;
     CHECK_AND_RETURN_RET_LOG(clientBuffer_ != nullptr, ERR_OPERATION_FAILED, "buffer is not inited");
     clientBuffer_->SetMuteFactor(muteVolume_);
+    CHECK_AND_RETURN_RET_LOG(ipcStream_ != nullptr, false, "ipcStream is not inited!");
+    int32_t ret = ipcStream_->SetMute(mute);
+    if (ret != SUCCESS) {
+        AUDIO_ERR_LOG("Set Mute failed:%{public}u", ret);
+        return ERROR;
+    }
     return SUCCESS;
 }
 
@@ -801,6 +793,13 @@ int32_t RendererInClientInner::SetDuckVolume(float volume)
     }
     duckVolume_ = volume;
     CHECK_AND_RETURN_RET_LOG(clientBuffer_ != nullptr, ERR_OPERATION_FAILED, "buffer is not inited");
+    if (offloadEnable_) {
+        clientBuffer_->SetDuckFactor(MAX_FLOAT_VOLUME);
+        CHECK_AND_RETURN_RET_LOG(ipcStream_ != nullptr, ERR_OPERATION_FAILED, "ipcStream is not inited!");
+        ipcStream_->OffloadSetVolume(clientVolume_ * volume);
+        return SUCCESS;
+    }
+
     clientBuffer_->SetDuckFactor(volume);
     return SUCCESS;
 }
