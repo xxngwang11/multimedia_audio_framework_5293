@@ -4024,6 +4024,7 @@ void AudioPolicyService::UpdateActiveA2dpDeviceWhenDisconnecting(const std::stri
     connectedA2dpDeviceMap_.erase(macAddress);
 
     if (connectedA2dpDeviceMap_.size() == 0) {
+        lock.unlock();
         activeBTDevice_ = "";
         ClosePortAndEraseIOHandle(BLUETOOTH_SPEAKER);
         audioPolicyManager_.SetAbsVolumeScene(false);
