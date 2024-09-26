@@ -81,20 +81,6 @@ void EffectChainManagerCreateCbFuzzTest(const uint8_t* rawData, size_t size)
     EffectChainManagerReleaseCb(sceneType, sessionid);
 }
 
-void EffectChainManagerSetHdiParamFuzzTest(const uint8_t* rawData, size_t size)
-{
-    if (rawData == nullptr || size < LIMITSIZE) {
-        return;
-    }
-    const char *sceneType = SCENETYPEMUSIC;
-    EffectChainManagerInitCb(sceneType);
-    const char *effectMode = EFFECTDEFAULT;
-    EffectChainManagerSetHdiParam(sceneType, effectMode, true);
-    sceneType = nullptr;
-    effectMode = nullptr;
-    EffectChainManagerSetHdiParam(sceneType, effectMode, true);
-}
-
 void EffectChainManagerCheckEffectOffloadFuzzTest(const uint8_t* rawData, size_t size)
 {
     if (rawData == nullptr || size < LIMITSIZE) {
@@ -289,7 +275,6 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *rawData, size_t size)
     /* Run your code on data */
     OHOS::AudioStandard::EffectChainManagerInitCbFuzzTest(rawData, size);
     OHOS::AudioStandard::EffectChainManagerCreateCbFuzzTest(rawData, size);
-    OHOS::AudioStandard::EffectChainManagerSetHdiParamFuzzTest(rawData, size);
     OHOS::AudioStandard::EffectChainManagerCheckEffectOffloadFuzzTest(rawData, size);
     OHOS::AudioStandard::EffectChainManagerAddSessionInfoFuzzTest(rawData, size);
     OHOS::AudioStandard::EffectChainManagerDeleteSessionInfoFuzzTest(rawData, size);
