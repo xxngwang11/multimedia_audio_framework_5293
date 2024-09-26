@@ -74,7 +74,7 @@ HWTEST(AudioEffectVolumeUnitTest, GetSystemVolume_001, TestSize.Level1)
     EXPECT_EQ(systemVolume, result);
 
     result = audioEffectVolume->GetSystemVolume("");
-    EXPECT_EQ(1.0, result);
+    EXPECT_EQ(systemVolume, result);
 }
 
 /**

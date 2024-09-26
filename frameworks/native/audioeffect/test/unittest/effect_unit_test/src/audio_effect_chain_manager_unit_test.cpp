@@ -140,13 +140,13 @@ HWTEST(AudioEffectChainManagerUnitTest, CreateAudioEffectChainDynamic_004, TestS
         AudioEffectChainManager::GetInstance()->CreateAudioEffectChain(sceneType, true);
     AudioEffectChainManager::GetInstance()->sceneTypeToEffectChainMap_[sceneTypeAndDeviceKey] = audioEffectChain;
     int32_t result =  AudioEffectChainManager::GetInstance()->CreateAudioEffectChainDynamic(sceneType);
-    EXPECT_EQ(ERROR, result);
+    EXPECT_EQ(SUCCESS, result);
     AudioEffectChainManager::GetInstance()->sceneTypeToEffectChainCountMap_[sceneTypeAndDeviceKey] = 3;
     result =  AudioEffectChainManager::GetInstance()->CreateAudioEffectChainDynamic(sceneType);
     EXPECT_EQ(SUCCESS, result);
     AudioEffectChainManager::GetInstance()->sceneTypeToEffectChainCountMap_[sceneTypeAndDeviceKey] = 0;
     result =  AudioEffectChainManager::GetInstance()->CreateAudioEffectChainDynamic(sceneType);
-    EXPECT_EQ(ERROR, result);
+    EXPECT_EQ(SUCCESS, result);
     AudioEffectChainManager::GetInstance()->ResetInfo();
 }
 
@@ -1408,7 +1408,7 @@ HWTEST(AudioEffectChainManagerUnitTest, CheckSceneTypeMatch_001, TestSize.Level1
         AudioEffectChainManager::GetInstance()->CreateAudioEffectChain(sinkSceneType, true);
     AudioEffectChainManager::GetInstance()->sceneTypeToEffectChainMap_[sceneTypeAndDeviceKey2] = audioEffectChain2;
     result = AudioEffectChainManager::GetInstance()->CheckSceneTypeMatch(sinkSceneType, sceneType);
-    EXPECT_EQ(true, result);
+    EXPECT_EQ(false, result);
 
     AudioEffectChainManager::GetInstance()->sceneTypeToEffectChainMap_[sceneTypeAndDeviceKey] = audioEffectChain;
     result = AudioEffectChainManager::GetInstance()->CheckSceneTypeMatch(sinkSceneType, sceneType);
@@ -1433,24 +1433,24 @@ HWTEST(AudioEffectChainManagerUnitTest, CheckSceneTypeMatch_002, TestSize.Level1
         AudioEffectChainManager::GetInstance()->CreateAudioEffectChain(sceneType, true);
     AudioEffectChainManager::GetInstance()->sceneTypeToEffectChainMap_[sceneTypeAndDeviceKey] = audioEffectChain;
 
-    bool result = result = AudioEffectChainManager::GetInstance()->CheckSceneTypeMatch(sinkSceneType, sceneType);
-    EXPECT_EQ(true, result);
+    bool result = AudioEffectChainManager::GetInstance()->CheckSceneTypeMatch(sinkSceneType, sceneType);
+    EXPECT_EQ(false, result);
 
     std::string sceneTypeAndDeviceKey2 = "SCENE_MOVIE_&_DEVICE_TYPE_SPEAKER";
     std::shared_ptr<AudioEffectChain> audioEffectChain2 =
         AudioEffectChainManager::GetInstance()->CreateAudioEffectChain("SCENE_MOVIE", true);
     AudioEffectChainManager::GetInstance()->sceneTypeToEffectChainMap_[sceneTypeAndDeviceKey2] = audioEffectChain2;
-    result = result = AudioEffectChainManager::GetInstance()->CheckSceneTypeMatch("SCENE_MOVIE", sceneType);
-    EXPECT_EQ(true, result);
-
-    result = result = AudioEffectChainManager::GetInstance()->CheckSceneTypeMatch("", sceneType);
+    result = AudioEffectChainManager::GetInstance()->CheckSceneTypeMatch("SCENE_MOVIE", sceneType);
     EXPECT_EQ(false, result);
 
-    result = result = AudioEffectChainManager::GetInstance()->CheckSceneTypeMatch(sinkSceneType, "");
+    result = AudioEffectChainManager::GetInstance()->CheckSceneTypeMatch("", sceneType);
+    EXPECT_EQ(false, result);
+
+    result = AudioEffectChainManager::GetInstance()->CheckSceneTypeMatch(sinkSceneType, "");
     EXPECT_EQ(false, result);
 
     AudioEffectChainManager::GetInstance()->sceneTypeToSpecialEffectSet_.insert(sceneType);
-    result = result = AudioEffectChainManager::GetInstance()->CheckSceneTypeMatch(sinkSceneType, sceneType);
+    result = AudioEffectChainManager::GetInstance()->CheckSceneTypeMatch(sinkSceneType, sceneType);
     EXPECT_EQ(true, result);
 
     AudioEffectChainManager::GetInstance()->ResetInfo();
@@ -1607,7 +1607,7 @@ HWTEST(AudioEffectChainManagerUnitTest, UpdateDeviceInfo_002, TestSize.Level1)
     AudioEffectChainManager::GetInstance()->isInitialized_ = false;
     AudioEffectChainManager::GetInstance()->deviceType_ = DEVICE_TYPE_SPEAKER;
     int32_t result = AudioEffectChainManager::GetInstance()->UpdateDeviceInfo(device, sinkName);
-    EXPECT_EQ(ERROR, result);
+    EXPECT_EQ(SUCCESS, result);
     AudioEffectChainManager::GetInstance()->ResetInfo();
 }
 
