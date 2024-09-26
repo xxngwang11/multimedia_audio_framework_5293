@@ -16,6 +16,7 @@
 #include <thread>
 #include <gtest/gtest.h>
 #include "audio_utils.h"
+#include "parameter.h"
 #include "audio_channel_blend.h"
 #include "volume_ramp.h"
 #include "audio_speed.h"
@@ -28,7 +29,6 @@ namespace AudioStandard {
 
 constexpr unsigned int QUEUE_SLOTS = 10;
 constexpr unsigned int THREAD_NUM = QUEUE_SLOTS + 1;
-uint8_t b[8] = {2, 4, 6, 8, 10, 12, 14, 16};
 class AudioUtilsUnitTest : public testing::Test {
 public:
     static void SetUpTestCase(void);
@@ -2509,6 +2509,250 @@ HWTEST(AudioUtilsUnitTest, ConvertNetworkId_003, TestSize.Level1)
     const std::string src = LOCAL_NETWORK_ID;
     std::string dst = ConvertNetworkId(src);
     EXPECT_EQ(dst, LOCAL_NETWORK_ID);
+}
+
+/**
+* @tc.name  : Test NeedVerifyBackgroundCapture  API
+* @tc.type  : FUNC
+* @tc.number: NeedVerifyBackgroundCapture_001
+* @tc.desc  : Test NeedVerifyBackgroundCapture API
+*/
+HWTEST(AudioUtilsUnitTest, NeedVerifyBackgroundCapture_001, TestSize.Level1)
+{
+    int32_t callingUid = 6699;
+    SourceType sourceType = SOURCE_TYPE_PLAYBACK_CAPTURE;
+    bool result = PermissionUtil::NeedVerifyBackgroundCapture(callingUid, sourceType);
+    EXPECT_EQ(result, false);
+}
+
+/**
+* @tc.name  : Test NeedVerifyBackgroundCapture  API
+* @tc.type  : FUNC
+* @tc.number: NeedVerifyBackgroundCapture_002
+* @tc.desc  : Test NeedVerifyBackgroundCapture API
+*/
+HWTEST(AudioUtilsUnitTest, NeedVerifyBackgroundCapture_002, TestSize.Level1)
+{
+    int32_t callingUid = 7000;
+    SourceType sourceType = SOURCE_TYPE_PLAYBACK_CAPTURE;
+    bool result = PermissionUtil::NeedVerifyBackgroundCapture(callingUid, sourceType);
+    EXPECT_EQ(result, false);
+}
+
+/**
+* @tc.name  : Test NeedVerifyBackgroundCapture  API
+* @tc.type  : FUNC
+* @tc.number: NeedVerifyBackgroundCapture_003
+* @tc.desc  : Test NeedVerifyBackgroundCapture API
+*/
+HWTEST(AudioUtilsUnitTest, NeedVerifyBackgroundCapture_003, TestSize.Level1)
+{
+    int32_t callingUid = 7000;
+    SourceType sourceType = SOURCE_TYPE_INVALID;
+    bool result = PermissionUtil::NeedVerifyBackgroundCapture(callingUid, sourceType);
+    EXPECT_EQ(result, true);
+}
+
+/**
+* @tc.name  : Test WriteDumpFile  API
+* @tc.type  : FUNC
+* @tc.number: WriteDumpFile_001
+* @tc.desc  : Test WriteDumpFile API
+*/
+HWTEST(AudioUtilsUnitTest, WriteDumpFile_001, TestSize.Level1)
+{
+    uint32_t buffer[10] = {0};
+    size_t buffersize = 10;
+    FILE* tempFile = std::tmpfile();
+    DumpFileUtil::WriteDumpFile(tempFile, buffer, buffersize);
+    fclose(tempFile);
+}
+
+/**
+* @tc.name  : Test ChangeDumpFileState  API
+* @tc.type  : FUNC
+* @tc.number: ChangeDumpFileState_001
+* @tc.desc  : Test ChangeDumpFileState API
+*/
+HWTEST(AudioUtilsUnitTest, ChangeDumpFileState_001, TestSize.Level1)
+{
+    std::string para = DUMP_SERVER_PARA;
+    std::string fileName = "dump_bluetooth_audiosink.pcm";
+    const char *key = "sys.audio.dump.writeserver.enable";
+    const char *value = "w";
+    SetParameter(key, value);
+    FILE* tempFile = std::tmpfile();
+    DumpFileUtil::ChangeDumpFileState(para, &tempFile, fileName);
+    fclose(tempFile);
+}
+
+/**
+* @tc.name  : Test ChangeDumpFileState  API
+* @tc.type  : FUNC
+* @tc.number: ChangeDumpFileState_002
+* @tc.desc  : Test ChangeDumpFileState API
+*/
+HWTEST(AudioUtilsUnitTest, ChangeDumpFileState_002, TestSize.Level1)
+{
+    std::string para = DUMP_CLIENT_PARA;
+    std::string fileName = "dump_bluetooth_audiosink.pcm";
+    const char *key = "sys.audio.dump.writeserver.enable";
+    const char *value = "a";
+    SetParameter(key, value);
+    FILE* tempFile = std::tmpfile();
+    DumpFileUtil::ChangeDumpFileState(para, &tempFile, fileName);
+    fclose(tempFile);
+}
+
+/**
+* @tc.name  : Test ChangeDumpFileState  API
+* @tc.type  : FUNC
+* @tc.number: ChangeDumpFileState_003
+* @tc.desc  : Test ChangeDumpFileState API
+*/
+HWTEST(AudioUtilsUnitTest, ChangeDumpFileState_003, TestSize.Level1)
+{
+    std::string para = DUMP_CLIENT_PARA;
+    std::string fileName = "dump_bluetooth_audiosink.pcm";
+    const char *key = "sys.audio.dump.writeserver.enable";
+    const char *value = "a";
+    SetParameter(key, value);
+    FILE* tempFile = std::tmpfile();
+    DumpFileUtil::ChangeDumpFileState(para, &tempFile, fileName);
+    fclose(tempFile);
+}
+
+/**
+* @tc.name  : Test OpenDumpFile  API
+* @tc.type  : FUNC
+* @tc.number: OpenDumpFile_001
+* @tc.desc  : Test OpenDumpFile API
+*/
+HWTEST(AudioUtilsUnitTest, OpenDumpFile_001, TestSize.Level1)
+{
+    std::string para = "w";
+    std::string fileName = "dump_bluetooth_audiosink.pcm";
+    FILE* tempFile = std::tmpfile();
+    DumpFileUtil::OpenDumpFile(para, fileName, &tempFile);
+    fclose(tempFile);
+}
+
+/**
+* @tc.name  : Test OpenDumpFile  API
+* @tc.type  : FUNC
+* @tc.number: OpenDumpFile_002
+* @tc.desc  : Test OpenDumpFile API
+*/
+HWTEST(AudioUtilsUnitTest, OpenDumpFile_002, TestSize.Level1)
+{
+    std::string para = DUMP_CLIENT_PARA;
+    std::string fileName = "dump_bluetooth_audiosink.pcm";
+    FILE* tempFile = std::tmpfile();
+    DumpFileUtil::OpenDumpFile(para, fileName, &tempFile);
+    fclose(tempFile);
+}
+
+/**
+* @tc.name  : Test OpenDumpFileInner  API
+* @tc.type  : FUNC
+* @tc.number: OpenDumpFileInner_001
+* @tc.desc  : Test OpenDumpFileInner API
+*/
+HWTEST(AudioUtilsUnitTest, OpenDumpFileInner_001, TestSize.Level1)
+{
+    std::string para = DUMP_SERVER_PARA;
+    std::string fileName = "dump_bluetooth_audiosink.pcm";
+    FILE* tempFile = std::tmpfile();
+    const char *key = "sys.audio.dump.writeserver.enable";
+    const char *value = "w";
+    SetParameter(key, value);
+    AudioDumpFileType fileType = static_cast<AudioDumpFileType>(3);
+    FILE *ret = DumpFileUtil::OpenDumpFileInner(para, fileName, fileType);
+    ASSERT_TRUE(ret == nullptr);
+    fclose(tempFile);
+}
+
+/**
+* @tc.name  : Test OpenDumpFileInner  API
+* @tc.type  : FUNC
+* @tc.number: OpenDumpFileInner_002
+* @tc.desc  : Test OpenDumpFileInner API
+*/
+HWTEST(AudioUtilsUnitTest, OpenDumpFileInner_002, TestSize.Level1)
+{
+    std::string para = DUMP_SERVER_PARA;
+    std::string fileName = "dump_bluetooth_audiosink.pcm";
+    FILE* tempFile = std::tmpfile();
+    const char *key = "sys.audio.dump.writeserver.enable";
+    const char *value = "w";
+    SetParameter(key, value);
+    DumpFileUtil::OpenDumpFile(para, fileName, &tempFile);
+    fclose(tempFile);
+}
+
+/**
+* @tc.name  : Test OpenDumpFileInner  API
+* @tc.type  : FUNC
+* @tc.number: OpenDumpFileInner_003
+* @tc.desc  : Test OpenDumpFileInner API
+*/
+HWTEST(AudioUtilsUnitTest, OpenDumpFileInner_003, TestSize.Level1)
+{
+    std::string para = DUMP_SERVER_PARA;
+    std::string fileName = "dump_bluetooth_audiosink.pcm";
+    FILE* tempFile = std::tmpfile();
+    const char *key = "sys.audio.dump.writeserver.enable";
+    const char *value = "a";
+    SetParameter(key, value);
+    DumpFileUtil::OpenDumpFile(para, fileName, &tempFile);
+    fclose(tempFile);
+}
+
+/**
+* @tc.name  : Test CheckAudioData  API
+* @tc.type  : FUNC
+* @tc.number: CheckAudioData_001
+* @tc.desc  : Test CheckAudioData API
+*/
+HWTEST(AudioUtilsUnitTest, CheckAudioData_001, TestSize.Level1)
+{
+    uint8_t buffer[10] = {0};
+    size_t bufferLen = 0;
+    struct SignalDetectAgent signalDetectAgent;
+    signalDetectAgent.sampleFormat_= SAMPLE_S32LE;
+    bool ret = signalDetectAgent.CheckAudioData(buffer, bufferLen);
+    EXPECT_EQ(ret, false);
+}
+
+/**
+* @tc.name  : Test CheckAudioData  API
+* @tc.type  : FUNC
+* @tc.number: CheckAudioData_002
+* @tc.desc  : Test CheckAudioData API
+*/
+HWTEST(AudioUtilsUnitTest, CheckAudioData_002, TestSize.Level1)
+{
+    uint8_t buffer[10] = {2, 3, 2, 3, 2, 3, 2, 3, 2, 3};
+    size_t bufferLen = 10*sizeof(int32_t);
+    struct SignalDetectAgent signalDetectAgent;
+    signalDetectAgent.sampleFormat_= SAMPLE_S24LE;
+    bool ret = signalDetectAgent.CheckAudioData(buffer, bufferLen);
+    EXPECT_EQ(ret, false);
+}
+
+/**
+* @tc.name  : Test CheckAudioData  API
+* @tc.type  : FUNC
+* @tc.number: CheckAudioData_003
+* @tc.desc  : Test CheckAudioData API
+*/
+HWTEST(AudioUtilsUnitTest, CheckAudioData_003, TestSize.Level1)
+{
+    uint8_t buffer[10] = {2, 3, 2, 3, 2, 3, 2, 3, 2, 3};
+    size_t bufferLen = 10*sizeof(int32_t);
+    struct SignalDetectAgent signalDetectAgent;
+    bool ret = signalDetectAgent.CheckAudioData(buffer, bufferLen);
+    EXPECT_EQ(ret, false);
 }
 } // namespace AudioStandard
 } // namespace OHOS
