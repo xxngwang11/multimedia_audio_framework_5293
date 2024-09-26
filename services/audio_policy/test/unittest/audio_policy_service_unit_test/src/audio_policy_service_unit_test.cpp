@@ -22,10 +22,12 @@ using namespace testing::ext;
 
 namespace OHOS {
 namespace AudioStandard {
+
 const int32_t SYSTEM_ABILITY_ID = 3009;
 const bool RUN_ON_CREATE = false;
 bool g_hasServerInit = false;
 bool g_hasPermission = false;
+static const std::string INNER_CAPTURER_SINK_LEGACY = "InnerCapturer";
 const int32_t CONNECTING_NUMBER = 10;
 const int32_t TEST_SESSIONID = MIN_SESSIONID + 1010;
 const int32_t ROUTER_MAP_ID0 = 1000;
@@ -34,6 +36,7 @@ const int32_t ROUTER_MAP_ID2 = 1002;
 const int32_t ROUTER_MAP_ID3 = 1003;
 const int32_t ROUTER_MAP_ID4 = 1004;
 const int32_t ROUTER_MAP_ID5 = 1005;
+const int32_t ROUTER_MAP_ID6 = 1006;
 const int32_t G_UNKNOWN_PID = -1;
 const uint32_t CHANNELS = 2;
 const uint32_t RATE = 4;
@@ -220,7 +223,6 @@ static const std::vector<AudioStreamType>audioStreamTypes = {
     STREAM_VOICE_COMMUNICATION,
     STREAM_VOICE_RING,
     STREAM_VOICE_CALL_ASSISTANT,
-    STREAM_CAMCORDER,
     STREAM_TYPE_MAX,
     STREAM_ALL
 };
@@ -236,6 +238,45 @@ static const std::vector<DeviceRole>deviceRoles = {
     DEVICE_ROLE_MAX
 };
 
+static const std::vector<DeviceFlag>deviceFlags = {
+    NONE_DEVICES_FLAG,
+    OUTPUT_DEVICES_FLAG,
+    INPUT_DEVICES_FLAG,
+    ALL_DEVICES_FLAG,
+    DISTRIBUTED_OUTPUT_DEVICES_FLAG,
+    DISTRIBUTED_INPUT_DEVICES_FLAG,
+    ALL_DISTRIBUTED_DEVICES_FLAG,
+    ALL_L_D_DEVICES_FLAG,
+    DEVICE_FLAG_MAX
+};
+
+static const std::vector<AudioSampleFormat>audioSampleFormats = {
+    SAMPLE_U8,
+    SAMPLE_S16LE,
+    SAMPLE_S24LE,
+    SAMPLE_S32LE,
+    SAMPLE_F32LE,
+    INVALID_WIDTH
+};
+
+static const std::vector<AudioScene>audioScenes = {
+    AUDIO_SCENE_INVALID,
+    AUDIO_SCENE_DEFAULT,
+    AUDIO_SCENE_RINGING,
+    AUDIO_SCENE_PHONE_CALL,
+    AUDIO_SCENE_PHONE_CHAT,
+    AUDIO_SCENE_CALL_START,
+    AUDIO_SCENE_CALL_END,
+    AUDIO_SCENE_VOICE_RINGING,
+    AUDIO_SCENE_MAX
+};
+
+static const std::vector<AudioRingerMode>audioRingerModes = {
+    RINGER_MODE_SILENT,
+    RINGER_MODE_VIBRATE,
+    RINGER_MODE_NORMAL
+};
+
 /**
 * @tc.name  : Test AudioPolicyService.
 * @tc.number: AudioPolicyServiceTest_001
@@ -243,6 +284,9 @@ static const std::vector<DeviceRole>deviceRoles = {
 */
 HWTEST_F(AudioPolicyServiceUnitTest, AudioPolicyServiceTest_Prepare001, TestSize.Level1)
 {
+    AUDIO_INFO_LOG("AudioPolicyServiceUnitTest AudioPolicyServiceTest_Prepare001 start");
+    ASSERT_NE(nullptr, GetServerPtr());
+
     // Get permission for test
     GetPermission();
 
@@ -325,7 +369,7 @@ HWTEST_F(AudioPolicyServiceUnitTest, AudioPolicyServiceTest_002, TestSize.Level1
     audioDeviceDescriptor->deviceType_ = DEVICE_TYPE_BLUETOOTH_A2DP;
     audioDeviceDescriptor->deviceRole_ = DeviceRole::OUTPUT_DEVICE;
     GetServerPtr()->audioPolicyService_.connectedDevices_.push_back(audioDeviceDescriptor);
-    GetServerPtr()->audioPolicyService_.isOffloadAvailable_ = true; // set offload support on for covery
+    GetServerPtr()->audioPolicyService_.isOffloadAvailable_ = true;
 
     for (const auto& preferredType : preferredTypes) {
         AUDIO_INFO_LOG("AudioPolicyServiceTest_002 preferredType:%{public}d", static_cast<uint32_t>(preferredType));
@@ -424,56 +468,6 @@ HWTEST_F(AudioPolicyServiceUnitTest, AudioPolicyServiceTest_004, TestSize.Level1
     }
 }
 
-void MakeAdapterInfoMap()
-{
-    AudioAdapterInfo adapterInfo = {};
-    adapterInfo.adapterName_ = "wakeup_input";
-    adapterInfo.adaptersupportScene_ = "supportScene";
-    std::list<PipeInfo> pipeInfos_;
-    PipeInfo pipeInfo = {};
-    pipeInfo.name_ = "primary_input";
-    StreamPropInfo streamPropInfo;
-    pipeInfo.streamPropInfos_.push_back(streamPropInfo);
-    pipeInfos_.push_back(pipeInfo);
-    adapterInfo.pipeInfos_ = pipeInfos_;
-    GetServerPtr()->audioPolicyService_.adapterInfoMap_.
-        insert({AdaptersType::TYPE_PRIMARY, adapterInfo});
-}
-
-/**
-* @tc.name  : Test AudioPolicyService.
-* @tc.number: AudioPolicyServiceTest_005
-* @tc.desc  : Test AudioPolicyService interfaces.
-*/
-HWTEST_F(AudioPolicyServiceUnitTest, AudioPolicyServiceTest_005, TestSize.Level1)
-{
-    AudioStreamInfo streamInfo;
-    streamInfo.samplingRate = AudioSamplingRate::SAMPLE_RATE_48000;
-    streamInfo.channels = AudioChannel::STEREO;
-    streamInfo.format = AudioSampleFormat::SAMPLE_S16LE;
-    SessionInfo sessionInfo;
-    sessionInfo.sourceType = SOURCE_TYPE_VOICE_CALL;
-    sessionInfo.rate = RATE;
-    sessionInfo.channels = CHANNELS;
-    MakeAdapterInfoMap();
-    GetServerPtr()->audioPolicyService_.OnCapturerSessionAdded(TEST_SESSIONID, sessionInfo, streamInfo);
-    sptr<AudioDeviceDescriptor> remoteDeviceDescriptor = new AudioDeviceDescriptor();
-
-    for (const auto& deviceRole : deviceRoles) {
-        GetServerPtr()->audioPolicyService_.OpenRemoteAudioDevice(REMOTE_NETWORK_ID,
-            deviceRole, DEVICE_TYPE_EARPIECE, remoteDeviceDescriptor);
-    }
-    for (const auto& deviceType : deviceTypes) {
-        AUDIO_ERR_LOG("AudioPolicyServiceTest_005 deviceType:%{public}d, TEST_SESSIONID:%{public}d",
-            static_cast<uint32_t>(deviceType), TEST_SESSIONID);
-        for (const auto& isConnected : isConnecteds) {
-            AUDIO_INFO_LOG("AudioPolicyServiceTest_005 isConnected:%{public}d", static_cast<uint32_t>(isConnected));
-            GetServerPtr()->audioPolicyService_.OnDeviceStatusUpdated(
-                deviceType, isConnected, "", "audioDevice", streamInfo);
-        }
-    }
-}
-
 void debugPrintMemoryVariable()
 {
     // currentActiveDevice_.deviceType_
@@ -504,19 +498,23 @@ HWTEST_F(AudioPolicyServiceUnitTest, SetStreamMute_001, TestSize.Level1)
     AUDIO_INFO_LOG("AudioPolicyServiceUnitTest SetStreamMute_001 start");
     ASSERT_NE(nullptr, GetServerPtr());
 
+    // clear connectedA2dpDeviceMap_
     GetServerPtr()->audioPolicyService_.connectedA2dpDeviceMap_.clear();
+
     // modify currentActiveDevice_.deviceType_ to DEVICE_TYPE_SPEAKER
     GetServerPtr()->audioPolicyService_.currentActiveDevice_.deviceType_ = DEVICE_TYPE_SPEAKER;
     GetServerPtr()->audioPolicyService_.GetStreamMute(STREAM_MUSIC);
     GetServerPtr()->audioPolicyService_.SetStreamMute(STREAM_MUSIC, true);
     GetServerPtr()->audioPolicyService_.GetStreamMute(STREAM_RING);
     GetServerPtr()->audioPolicyService_.SetStreamMute(STREAM_RING, true);
+
     // modify currentActiveDevice_.deviceType_ to DEVICE_TYPE_BLUETOOTH_A2DP
     GetServerPtr()->audioPolicyService_.currentActiveDevice_.deviceType_ = DEVICE_TYPE_BLUETOOTH_A2DP;
     GetServerPtr()->audioPolicyService_.GetStreamMute(STREAM_MUSIC);
     GetServerPtr()->audioPolicyService_.SetStreamMute(STREAM_MUSIC, true);
     GetServerPtr()->audioPolicyService_.GetStreamMute(STREAM_MUSIC);
     GetServerPtr()->audioPolicyService_.SetStreamMute(STREAM_MUSIC, true);
+
     // modify activeBTDevice_ and connectedA2dpDeviceMap_
     GetServerPtr()->audioPolicyService_.activeBTDevice_ = "activeBTDevice";
     AudioStreamInfo audioStreamInfo = {};
@@ -529,10 +527,12 @@ HWTEST_F(AudioPolicyServiceUnitTest, SetStreamMute_001, TestSize.Level1)
     GetServerPtr()->audioPolicyService_.GetStreamMute(STREAM_MUSIC);
     GetServerPtr()->audioPolicyService_.SetStreamMute(STREAM_MUSIC, true);
     GetServerPtr()->audioPolicyService_.SetStreamMute(STREAM_MUSIC, false);
+
     // modify configInfo.absVolumeSupport to false
     configInfo.absVolumeSupport = false;
     GetServerPtr()->audioPolicyService_.GetStreamMute(STREAM_MUSIC);
     GetServerPtr()->audioPolicyService_.SetStreamMute(STREAM_MUSIC, true);
+
     // use STREAM_WAKEUP to test GetVolumeTypeFromStreamType's else branch
     GetServerPtr()->audioPolicyService_.SetStreamMute(STREAM_WAKEUP, true);
 }
@@ -585,10 +585,25 @@ HWTEST_F(AudioPolicyServiceUnitTest, GetSelectedDeviceInfo_001, TestSize.Level1)
 {
     AUDIO_INFO_LOG("AudioPolicyServiceUnitTest GetSelectedDeviceInfo_001 start");
     ASSERT_NE(nullptr, GetServerPtr());
+
+    // clear data
+    GetServerPtr()->audioPolicyService_.connectedDevices_.clear();
+
+    // dummy data
+    sptr<AudioDeviceDescriptor> audioDeviceDescriptor = new(std::nothrow) AudioDeviceDescriptor();
+    ASSERT_NE(nullptr, audioDeviceDescriptor) << "audioDeviceDescriptor is nullptr.";
+    audioDeviceDescriptor->deviceType_ = DEVICE_TYPE_BLUETOOTH_A2DP;
+    audioDeviceDescriptor->deviceRole_ = DeviceRole::OUTPUT_DEVICE;
+    audioDeviceDescriptor->networkId_ = REMOTE_NETWORK_ID;
+
+    GetServerPtr()->audioPolicyService_.connectedDevices_.push_back(audioDeviceDescriptor);
+    GetServerPtr()->audioPolicyService_.isOffloadAvailable_ = true;
+
     GetServerPtr()->audioPolicyService_.routerMap_[ROUTER_MAP_ID1] = std::pair(LOCAL_NETWORK_ID, (G_UNKNOWN_PID - 1));
     GetServerPtr()->audioPolicyService_.routerMap_[ROUTER_MAP_ID2] = std::pair(LOCAL_NETWORK_ID, G_UNKNOWN_PID);
     GetServerPtr()->audioPolicyService_.routerMap_[ROUTER_MAP_ID3] = std::pair(REMOTE_NETWORK_ID, (G_UNKNOWN_PID + 1));
     GetServerPtr()->audioPolicyService_.routerMap_[ROUTER_MAP_ID4] = std::pair(REMOTE_NETWORK_ID, (G_UNKNOWN_PID + 2));
+    GetServerPtr()->audioPolicyService_.routerMap_[ROUTER_MAP_ID5] = std::pair(REMOTE_NETWORK_ID, G_UNKNOWN_PID);
 
     GetServerPtr()->audioPolicyService_.GetSelectedDeviceInfo(ROUTER_MAP_ID0, G_UNKNOWN_PID, STREAM_MUSIC);
     GetServerPtr()->audioPolicyService_.GetSelectedDeviceInfo(ROUTER_MAP_ID1, (G_UNKNOWN_PID - 1), STREAM_MUSIC);
@@ -601,6 +616,11 @@ HWTEST_F(AudioPolicyServiceUnitTest, GetSelectedDeviceInfo_001, TestSize.Level1)
     GetServerPtr()->audioPolicyService_.GetSelectedDeviceInfo(ROUTER_MAP_ID4, (G_UNKNOWN_PID + 1), STREAM_MUSIC);
     GetServerPtr()->audioPolicyService_.GetSelectedDeviceInfo(ROUTER_MAP_ID4, (G_UNKNOWN_PID + 2), STREAM_MUSIC);
     GetServerPtr()->audioPolicyService_.GetSelectedDeviceInfo(ROUTER_MAP_ID5, G_UNKNOWN_PID, STREAM_MUSIC);
+    GetServerPtr()->audioPolicyService_.GetSelectedDeviceInfo(ROUTER_MAP_ID6, G_UNKNOWN_PID, STREAM_MUSIC);
+
+    GetServerPtr()->audioPolicyService_.routerMap_[ROUTER_MAP_ID6] =
+        std::pair(REMOTE_NETWORK_ID + "_out", G_UNKNOWN_PID);
+    GetServerPtr()->audioPolicyService_.GetSelectedDeviceInfo(ROUTER_MAP_ID6, G_UNKNOWN_PID, STREAM_MUSIC);
 }
 
 /**
@@ -850,10 +870,7 @@ HWTEST_F(AudioPolicyServiceUnitTest, FilterSinkInputs_002, TestSize.Level1)
     audioRendererFilter->rendererInfo.rendererFlags = STREAM_FLAG_NORMAL;
     audioRendererFilter->rendererInfo.streamUsage = STREAM_USAGE_MUSIC;
     bool moveAll = false;
-
-    EXPECT_NO_THROW(
-        GetServerPtr()->audioPolicyService_.FilterSinkInputs(audioRendererFilter, moveAll);
-    );
+    GetServerPtr()->audioPolicyService_.FilterSinkInputs(audioRendererFilter, moveAll);
 }
 
 /**
@@ -980,7 +997,6 @@ HWTEST_F(AudioPolicyServiceUnitTest, SetCaptureDeviceForUsage_001, TestSize.Leve
     descriptor->deviceType_ = DEVICE_TYPE_MIC;
     descriptor->deviceRole_ = DeviceRole::INPUT_DEVICE;
     descriptor->networkId_ = LOCAL_NETWORK_ID;
-
     EXPECT_NO_THROW(
         GetServerPtr()->audioPolicyService_.SetCaptureDeviceForUsage(scene, srcType, descriptor);
     );
@@ -1061,20 +1077,26 @@ HWTEST_F(AudioPolicyServiceUnitTest, GetSinkPortName_001, TestSize.Level1)
     InternalDeviceType deviceType = DEVICE_TYPE_NONE;
     AudioPipeType pipeType = PIPE_TYPE_UNKNOWN;
     string retPortName = "";
+
     // case1 InternalDeviceType::DEVICE_TYPE_BLUETOOTH_A2DP
     deviceType = DEVICE_TYPE_BLUETOOTH_A2DP;
     GetServerPtr()->audioPolicyService_.a2dpOffloadFlag_ = A2DP_OFFLOAD;
-    pipeType = PIPE_TYPE_OFFLOAD;
     retPortName = GetServerPtr()->audioPolicyService_.GetSinkPortName(deviceType, pipeType);
     EXPECT_EQ(BLUETOOTH_SPEAKER, retPortName);
+    AUDIO_INFO_LOG("AudioPolicyServiceUnitTest GetSinkPortName_001 aaa");
+    GetServerPtr()->audioPolicyService_.audioA2dpOffloadManager_ = nullptr;
+    AUDIO_INFO_LOG("AudioPolicyServiceUnitTest GetSinkPortName_001 bbb");
+    pipeType = PIPE_TYPE_OFFLOAD;
+    retPortName = GetServerPtr()->audioPolicyService_.GetSinkPortName(deviceType, pipeType);
+    EXPECT_EQ(OFFLOAD_PRIMARY_SPEAKER, retPortName);
 
     pipeType = PIPE_TYPE_MULTICHANNEL;
     retPortName = GetServerPtr()->audioPolicyService_.GetSinkPortName(deviceType, pipeType);
-    EXPECT_EQ(BLUETOOTH_SPEAKER, retPortName);
+    EXPECT_EQ(MCH_PRIMARY_SPEAKER, retPortName);
 
     pipeType = PIPE_TYPE_DIRECT_MUSIC;
     retPortName = GetServerPtr()->audioPolicyService_.GetSinkPortName(deviceType, pipeType);
-    EXPECT_EQ(BLUETOOTH_SPEAKER, retPortName);
+    EXPECT_EQ(PRIMARY_SPEAKER, retPortName);
 
     GetServerPtr()->audioPolicyService_.a2dpOffloadFlag_ = A2DP_NOT_OFFLOAD;
     retPortName = GetServerPtr()->audioPolicyService_.GetSinkPortName(deviceType, pipeType);
@@ -1111,37 +1133,45 @@ HWTEST_F(AudioPolicyServiceUnitTest, GetSinkPortName_002, TestSize.Level1)
     InternalDeviceType deviceType = DEVICE_TYPE_NONE;
     AudioPipeType pipeType = PIPE_TYPE_UNKNOWN;
     string retPortName = "";
+
     // case 5 InternalDeviceType::DEVICE_TYPE_WIRED_HEADPHONES
     deviceType = DEVICE_TYPE_WIRED_HEADPHONES;
     pipeType = PIPE_TYPE_OFFLOAD;
     retPortName = GetServerPtr()->audioPolicyService_.GetSinkPortName(deviceType, pipeType);
     EXPECT_EQ(OFFLOAD_PRIMARY_SPEAKER, retPortName);
+
     // case 6 InternalDeviceType::DEVICE_TYPE_USB_HEADSET
     deviceType = DEVICE_TYPE_USB_HEADSET;
     pipeType = PIPE_TYPE_MULTICHANNEL;
     retPortName = GetServerPtr()->audioPolicyService_.GetSinkPortName(deviceType, pipeType);
     EXPECT_EQ(MCH_PRIMARY_SPEAKER, retPortName);
+
     // case 7 InternalDeviceType::DEVICE_TYPE_BLUETOOTH_SCO
     deviceType = DEVICE_TYPE_BLUETOOTH_SCO;
     pipeType = PIPE_TYPE_NORMAL_IN;
     retPortName = GetServerPtr()->audioPolicyService_.GetSinkPortName(deviceType, pipeType);
     EXPECT_EQ(PRIMARY_SPEAKER, retPortName);
     // case 8 InternalDeviceType::DEVICE_TYPE_USB_ARM_HEADSET
+
     deviceType = DEVICE_TYPE_USB_ARM_HEADSET;
     retPortName = GetServerPtr()->audioPolicyService_.GetSinkPortName(deviceType, pipeType);
     EXPECT_EQ(USB_SPEAKER, retPortName);
+
     // case 9 InternalDeviceType::DEVICE_TYPE_DP
     deviceType = DEVICE_TYPE_DP;
     retPortName = GetServerPtr()->audioPolicyService_.GetSinkPortName(deviceType, pipeType);
     EXPECT_EQ(DP_SINK, retPortName);
+
     // case 10 InternalDeviceType::DEVICE_TYPE_FILE_SINK
     deviceType = DEVICE_TYPE_FILE_SINK;
     retPortName = GetServerPtr()->audioPolicyService_.GetSinkPortName(deviceType, pipeType);
     EXPECT_EQ(FILE_SINK, retPortName);
+
     // case 11 InternalDeviceType::DEVICE_TYPE_REMOTE_CAST
     deviceType = DEVICE_TYPE_REMOTE_CAST;
     retPortName = GetServerPtr()->audioPolicyService_.GetSinkPortName(deviceType, pipeType);
     EXPECT_EQ(REMOTE_CAST_INNER_CAPTURER_SINK_NAME, retPortName);
+
     // case 12 InternalDeviceType::DEVICE_TYPE_NONE
     deviceType = DEVICE_TYPE_NONE;
     retPortName = GetServerPtr()->audioPolicyService_.GetSinkPortName(deviceType, pipeType);
@@ -1253,7 +1283,7 @@ HWTEST_F(AudioPolicyServiceUnitTest, ActivateNewDevice_001, TestSize.Level1)
 }
 
 /**
-* @tc.name  : Test SetWakeUpAudioCapturer.
+* @tc.name  : Test SetWakeUpAudioCapturer and ConstructWakeupAudioModuleInfo.
 * @tc.number: SetWakeUpAudioCapturer_001
 * @tc.desc  : Test AudioPolicyService interfaces.
 */
@@ -1272,25 +1302,17 @@ HWTEST_F(AudioPolicyServiceUnitTest, SetWakeUpAudioCapturer_001, TestSize.Level1
 
     GetServerPtr()->audioPolicyService_.isAdapterInfoMap_.store(false);
     GetServerPtr()->audioPolicyService_.isUpdateRouteSupported_ = false;
-    AUDIO_INFO_LOG("AudioPolicyServiceUnitTest SetWakeUpAudioCapturer_001 aaa isAdapterInfoMap_: %{public}d",
-        GetServerPtr()->audioPolicyService_.isAdapterInfoMap_.load());
-    AUDIO_INFO_LOG("AudioPolicyServiceUnitTest SetWakeUpAudioCapturer_001 bbb isUpdateRouteSupported_: %{public}d",
-        GetServerPtr()->audioPolicyService_.isUpdateRouteSupported_);
     int32_t ret = GetServerPtr()->audioPolicyService_.SetWakeUpAudioCapturer(capturerOptions);
     EXPECT_EQ(ERROR, ret);
 
     GetServerPtr()->audioPolicyService_.isAdapterInfoMap_.store(true);
     GetServerPtr()->audioPolicyService_.isUpdateRouteSupported_ = true;
-    AUDIO_INFO_LOG("AudioPolicyServiceUnitTest SetWakeUpAudioCapturer_001 ccc isAdapterInfoMap_: %{public}d",
-        GetServerPtr()->audioPolicyService_.isAdapterInfoMap_.load());
-    AUDIO_INFO_LOG("AudioPolicyServiceUnitTest SetWakeUpAudioCapturer_001 ddd isUpdateRouteSupported_: %{public}d",
-        GetServerPtr()->audioPolicyService_.isUpdateRouteSupported_);
     ret = GetServerPtr()->audioPolicyService_.SetWakeUpAudioCapturer(capturerOptions);
     EXPECT_EQ(ERROR, ret);
 }
 
 /**
-* @tc.name  : Test GetDevices.
+* @tc.name  : Test GetDevices and GetDevicesInner.
 * @tc.number: GetDevices_001
 * @tc.desc  : Test AudioPolicyService interfaces.
 */
@@ -1298,13 +1320,47 @@ HWTEST_F(AudioPolicyServiceUnitTest, GetDevices_001, TestSize.Level1)
 {
     AUDIO_INFO_LOG("AudioPolicyServiceUnitTest GetDevices_001 start");
     ASSERT_NE(nullptr, GetServerPtr());
-    EXPECT_NO_THROW(
-        DeviceFlag deviceFlag = OUTPUT_DEVICES_FLAG;
-        sptr ptr(new AudioDeviceDescriptor());
-        ptr = nullptr;
-        GetServerPtr()->audioPolicyService_.connectedDevices_.push_back(ptr);
-        GetServerPtr()->audioPolicyService_.GetDevices(deviceFlag);
-    );
+
+    // case nullptr
+    DeviceFlag deviceFlag = OUTPUT_DEVICES_FLAG;
+    sptr ptr(new AudioDeviceDescriptor());
+    ptr = nullptr;
+    GetServerPtr()->audioPolicyService_.connectedDevices_.push_back(ptr);
+    GetServerPtr()->audioPolicyService_.GetDevices(deviceFlag);
+
+    // case deviceType_ is DEVICE_TYPE_REMOTE_CAST
+    sptr<AudioDeviceDescriptor> audioDeviceDescriptor = new(std::nothrow) AudioDeviceDescriptor();
+    ASSERT_NE(nullptr, audioDeviceDescriptor) << "audioDeviceDescriptor is nullptr.";
+    audioDeviceDescriptor->deviceType_ = DEVICE_TYPE_REMOTE_CAST;
+    std::vector<DeviceFlag> deviceFlagsTmp = {ALL_DEVICES_FLAG, OUTPUT_DEVICES_FLAG, INPUT_DEVICES_FLAG,
+        ALL_DISTRIBUTED_DEVICES_FLAG, DISTRIBUTED_OUTPUT_DEVICES_FLAG, DISTRIBUTED_INPUT_DEVICES_FLAG};
+    for (const auto& deviceFlag : deviceFlagsTmp) {
+        std::vector<DeviceRole> deviceRolesTmp = {OUTPUT_DEVICE, INPUT_DEVICE};
+        for (const auto& deviceRole : deviceRolesTmp) {
+            audioDeviceDescriptor->deviceRole_ = deviceRole;
+            audioDeviceDescriptor->networkId_ = LOCAL_NETWORK_ID;
+            GetServerPtr()->audioPolicyService_.connectedDevices_.push_back(audioDeviceDescriptor);
+            GetServerPtr()->audioPolicyService_.GetDevices(deviceFlag);
+            audioDeviceDescriptor->networkId_ = REMOTE_NETWORK_ID;
+            GetServerPtr()->audioPolicyService_.connectedDevices_.push_back(audioDeviceDescriptor);
+            GetServerPtr()->audioPolicyService_.GetDevices(deviceFlag);
+        }
+    }
+
+    // case deviceType_ is not DEVICE_TYPE_REMOTE_CAST
+    audioDeviceDescriptor->deviceType_ = DEVICE_TYPE_BLUETOOTH_A2DP;
+    for (const auto& deviceFlag : deviceFlagsTmp) {
+        std::vector<DeviceRole> deviceRolesTmp = {OUTPUT_DEVICE, INPUT_DEVICE};
+        for (const auto& deviceRole : deviceRolesTmp) {
+            audioDeviceDescriptor->deviceRole_ = deviceRole;
+            audioDeviceDescriptor->networkId_ = LOCAL_NETWORK_ID;
+            GetServerPtr()->audioPolicyService_.connectedDevices_.push_back(audioDeviceDescriptor);
+            GetServerPtr()->audioPolicyService_.GetDevices(deviceFlag);
+            audioDeviceDescriptor->networkId_ = REMOTE_NETWORK_ID;
+            GetServerPtr()->audioPolicyService_.connectedDevices_.push_back(audioDeviceDescriptor);
+            GetServerPtr()->audioPolicyService_.GetDevices(deviceFlag);
+        }
+    }
 }
 
 /**
@@ -1320,6 +1376,9 @@ HWTEST_F(AudioPolicyServiceUnitTest, GetPreferredOutputDeviceDescriptors_001, Te
         AudioRendererInfo rendererInfo;
         rendererInfo.streamUsage = STREAM_USAGE_INVALID;
         string networkId = REMOTE_NETWORK_ID;
+        GetServerPtr()->audioPolicyService_.GetPreferredOutputDeviceDescriptors(rendererInfo, networkId);
+
+        rendererInfo.streamUsage = STREAM_USAGE_MUSIC;
         GetServerPtr()->audioPolicyService_.GetPreferredOutputDeviceDescriptors(rendererInfo, networkId);
     );
 }
@@ -1483,6 +1542,7 @@ HWTEST_F(AudioPolicyServiceUnitTest, UpdateEffectDefaultSink_001, TestSize.Level
     AUDIO_INFO_LOG("AudioPolicyServiceUnitTest UpdateEffectDefaultSink_001 start");
     ASSERT_NE(nullptr, GetServerPtr());
     EXPECT_NO_THROW(
+        GetServerPtr()->audioPolicyService_.UpdateEffectDefaultSink(DEVICE_TYPE_EARPIECE);
         GetServerPtr()->audioPolicyService_.UpdateEffectDefaultSink(DEVICE_TYPE_NONE);
     );
 }
@@ -1495,7 +1555,7 @@ HWTEST_F(AudioPolicyServiceUnitTest, UpdateEffectDefaultSink_001, TestSize.Level
 HWTEST_F(AudioPolicyServiceUnitTest, HasLowLatencyCapability_001, TestSize.Level1)
 {
     AUDIO_INFO_LOG("AudioPolicyServiceUnitTest HasLowLatencyCapability_001 start");
-ASSERT_NE(nullptr, GetServerPtr());
+    ASSERT_NE(nullptr, GetServerPtr());
     bool ret = false;
     ret = GetServerPtr()->audioPolicyService_.HasLowLatencyCapability(DEVICE_TYPE_NONE, true);
     EXPECT_EQ(true, ret);
@@ -1540,42 +1600,64 @@ HWTEST_F(AudioPolicyServiceUnitTest, HandleActiveDevice_001, TestSize.Level1)
     int32_t ret = SUCCESS;
     ret = GetServerPtr()->audioPolicyService_.HandleActiveDevice(DEVICE_TYPE_NONE);
     EXPECT_EQ(ERR_OPERATION_FAILED, ret);
+
     ret = GetServerPtr()->audioPolicyService_.HandleActiveDevice(DEVICE_TYPE_INVALID);
     EXPECT_EQ(ERR_OPERATION_FAILED, ret);
+
     ret = GetServerPtr()->audioPolicyService_.HandleActiveDevice(DEVICE_TYPE_EARPIECE);
     EXPECT_EQ(SUCCESS, ret);
+
     ret = GetServerPtr()->audioPolicyService_.HandleActiveDevice(DEVICE_TYPE_SPEAKER);
     EXPECT_EQ(SUCCESS, ret);
+
     ret = GetServerPtr()->audioPolicyService_.HandleActiveDevice(DEVICE_TYPE_WIRED_HEADSET);
     EXPECT_EQ(SUCCESS, ret);
+
     ret = GetServerPtr()->audioPolicyService_.HandleActiveDevice(DEVICE_TYPE_WIRED_HEADPHONES);
     EXPECT_EQ(SUCCESS, ret);
+
     ret = GetServerPtr()->audioPolicyService_.HandleActiveDevice(DEVICE_TYPE_BLUETOOTH_SCO);
     EXPECT_EQ(SUCCESS, ret);
+
     ret = GetServerPtr()->audioPolicyService_.HandleActiveDevice(DEVICE_TYPE_BLUETOOTH_A2DP);
     EXPECT_EQ(SUCCESS, ret);
+
     ret = GetServerPtr()->audioPolicyService_.HandleActiveDevice(DEVICE_TYPE_MIC);
     EXPECT_EQ(SUCCESS, ret);
+
     ret = GetServerPtr()->audioPolicyService_.HandleActiveDevice(DEVICE_TYPE_WAKEUP);
     EXPECT_EQ(SUCCESS, ret);
+
     ret = GetServerPtr()->audioPolicyService_.HandleActiveDevice(DEVICE_TYPE_USB_HEADSET);
     EXPECT_EQ(SUCCESS, ret);
+
     ret = GetServerPtr()->audioPolicyService_.HandleActiveDevice(DEVICE_TYPE_DP);
     EXPECT_EQ(SUCCESS, ret);
+
     ret = GetServerPtr()->audioPolicyService_.HandleActiveDevice(DEVICE_TYPE_REMOTE_CAST);
     EXPECT_EQ(SUCCESS, ret);
+
     ret = GetServerPtr()->audioPolicyService_.HandleActiveDevice(DEVICE_TYPE_FILE_SINK);
     EXPECT_EQ(SUCCESS, ret);
+
     ret = GetServerPtr()->audioPolicyService_.HandleActiveDevice(DEVICE_TYPE_FILE_SOURCE);
     EXPECT_EQ(SUCCESS, ret);
+
     ret = GetServerPtr()->audioPolicyService_.HandleActiveDevice(DEVICE_TYPE_EXTERN_CABLE);
     EXPECT_EQ(ERR_OPERATION_FAILED, ret);
+
     ret = GetServerPtr()->audioPolicyService_.HandleActiveDevice(DEVICE_TYPE_DEFAULT);
     EXPECT_EQ(ERR_OPERATION_FAILED, ret);
+
     ret = GetServerPtr()->audioPolicyService_.HandleActiveDevice(DEVICE_TYPE_USB_ARM_HEADSET);
     EXPECT_EQ(SUCCESS, ret);
+
     ret = GetServerPtr()->audioPolicyService_.HandleActiveDevice(DEVICE_TYPE_MAX);
     EXPECT_EQ(ERR_OPERATION_FAILED, ret);
+
+    ret = GetServerPtr()->audioPolicyService_.isUpdateRouteSupported_ = false;
+    ret = GetServerPtr()->audioPolicyService_.HandleActiveDevice(DEVICE_TYPE_MIC);
+    EXPECT_EQ(SUCCESS, ret);
 }
 
 /**
@@ -1788,22 +1870,28 @@ HWTEST_F(AudioPolicyServiceUnitTest, AddAudioCapturerMicrophoneDescriptor_001, T
     AUDIO_INFO_LOG("AudioPolicyServiceUnitTest AddAudioCapturerMicrophoneDescriptor_001 start");
     ASSERT_NE(nullptr, GetServerPtr());
     
+    GetServerPtr()->audioPolicyService_.GetAudioCapturerMicrophoneDescriptors(TEST_SESSIONID);
     // clear data
     GetServerPtr()->audioPolicyService_.connectedMicrophones_.clear();
+
     // call when devType is DEVICE_TYPE_NONE
     GetServerPtr()->audioPolicyService_.AddAudioCapturerMicrophoneDescriptor(TEST_SESSIONID, DEVICE_TYPE_NONE);
     GetServerPtr()->audioPolicyService_.GetAudioCapturerMicrophoneDescriptors(TEST_SESSIONID);
+
     // call when devType is DEVICE_TYPE_MIC and connectedMicrophones_ is empty
     GetServerPtr()->audioPolicyService_.AddAudioCapturerMicrophoneDescriptor(TEST_SESSIONID, DEVICE_TYPE_MIC);
     GetServerPtr()->audioPolicyService_.GetAudioCapturerMicrophoneDescriptors(TEST_SESSIONID);
+
     // dummy data
     sptr<MicrophoneDescriptor> microphoneDescriptor = new(std::nothrow) MicrophoneDescriptor();
     ASSERT_NE(nullptr, microphoneDescriptor) << "microphoneDescriptor is nullptr.";
     microphoneDescriptor->deviceType_ = DEVICE_TYPE_BLUETOOTH_A2DP;
     GetServerPtr()->audioPolicyService_.connectedMicrophones_.push_back(microphoneDescriptor);
+
     // call when devType is DEVICE_TYPE_MIC but connectedMicrophones_ is DEVICE_TYPE_BLUETOOTH_A2DP
     GetServerPtr()->audioPolicyService_.AddAudioCapturerMicrophoneDescriptor(TEST_SESSIONID, DEVICE_TYPE_MIC);
     GetServerPtr()->audioPolicyService_.GetAudioCapturerMicrophoneDescriptors(TEST_SESSIONID);
+
     // call when devType is DEVICE_TYPE_BLUETOOTH_A2DP and connectedMicrophones_ is also DEVICE_TYPE_BLUETOOTH_A2DP
     GetServerPtr()->audioPolicyService_.AddAudioCapturerMicrophoneDescriptor(
         TEST_SESSIONID, DEVICE_TYPE_BLUETOOTH_A2DP);
@@ -1834,6 +1922,265 @@ HWTEST_F(AudioPolicyServiceUnitTest, UpdateAudioCapturerMicrophoneDescriptor_001
     for (const auto& deviceType : deviceTypes) {
         GetServerPtr()->audioPolicyService_.UpdateAudioCapturerMicrophoneDescriptor(deviceType);
     }
+
+    // modify data
+    GetServerPtr()->audioPolicyService_.audioCaptureMicrophoneDescriptor_[TEST_SESSIONID] =
+    new MicrophoneDescriptor(0, DEVICE_TYPE_BLUETOOTH_A2DP);
+
+    for (const auto& deviceType : deviceTypes) {
+        GetServerPtr()->audioPolicyService_.UpdateAudioCapturerMicrophoneDescriptor(deviceType);
+    }
+}
+
+/**
+* @tc.name  : Test GetOutputDevice
+* @tc.number: GetOutputDevice_001
+* @tc.desc  : Test AudioPolicyService interfaces.
+*/
+HWTEST_F(AudioPolicyServiceUnitTest, GetOutputDevice_001, TestSize.Level1)
+{
+    AUDIO_INFO_LOG("AudioPolicyServiceUnitTest GetOutputDevice_001 start");
+    ASSERT_NE(nullptr, GetServerPtr());
+
+    sptr<AudioRendererFilter> audioRendererFilter = new(std::nothrow) AudioRendererFilter();
+    audioRendererFilter->uid = 0;
+    audioRendererFilter->rendererInfo.rendererFlags = STREAM_FLAG_FAST;
+    GetServerPtr()->audioPolicyService_.GetOutputDevice(audioRendererFilter);
+
+    audioRendererFilter->uid = 1;
+    GetServerPtr()->audioPolicyService_.GetOutputDevice(audioRendererFilter);
+
+    audioRendererFilter->uid = -1;
+    GetServerPtr()->audioPolicyService_.GetOutputDevice(audioRendererFilter);
+}
+
+/**
+* @tc.name  : Test GetInputDevice
+* @tc.number: GetInputDevice_001
+* @tc.desc  : Test AudioPolicyService interfaces.
+*/
+HWTEST_F(AudioPolicyServiceUnitTest, GetInputDevice_001, TestSize.Level1)
+{
+    AUDIO_INFO_LOG("AudioPolicyServiceUnitTest GetInputDevice_001 start");
+    ASSERT_NE(nullptr, GetServerPtr());
+
+    sptr<AudioCapturerFilter> audioCapturerFilter = new(std::nothrow) AudioCapturerFilter();
+    audioCapturerFilter->uid = 0;
+    GetServerPtr()->audioPolicyService_.GetInputDevice(audioCapturerFilter);
+
+    audioCapturerFilter->uid = 1;
+    GetServerPtr()->audioPolicyService_.GetInputDevice(audioCapturerFilter);
+
+    audioCapturerFilter->uid = -1;
+    GetServerPtr()->audioPolicyService_.GetInputDevice(audioCapturerFilter);
+}
+
+/**
+* @tc.name  : Test GetDumpDeviceInfo
+* @tc.number: GetDumpDeviceInfo_001
+* @tc.desc  : Test AudioPolicyService interfaces.
+*/
+HWTEST_F(AudioPolicyServiceUnitTest, GetDumpDeviceInfo_001, TestSize.Level1)
+{
+    AUDIO_INFO_LOG("AudioPolicyServiceUnitTest GetDumpDeviceInfo_001 start");
+    ASSERT_NE(nullptr, GetServerPtr());
+    std::string dumpString = "";
+
+    std::vector<DeviceFlag> deviceFlagsTmp = {NONE_DEVICES_FLAG, INPUT_DEVICES_FLAG, OUTPUT_DEVICES_FLAG,
+    DISTRIBUTED_INPUT_DEVICES_FLAG, DISTRIBUTED_OUTPUT_DEVICES_FLAG, ALL_DEVICES_FLAG};
+    for (const auto& deviceFlag : deviceFlagsTmp) {
+        GetServerPtr()->audioPolicyService_.GetDumpDeviceInfo(dumpString, deviceFlag);
+    }
+}
+
+/**
+* @tc.name  : Test OnCapturerSessionAdded.
+* @tc.number: OnCapturerSessionAdded_001
+* @tc.desc  : Test AudioPolicyService interfaces.
+*/
+HWTEST_F(AudioPolicyServiceUnitTest, OnCapturerSessionAdded_001, TestSize.Level1)
+{
+    AUDIO_INFO_LOG("AudioPolicyServiceUnitTest OnCapturerSessionAdded_001 start");
+    ASSERT_NE(nullptr, GetServerPtr());
+    AudioStreamInfo streamInfo;
+    streamInfo.samplingRate = AudioSamplingRate::SAMPLE_RATE_48000;
+    streamInfo.channels = AudioChannel::STEREO;
+    streamInfo.format = AudioSampleFormat::SAMPLE_S16LE;
+    SessionInfo sessionInfo;
+    sessionInfo.sourceType = SOURCE_TYPE_VOICE_CALL;
+    sessionInfo.rate = RATE;
+    sessionInfo.channels = CHANNELS;
+
+    GetServerPtr()->audioPolicyService_.OnCapturerSessionAdded(TEST_SESSIONID, sessionInfo, streamInfo);
+
+    // dummy data
+    AudioAdapterInfo adapterInfo = {};
+    adapterInfo.adapterName_ = "wakeup_input";
+    adapterInfo.adaptersupportScene_ = "supportScene";
+    std::list<PipeInfo> pipeInfos_;
+    PipeInfo pipeInfo = {};
+    pipeInfo.name_ = "wakeup_input";
+    StreamPropInfo streamPropInfo;
+    pipeInfo.streamPropInfos_.push_back(streamPropInfo);
+    pipeInfos_.push_back(pipeInfo);
+    adapterInfo.pipeInfos_ = pipeInfos_;
+    GetServerPtr()->audioPolicyService_.adapterInfoMap_ = {};
+    GetServerPtr()->audioPolicyService_.adapterInfoMap_.insert({AdaptersType::TYPE_PRIMARY, adapterInfo});
+
+    GetServerPtr()->audioPolicyService_.OnCapturerSessionAdded(TEST_SESSIONID, sessionInfo, streamInfo);
+
+    GetServerPtr()->audioPolicyService_.connectedDevices_.clear();
+    sessionInfo.sourceType = SOURCE_TYPE_REMOTE_CAST;
+    GetServerPtr()->audioPolicyService_.OnCapturerSessionAdded(TEST_SESSIONID, sessionInfo, streamInfo);
+
+    sessionInfo.sourceType = SOURCE_TYPE_WAKEUP;
+    GetServerPtr()->audioPolicyService_.OnCapturerSessionAdded(TEST_SESSIONID, sessionInfo, streamInfo);
+}
+
+/**
+* @tc.name  : Test OnCapturerSessionRemoved.
+* @tc.number: OnCapturerSessionRemoved_001
+* @tc.desc  : Test AudioPolicyService interfaces.
+*/
+HWTEST_F(AudioPolicyServiceUnitTest, OnCapturerSessionRemoved_001, TestSize.Level1)
+{
+    AUDIO_INFO_LOG("AudioPolicyServiceUnitTest OnCapturerSessionRemoved_001 start");
+    ASSERT_NE(nullptr, GetServerPtr());
+
+    // clear sessionWithSpecialSourceType_ and sessionWithNormalSourceType_
+    GetServerPtr()->audioPolicyService_.sessionWithSpecialSourceType_.clear();
+    GetServerPtr()->audioPolicyService_.sessionWithNormalSourceType_.clear();
+    GetServerPtr()->audioPolicyService_.OnCapturerSessionRemoved(TEST_SESSIONID);
+
+    // dummy sessionWithSpecialSourceType_
+    SessionInfo sessionInfo;
+    sessionInfo.sourceType = SOURCE_TYPE_REMOTE_CAST;
+    sessionInfo.rate = RATE;
+    sessionInfo.channels = CHANNELS;
+    GetServerPtr()->audioPolicyService_.sessionWithSpecialSourceType_[TEST_SESSIONID] = sessionInfo;
+    GetServerPtr()->audioPolicyService_.OnCapturerSessionRemoved(TEST_SESSIONID);
+
+    sessionInfo.sourceType = SOURCE_TYPE_WAKEUP;
+    GetServerPtr()->audioPolicyService_.sessionWithSpecialSourceType_[TEST_SESSIONID] = sessionInfo;
+    GetServerPtr()->audioPolicyService_.OnCapturerSessionRemoved(TEST_SESSIONID);
+
+    // dummy sessionWithNormalSourceType_
+    sessionInfo.sourceType = SOURCE_TYPE_VOICE_RECOGNITION;
+    GetServerPtr()->audioPolicyService_.sessionWithNormalSourceType_[TEST_SESSIONID] = sessionInfo;
+    GetServerPtr()->audioPolicyService_.OnCapturerSessionRemoved(TEST_SESSIONID);
+
+    sessionInfo.sourceType = SOURCE_TYPE_VOICE_COMMUNICATION;
+    GetServerPtr()->audioPolicyService_.sessionWithNormalSourceType_[TEST_SESSIONID] = sessionInfo;
+    GetServerPtr()->audioPolicyService_.OnCapturerSessionRemoved(TEST_SESSIONID);
+
+    sessionInfo.sourceType = SOURCE_TYPE_WAKEUP;
+    GetServerPtr()->audioPolicyService_.sessionWithNormalSourceType_[TEST_SESSIONID] = sessionInfo;
+    GetServerPtr()->audioPolicyService_.OnCapturerSessionRemoved(TEST_SESSIONID);
+
+    sessionInfo.sourceType = SOURCE_TYPE_WAKEUP;
+    GetServerPtr()->audioPolicyService_.sessionWithNormalSourceType_[TEST_SESSIONID] = sessionInfo;
+    sessionInfo.sourceType = SOURCE_TYPE_MIC;
+    GetServerPtr()->audioPolicyService_.sessionWithNormalSourceType_[TEST_SESSIONID + 1] = sessionInfo;
+    GetServerPtr()->audioPolicyService_.OnCapturerSessionRemoved(TEST_SESSIONID);
+}
+
+/**
+* @tc.name  : Test LoadInnerCapturerSink and GetSampleFormatValue.
+* @tc.number: LoadInnerCapturerSink_001
+* @tc.desc  : Test AudioPolicyService interfaces.
+*/
+HWTEST_F(AudioPolicyServiceUnitTest, LoadInnerCapturerSink_001, TestSize.Level1)
+{
+    AUDIO_INFO_LOG("AudioPolicyServiceUnitTest LoadInnerCapturerSink_001 start");
+    ASSERT_NE(nullptr, GetServerPtr());
+    AudioStreamInfo streamInfo;
+    streamInfo.samplingRate = AudioSamplingRate::SAMPLE_RATE_48000;
+    streamInfo.channels = AudioChannel::STEREO;
+    streamInfo.format = AudioSampleFormat::SAMPLE_S16LE;
+
+    std::string moduleName = INNER_CAPTURER_SINK_LEGACY;
+    for (const auto& audioSampleFormat : audioSampleFormats) {
+        streamInfo.format = audioSampleFormat;
+        GetServerPtr()->audioPolicyService_.LoadInnerCapturerSink(moduleName, streamInfo);
+        GetServerPtr()->audioPolicyService_.UnloadInnerCapturerSink(moduleName);
+    }
+}
+
+/**
+* @tc.name  : Test GetOffloadStatusDump.
+* @tc.number: GetOffloadStatusDump_001
+* @tc.desc  : Test AudioPolicyService interfaces.
+*/
+HWTEST_F(AudioPolicyServiceUnitTest, GetOffloadStatusDump_001, TestSize.Level1)
+{
+    AUDIO_INFO_LOG("AudioPolicyServiceUnitTest GetOffloadStatusDump_001 start");
+    ASSERT_NE(nullptr, GetServerPtr());
+    std::string dumpString = "";
+    for (const auto& deviceType : deviceTypes) {
+        GetServerPtr()->audioPolicyService_.currentActiveDevice_.deviceType_ = deviceType;
+        GetServerPtr()->audioPolicyService_.GetOffloadStatusDump(dumpString);
+    }
+}
+
+/**
+* @tc.name  : Test GetCapturerStreamDump.
+* @tc.number: GetCapturerStreamDump_001
+* @tc.desc  : Test AudioPolicyService interfaces.
+*/
+HWTEST_F(AudioPolicyServiceUnitTest, GetCapturerStreamDump_001, TestSize.Level1)
+{
+    AUDIO_INFO_LOG("AudioPolicyServiceUnitTest GetCapturerStreamDump_001 start");
+    ASSERT_NE(nullptr, GetServerPtr());
+
+    unique_ptr<AudioCapturerChangeInfo> capturerChangeInfo = make_unique<AudioCapturerChangeInfo>();
+    unique_ptr<AudioCapturerChangeInfo> capturerChangeInfo2 = make_unique<AudioCapturerChangeInfo>();
+
+    AudioCapturerInfo capturerInfo;
+    capturerInfo.capturerFlags = STREAM_FLAG_NORMAL;
+    capturerChangeInfo->createrUID = 0;
+    capturerChangeInfo->capturerInfo = capturerInfo;
+    GetServerPtr()->audioPolicyService_.streamCollector_.audioCapturerChangeInfos_.push_back(move(capturerChangeInfo));
+    std::string dumpString = "";
+    GetServerPtr()->audioPolicyService_.GetCapturerStreamDump(dumpString);
+    GetServerPtr()->audioPolicyService_.streamCollector_.audioCapturerChangeInfos_.clear();
+
+    AudioCapturerInfo capturerInfo2;
+    capturerInfo2.capturerFlags = STREAM_FLAG_FAST;
+    capturerChangeInfo2->createrUID = 0;
+    capturerChangeInfo2->capturerInfo = capturerInfo2;
+    GetServerPtr()->audioPolicyService_.streamCollector_.audioCapturerChangeInfos_.push_back(move(capturerChangeInfo2));
+    std::string dumpString2 = "";
+    GetServerPtr()->audioPolicyService_.GetCapturerStreamDump(dumpString2);
+    GetServerPtr()->audioPolicyService_.streamCollector_.audioCapturerChangeInfos_.clear();
+}
+
+/**
+* @tc.name  : Test GetCallStatusDump.
+* @tc.number: GetCallStatusDump_001
+* @tc.desc  : Test AudioPolicyService interfaces.
+*/
+HWTEST_F(AudioPolicyServiceUnitTest, GetCallStatusDump_001, TestSize.Level1)
+{
+    AUDIO_INFO_LOG("AudioPolicyServiceUnitTest GetCallStatusDump_001 start");
+    ASSERT_NE(nullptr, GetServerPtr());
+    std::string dumpString = "";
+    for (const auto& audioScene : audioScenes) {
+        GetServerPtr()->audioPolicyService_.audioScene_ = audioScene;
+        GetServerPtr()->audioPolicyService_.GetCallStatusDump(dumpString);
+    }
+}
+
+/**
+* @tc.name  : Test GetRingerModeDump.
+* @tc.number: GetRingerModeDump_001
+* @tc.desc  : Test AudioPolicyService interfaces.
+*/
+HWTEST_F(AudioPolicyServiceUnitTest, GetRingerModeDump_001, TestSize.Level1)
+{
+    AUDIO_INFO_LOG("AudioPolicyServiceUnitTest GetRingerModeDump_001 start");
+    ASSERT_NE(nullptr, GetServerPtr());
+    std::string dumpString = "";
+    GetServerPtr()->audioPolicyService_.GetRingerModeDump(dumpString);
 }
 } // namespace AudioStandard
 } // namespace OHOS
