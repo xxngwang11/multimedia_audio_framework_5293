@@ -957,6 +957,7 @@ int32_t RendererInServer::DisableInnerCap()
     AUDIO_INFO_LOG("Disable dup renderer %{public}u with status: %{public}d", streamIndex_, status_);
     // in plan: call stop?
     IStreamManager::GetDupPlaybackManager().ReleaseRender(dupStreamIndex_);
+    AudioVolume::GetInstance()->RemoveStreamVolume(dupStreamIndex_);
     dupStream_ = nullptr;
 
     return ERROR;
@@ -968,6 +969,8 @@ int32_t RendererInServer::InitDupStream()
     int32_t ret = IStreamManager::GetDupPlaybackManager().CreateRender(processConfig_, dupStream_);
     CHECK_AND_RETURN_RET_LOG(ret == SUCCESS && dupStream_ != nullptr, ERR_OPERATION_FAILED, "Failed: %{public}d", ret);
     dupStreamIndex_ = dupStream_->GetStreamIndex();
+    AudioVolume::GetInstance()->AddStreamVolume(dupStreamIndex_, processConfig_.streamType,
+        processConfig_.rendererInfo.streamUsage, processConfig_.appInfo.appUid, processConfig_.appInfo.appPid);
 
     dupStreamCallback_ = std::make_shared<StreamCallbacks>(dupStreamIndex_);
     dupStream_->RegisterStatusCallback(dupStreamCallback_);
@@ -1009,6 +1012,7 @@ int32_t RendererInServer::DisableDualTone()
     isDualToneEnabled_ = false;
     AUDIO_INFO_LOG("Disable dual tone renderer:[%{public}u] with status: %{public}d", dualToneStreamIndex_, status_);
     IStreamManager::GetDualPlaybackManager().ReleaseRender(dualToneStreamIndex_);
+    AudioVolume::GetInstance()->RemoveStreamVolume(dualToneStreamIndex_);
     dupStream_ = nullptr;
 
     return ERROR;
@@ -1023,6 +1027,8 @@ int32_t RendererInServer::InitDualToneStream()
         ERR_OPERATION_FAILED, "Failed: %{public}d", ret);
     dualToneStreamIndex_ = dualToneStream_->GetStreamIndex();
     AUDIO_INFO_LOG("init dual tone renderer:[%{public}u]", dualToneStreamIndex_);
+    AudioVolume::GetInstance()->AddStreamVolume(dualToneStreamIndex_, processConfig_.streamType,
+        processConfig_.rendererInfo.streamUsage, processConfig_.appInfo.appUid, processConfig_.appInfo.appPid);
 
     isDualToneEnabled_ = true;
 
