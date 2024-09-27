@@ -83,6 +83,7 @@ private:
     void ReleaseEffectChain();
     int32_t SetEffectParamToHandle(AudioEffectHandle handle, int32_t &replyData);
     void DumpEffectProcessData(std::string fileName, void *buffer, size_t len);
+    int32_t UpdateMultichannelIoBufferConfigInner();
 
     std::mutex reloadMutex_;
     std::string sceneType_ = "";

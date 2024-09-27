@@ -212,6 +212,7 @@ int32_t AudioEffectChain::SetEffectProperty(const std::string &effect, const std
                 sceneType_.c_str(), effectMode_.c_str(), effectName.c_str());
         }
     }
+    UpdateMultichannelIoBufferConfigInner();
     return ret;
 }
 
@@ -271,6 +272,7 @@ int32_t AudioEffectChain::UpdateEffectParam()
         AUDIO_DEBUG_LOG("Set Effect Param Scene Type: %{public}d Success", currSceneType_);
         latency_ += static_cast<uint32_t>(replyData);
     }
+    UpdateMultichannelIoBufferConfigInner();
     return SUCCESS;
 }
 
@@ -342,40 +344,7 @@ int32_t AudioEffectChain::UpdateMultichannelIoBufferConfig(const uint32_t &chann
         return SUCCESS;
     }
     std::lock_guard<std::mutex> lock(reloadMutex_);
-    int32_t replyData = 0;
-    AudioEffectTransInfo cmdInfo = {sizeof(AudioEffectConfig), &ioBufferConfig_};
-    AudioEffectTransInfo replyInfo = {sizeof(int32_t), &replyData};
-    AudioEffectHandle preHandle = nullptr;
-    ioBufferConfig_.outputCfg.channels = 0;
-    ioBufferConfig_.outputCfg.channelLayout = 0;
-    for (AudioEffectHandle handle : standByEffectHandles_) {
-        if (preHandle != nullptr) {
-            int32_t ret = (*preHandle)->command(preHandle, EFFECT_CMD_SET_CONFIG, &cmdInfo, &replyInfo);
-            CHECK_AND_RETURN_RET_LOG(ret == 0, ERROR, "Multichannel effect chain update EFFECT_CMD_SET_CONFIG fail");
-
-            ret = (*preHandle)->command(preHandle, EFFECT_CMD_GET_CONFIG, &cmdInfo, &cmdInfo);
-            CHECK_AND_RETURN_RET_LOG(ret == 0, ERROR, "Multichannel effect chain update EFFECT_CMD_GET_CONFIG fail");
-            Swap(ioBufferConfig_.inputCfg, ioBufferConfig_.outputCfg); // pass outputCfg to next algo as inputCfg
-        }
-        preHandle = handle;
-    }
-    ioBufferConfig_.outputCfg.channels = DEFAULT_NUM_CHANNEL;
-    ioBufferConfig_.outputCfg.channelLayout = DEFAULT_NUM_CHANNELLAYOUT;
-    if (preHandle == nullptr) {
-        AUDIO_ERR_LOG("The preHandle is nullptr!");
-        return ERROR;
-    }
-    int32_t ret = (*preHandle)->command(preHandle, EFFECT_CMD_SET_CONFIG, &cmdInfo, &replyInfo);
-    CHECK_AND_RETURN_RET_LOG(ret == 0, ERROR, "last effect update EFFECT_CMD_SET_CONFIG fail");
-    // recover bufferconfig
-    ioBufferConfig_.inputCfg.channels = channels;
-    ioBufferConfig_.inputCfg.channelLayout = channelLayout;
-    dumpNameIn_ = "dump_effect_in_" + sceneType_ + "_"
-        + std::to_string(ioBufferConfig_.inputCfg.samplingRate) + "_"
-        + std::to_string(ioBufferConfig_.inputCfg.channels) + "_4.pcm";
-    dumpNameOut_ = "dump_effect_out_" + sceneType_ + "_"
-        + std::to_string(ioBufferConfig_.outputCfg.samplingRate) + "_"
-        + std::to_string(ioBufferConfig_.outputCfg.channels) + "_4.pcm";
+    UpdateMultichannelIoBufferConfigInner();
     return SUCCESS;
 }
 
@@ -469,6 +438,47 @@ void AudioEffectChain::SetSpatialDeviceType(AudioSpatialDeviceType spatialDevice
     spatialDeviceType_ = spatialDeviceType;
 
     return;
+}
+
+int32_t AudioEffectChain::UpdateMultichannelIoBufferConfigInner()
+{
+    int32_t replyData = 0;
+    AudioEffectTransInfo cmdInfo = {sizeof(AudioEffectConfig), &ioBufferConfig_};
+    AudioEffectTransInfo replyInfo = {sizeof(int32_t), &replyData};
+    AudioEffectHandle preHandle = nullptr;
+    uint32_t channels = ioBufferConfig_.inputCfg.channels;
+    uint64_t channelLayout = ioBufferConfig_.inputCfg.channelLayout;
+    ioBufferConfig_.outputCfg.channels = 0;
+    ioBufferConfig_.outputCfg.channelLayout = 0;
+    for (AudioEffectHandle handle : standByEffectHandles_) {
+        if (preHandle != nullptr) {
+            int32_t ret = (*preHandle)->command(preHandle, EFFECT_CMD_SET_CONFIG, &cmdInfo, &replyInfo);
+            CHECK_AND_RETURN_RET_LOG(ret == 0, ERROR, "Multichannel effect chain update EFFECT_CMD_SET_CONFIG fail");
+
+            ret = (*preHandle)->command(preHandle, EFFECT_CMD_GET_CONFIG, &cmdInfo, &cmdInfo);
+            CHECK_AND_RETURN_RET_LOG(ret == 0, ERROR, "Multichannel effect chain update EFFECT_CMD_GET_CONFIG fail");
+            Swap(ioBufferConfig_.inputCfg, ioBufferConfig_.outputCfg); // pass outputCfg to next algo as inputCfg
+        }
+        preHandle = handle;
+    }
+    ioBufferConfig_.outputCfg.channels = DEFAULT_NUM_CHANNEL;
+    ioBufferConfig_.outputCfg.channelLayout = DEFAULT_NUM_CHANNELLAYOUT;
+    if (preHandle == nullptr) {
+        AUDIO_ERR_LOG("The preHandle is nullptr!");
+        return ERROR;
+    }
+    int32_t ret = (*preHandle)->command(preHandle, EFFECT_CMD_SET_CONFIG, &cmdInfo, &replyInfo);
+    CHECK_AND_RETURN_RET_LOG(ret == 0, ERROR, "last effect update EFFECT_CMD_SET_CONFIG fail");
+    // recover bufferconfig
+    ioBufferConfig_.inputCfg.channels = channels;
+    ioBufferConfig_.inputCfg.channelLayout = channelLayout;
+    dumpNameIn_ = "dump_effect_in_" + sceneType_ + "_"
+        + std::to_string(ioBufferConfig_.inputCfg.samplingRate) + "_"
+        + std::to_string(ioBufferConfig_.inputCfg.channels) + "_4.pcm";
+    dumpNameOut_ = "dump_effect_out_" + sceneType_ + "_"
+        + std::to_string(ioBufferConfig_.outputCfg.samplingRate) + "_"
+        + std::to_string(ioBufferConfig_.outputCfg.channels) + "_4.pcm";
+    return SUCCESS;
 }
 } // namespace AudioStandard
 } // namespace OHOS
