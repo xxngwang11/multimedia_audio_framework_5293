@@ -801,9 +801,9 @@ int32_t AudioCapturerSourceInner::CaptureFrame(char *frame, uint64_t requestByte
             RingBuffer buffer = ringBuffer_->AcquireOutputBuffer();
             int32_t ret = ringBuffer_->ReleaseOutputBuffer(buffer);
             CHECK_AND_RETURN_RET_LOG(ret == 0, ERR_READ_FAILED, "get data from ring buffer fail");
-            CHECK_AND_RETURN_RET_LOG(static_cast<uint64_t>(buffer.length) == requestBytes, 
+            CHECK_AND_RETURN_RET_LOG(static_cast<uint64_t>(buffer.length) == requestBytes,
                                 ERR_READ_FAILED, "buffer length is invalid");
-            if (memcpy_s(frame, requestBytes, buffer.data, requestBytes) != EOK) {
+        if (memcpy_s(frame, requestBytes, buffer.data, requestBytes) != EOK) {
                 AUDIO_ERR_LOG("memcpy error");
             } else {
                 replyBytes = static_cast<uint64_t>(buffer.length);
@@ -898,7 +898,7 @@ void AudioCapturerSourceInner::CaptureFrameEcInternal(const RingBuffer &ringBuf)
 {
     // mic frame just used for check, ec frame must be right
     struct AudioFrameLen frameLen = {};
-    frameLen.frameLen = static_cast<uint64_t>(staticringBuf.length);
+    frameLen.frameLen = static_cast<uint64_t>(ringBuf.length);
     frameLen.frameEcLen = static_cast<uint64_t>(ringBuf.length);
     struct AudioCaptureFrameInfo frameInfo = {};
     int32_t ret = audioCapture_->CaptureFrameEc(audioCapture_, &frameLen, &frameInfo);
