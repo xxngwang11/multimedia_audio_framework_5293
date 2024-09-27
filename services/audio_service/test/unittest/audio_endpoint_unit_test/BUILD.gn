@@ -36,12 +36,25 @@ ohos_unittest("audio_endpoint_unit_test") {
     "../../../../../frameworks/native/audioinnercall/include",
     "../../../../../frameworks/native/hdiadapter/sink/common",
     "../../../../../services/audio_service/server/include",
+    "../../../../../services/audio_service/server/src",
     "../../../../../services/audio_policy/client/include",
   ]
 
   configs = [ "../../../../../services/audio_service:audio_service_config" ]
 
   deps = [
+    "../../../../../frameworks/native/audioeffect:audio_effect",
+    "../../../../../frameworks/native/audioschedule:audio_schedule",
+    "../../../../../frameworks/native/audioutils:audio_utils",
+    "../../../../../frameworks/native/hdiadapter/sink:audio_renderer_sink",
+    "../../../../../frameworks/native/hdiadapter/sink:bluetooth_renderer_sink",
+    "../../../../../frameworks/native/hdiadapter/sink:fast_audio_renderer_sink",
+    "../../../../../frameworks/native/hdiadapter/sink:remote_fast_audio_renderer_sink",
+    "../../../../../frameworks/native/hdiadapter/sink:renderer_sink_adapter",
+    "../../../../../frameworks/native/hdiadapter/source:fast_audio_capturer_source",
+    "../../../../../frameworks/native/hdiadapter/source:remote_fast_audio_capturer_source",
+    "../../../../../frameworks/native/playbackcapturer:playback_capturer",
+    "../../../../../services/audio_service:audio_common",
     "../../../../../services/audio_service:audio_service",
     "../../../../audio_service:audio_process_service",
   ]
@@ -51,10 +64,14 @@ ohos_unittest("audio_endpoint_unit_test") {
     "access_token:libnativetoken_shared",
     "access_token:libtokensetproc_shared",
     "c_utils:utils",
+    "drivers_interface_audio:libeffect_proxy_1.0",
     "googletest:gtest",
+    "hicollie:libhicollie",
     "hilog:libhilog",
     "hisysevent:libhisysevent",
     "ipc:ipc_single",
+    "media_foundation:media_monitor_client",
+    "media_foundation:media_monitor_common",
     "pulseaudio:pulse",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
