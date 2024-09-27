@@ -803,7 +803,7 @@ int32_t AudioCapturerSourceInner::CaptureFrame(char *frame, uint64_t requestByte
             CHECK_AND_RETURN_RET_LOG(ret == 0, ERR_READ_FAILED, "get data from ring buffer fail");
             CHECK_AND_RETURN_RET_LOG(static_cast<uint64_t>(buffer.length) == requestBytes,
                 ERR_READ_FAILED, "buffer length is invalid");
-        if (memcpy_s(frame, requestBytes, buffer.data, requestBytes) != EOK) {
+            if (memcpy_s(frame, requestBytes, buffer.data, requestBytes) != EOK) {
                 AUDIO_ERR_LOG("memcpy error");
             } else {
                 replyBytes = static_cast<uint64_t>(buffer.length);
