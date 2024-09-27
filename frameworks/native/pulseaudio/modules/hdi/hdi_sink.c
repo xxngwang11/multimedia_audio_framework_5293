@@ -1821,11 +1821,11 @@ static void GetHashMap(pa_hashmap *map, const char *sceneType)
         if ((num = (uint32_t *)pa_hashmap_get(map, sceneType)) != NULL) {
             (*num) = curNum;
         } else {
-            char *sceneType = strdup(sceneType);
-            if (sceneType != NULL) {
+            char *scene = strdup(sceneType);
+            if (scene != NULL) {
                 num = pa_xnew0(uint32_t, 1);
                 *num = curNum;
-                pa_hashmap_put(map, sceneType, num);
+                pa_hashmap_put(map, scene, num);
             }
         }
     } else {
