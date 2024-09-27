@@ -198,7 +198,6 @@ int32_t ProRendererStreamImpl::Pause(bool isStandby)
     if (status_ == I_STATUS_STARTED) {
         status_ = I_STATUS_PAUSED;
     }
-    isBlock_ = true;
     if (isFirstFrame_) {
         firstFrameSync_.notify_all();
     }
@@ -259,7 +258,6 @@ int32_t ProRendererStreamImpl::Stop()
     Trace trace("ProRendererStreamImpl::Stop");
     AUDIO_INFO_LOG("Enter");
     status_ = I_STATUS_STOPPED;
-    isBlock_ = true;
     if (isFirstFrame_) {
         firstFrameSync_.notify_all();
     }
