@@ -60,6 +60,7 @@ int32_t AudioService::OnProcessRelease(IAudioProcessStream *process, bool destor
     auto paired = linkedPairedList_.begin();
     std::string endpointName;
     bool needRelease = false;
+    int32_t delayTime = NORMAL_ENDPOINT_RELEASE_DELAY_TIME;
     while (paired != linkedPairedList_.end()) {
         if ((*paired).first == process) {
             AUDIO_INFO_LOG("SessionId %{public}u", (*paired).first->GetSessionId());
@@ -68,6 +69,7 @@ int32_t AudioService::OnProcessRelease(IAudioProcessStream *process, bool destor
             if ((*paired).second->GetStatus() == AudioEndpoint::EndpointStatus::UNLINKED) {
                 needRelease = true;
                 endpointName = (*paired).second->GetEndpointName();
+                delayTime = GetReleaseDelayTime((*paired).second->GetDeviceInfo().deviceType, destoryAtOnce);
             }
             linkedPairedList_.erase(paired);
             isFind = true;
@@ -86,14 +88,6 @@ int32_t AudioService::OnProcessRelease(IAudioProcessStream *process, bool destor
         AUDIO_INFO_LOG("find endpoint unlink, call delay release.");
         std::unique_lock<std::mutex> lock(releaseEndpointMutex_);
         releasingEndpointSet_.insert(endpointName);
-        int32_t delayTime = 0;
-        if ((*paired).second->GetDeviceInfo().deviceType == DEVICE_TYPE_BLUETOOTH_A2DP) {
-            if (!destoryAtOnce) {
-                delayTime = A2DP_ENDPOINT_RELEASE_DELAY_TIME;
-            }
-        } else {
-            delayTime = NORMAL_ENDPOINT_RELEASE_DELAY_TIME;
-        }
         auto releaseMidpointThread = [this, endpointName, delayTime] () {
             this->DelayCallReleaseEndpoint(endpointName, delayTime);
         };
@@ -102,6 +96,17 @@ int32_t AudioService::OnProcessRelease(IAudioProcessStream *process, bool destor
     }
 
     return SUCCESS;
+}
+
+int32_t AudioService::GetReleaseDelayTime(DeviceType deviceType, bool destoryAtOnce)
+{
+    if (deviceType != DEVICE_TYPE_BLUETOOTH_A2DP) {
+        return NORMAL_ENDPOINT_RELEASE_DELAY_TIME;
+    }
+    if (!destoryAtOnce) {
+        return A2DP_ENDPOINT_RELEASE_DELAY_TIME;
+    }
+    return 0;
 }
 
 sptr<IpcStreamInServer> AudioService::GetIpcStream(const AudioProcessConfig &config, int32_t &ret)
