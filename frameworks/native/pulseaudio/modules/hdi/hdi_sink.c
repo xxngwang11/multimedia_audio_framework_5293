@@ -1793,8 +1793,10 @@ static void UpdateStreamAvailableMap(struct Userdata *u, const char *sceneType)
     }
 
     char *scene = strdup(sceneType);
-    (*num) = u->streamAvailable;
-    pa_hashmap_put(u->streamAvailableMap, scene, num);
+    if (scene != NULL) {
+        (*num) = u->streamAvailable;
+        pa_hashmap_put(u->streamAvailableMap, scene, num);
+    }
 }
 
 static void PrimaryEffectProcess(struct Userdata *u, pa_memchunk *chunkIn, char *sinkSceneType)
@@ -1809,29 +1811,36 @@ static void PrimaryEffectProcess(struct Userdata *u, pa_memchunk *chunkIn, char 
     u->bufferAttr->numChanIn = DEFAULT_IN_CHANNEL_NUM;
 }
 
+static void GetHashMap(pa_hashmap *map)
+{
+    uint32_t *num = NULL;
+    (void)num;
+    uint32_t curNum;
+    if ((curNum = EffectChainManagerGetSceneCount(SCENE_TYPE_SET[i]))) {
+        if ((num = (uint32_t *)pa_hashmap_get(map, SCENE_TYPE_SET[i])) != NULL) {
+            (*num) = curNum;
+        } else {
+            char *sceneType = strdup(SCENE_TYPE_SET[i]);
+            if (sceneType != NULL) {
+                num = pa_xnew0(uint32_t, 1);
+                *num = curNum;
+                pa_hashmap_put(map, sceneType, num);
+            }
+        }
+    } else {
+        if ((num = (uint32_t *)pa_hashmap_get(map, SCENE_TYPE_SET[i])) != NULL) {
+            pa_hashmap_remove_and_free(map, SCENE_TYPE_SET[i]);
+        }
+    }
+}
+
 static void UpdateSceneToCountMap(pa_hashmap *sceneMap)
 {
     if (sceneMap == NULL) {
         return;
     }
-    uint32_t *num = NULL;
-    (void)num;
     for (int32_t i = 0; i < SCENE_TYPE_NUM - 1; i++) {
-        uint32_t curNum;
-        if ((curNum = EffectChainManagerGetSceneCount(SCENE_TYPE_SET[i]))) {
-            if ((num = (uint32_t *)pa_hashmap_get(sceneMap, SCENE_TYPE_SET[i])) != NULL) {
-                (*num) = curNum;
-            } else {
-                char *sceneType = strdup(SCENE_TYPE_SET[i]);
-                num = pa_xnew0(uint32_t, 1);
-                *num = curNum;
-                pa_hashmap_put(sceneMap, sceneType, num);
-            }
-        } else {
-            if ((num = (uint32_t *)pa_hashmap_get(sceneMap, SCENE_TYPE_SET[i])) != NULL) {
-                pa_hashmap_remove_and_free(sceneMap, SCENE_TYPE_SET[i]);
-            }
-        }
+        GetHashMap(sceneMap);
     }
 }
 
@@ -4037,10 +4046,12 @@ static int32_t PaHdiSinkNewInitUserDataAndSink(pa_module *m, pa_modargs *ma, con
         pa_xfree, pa_xfree);
 
     char *sceneType = strdup("EFFECT_NONE");
-    uint32_t *num = NULL;
-    num = pa_xnew0(uint32_t, 1);
-    *num = 1;
-    pa_hashmap_put(u->sceneToCountMap, sceneType, num);
+    if (sceneType != NULL) {
+        uint32_t *num = NULL;
+        num = pa_xnew0(uint32_t, 1);
+        *num = 1;
+        pa_hashmap_put(u->sceneToCountMap, sceneType, num);
+    }
 
     return 0;
 }
