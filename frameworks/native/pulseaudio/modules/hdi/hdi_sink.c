@@ -1812,16 +1812,16 @@ static void PrimaryEffectProcess(struct Userdata *u, pa_memchunk *chunkIn, char 
     u->bufferAttr->numChanIn = DEFAULT_IN_CHANNEL_NUM;
 }
 
-static void GetHashMap(pa_hashmap *map)
+static void GetHashMap(pa_hashmap *map, const char *sceneType)
 {
     uint32_t *num = NULL;
     (void)num;
     uint32_t curNum;
-    if ((curNum = EffectChainManagerGetSceneCount(SCENE_TYPE_SET[i]))) {
-        if ((num = (uint32_t *)pa_hashmap_get(map, SCENE_TYPE_SET[i])) != NULL) {
+    if ((curNum = EffectChainManagerGetSceneCount(sceneType))) {
+        if ((num = (uint32_t *)pa_hashmap_get(map, sceneType)) != NULL) {
             (*num) = curNum;
         } else {
-            char *sceneType = strdup(SCENE_TYPE_SET[i]);
+            char *sceneType = strdup(sceneType);
             if (sceneType != NULL) {
                 num = pa_xnew0(uint32_t, 1);
                 *num = curNum;
@@ -1829,8 +1829,8 @@ static void GetHashMap(pa_hashmap *map)
             }
         }
     } else {
-        if ((num = (uint32_t *)pa_hashmap_get(map, SCENE_TYPE_SET[i])) != NULL) {
-            pa_hashmap_remove_and_free(map, SCENE_TYPE_SET[i]);
+        if ((num = (uint32_t *)pa_hashmap_get(map, sceneType)) != NULL) {
+            pa_hashmap_remove_and_free(map, sceneType);
         }
     }
 }
@@ -1841,7 +1841,7 @@ static void UpdateSceneToCountMap(pa_hashmap *sceneMap)
         return;
     }
     for (int32_t i = 0; i < SCENE_TYPE_NUM - 1; i++) {
-        GetHashMap(sceneMap);
+        GetHashMap(sceneMap, SCENE_TYPE_SET[i]);
     }
 }
 
