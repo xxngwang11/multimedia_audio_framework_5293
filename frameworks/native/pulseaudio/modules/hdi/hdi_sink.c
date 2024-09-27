@@ -1294,6 +1294,7 @@ static void PrepareMultiChannelFading(pa_sink_input *sinkIn, pa_mix_info *infoIn
         void *data = pa_memblock_acquire_chunk(&infoIn->chunk);
         DoFading(data, infoIn->chunk.length, format, (uint32_t)u->ss.channels, 1);
         pa_proplist_sets(sinkIn->proplist, "fadeoutPause", "2");
+        pa_memblock_release(infoIn->chunk.memblock);
     }
 }
 
@@ -1794,8 +1795,10 @@ static void UpdateStreamAvailableMap(struct Userdata *u, const char *sceneType)
     }
 
     char *scene = strdup(sceneType);
-    (*num) = u->streamAvailable;
-    pa_hashmap_put(u->streamAvailableMap, scene, num);
+    if (scene != NULL) {
+        (*num) = u->streamAvailable;
+        pa_hashmap_put(u->streamAvailableMap, scene, num);
+    }
 }
 
 static void PrimaryEffectProcess(struct Userdata *u, pa_memchunk *chunkIn, char *sinkSceneType)
@@ -1810,29 +1813,36 @@ static void PrimaryEffectProcess(struct Userdata *u, pa_memchunk *chunkIn, char 
     u->bufferAttr->numChanIn = DEFAULT_IN_CHANNEL_NUM;
 }
 
+static void GetHashMap(pa_hashmap *map, const char *sceneType)
+{
+    uint32_t *num = NULL;
+    (void)num;
+    uint32_t curNum;
+    if ((curNum = EffectChainManagerGetSceneCount(sceneType))) {
+        if ((num = (uint32_t *)pa_hashmap_get(map, sceneType)) != NULL) {
+            (*num) = curNum;
+        } else {
+            char *scene = strdup(sceneType);
+            if (scene != NULL) {
+                num = pa_xnew0(uint32_t, 1);
+                *num = curNum;
+                pa_hashmap_put(map, scene, num);
+            }
+        }
+    } else {
+        if ((num = (uint32_t *)pa_hashmap_get(map, sceneType)) != NULL) {
+            pa_hashmap_remove_and_free(map, sceneType);
+        }
+    }
+}
+
 static void UpdateSceneToCountMap(pa_hashmap *sceneMap)
 {
     if (sceneMap == NULL) {
         return;
     }
-    uint32_t *num = NULL;
-    (void)num;
     for (int32_t i = 0; i < SCENE_TYPE_NUM - 1; i++) {
-        uint32_t curNum;
-        if ((curNum = EffectChainManagerGetSceneCount(SCENE_TYPE_SET[i]))) {
-            if ((num = (uint32_t *)pa_hashmap_get(sceneMap, SCENE_TYPE_SET[i])) != NULL) {
-                (*num) = curNum;
-            } else {
-                char *sceneType = strdup(SCENE_TYPE_SET[i]);
-                num = pa_xnew0(uint32_t, 1);
-                *num = curNum;
-                pa_hashmap_put(sceneMap, sceneType, num);
-            }
-        } else {
-            if ((num = (uint32_t *)pa_hashmap_get(sceneMap, SCENE_TYPE_SET[i])) != NULL) {
-                pa_hashmap_remove_and_free(sceneMap, SCENE_TYPE_SET[i]);
-            }
-        }
+        GetHashMap(sceneMap, SCENE_TYPE_SET[i]);
     }
 }
 
@@ -3983,6 +3993,25 @@ static int32_t PaHdiSinkNewInitUserData(pa_module *m, pa_modargs *ma, struct Use
     return 0;
 }
 
+static void InitStreamAvailable(struct Userdata *u)
+{
+    u->lastStreamAvailable = 0;
+    u->streamAvailable = 0;
+    u->streamAvailableMap = pa_hashmap_new_full(pa_idxset_string_hash_func, pa_idxset_string_compare_func,
+        pa_xfree, pa_xfree);
+    
+    u->sceneToCountMap = pa_hashmap_new_full(pa_idxset_string_hash_func, pa_idxset_string_compare_func,
+        pa_xfree, pa_xfree);
+
+    char *sceneType = strdup("EFFECT_NONE");
+    if (sceneType != NULL) {
+        uint32_t *num = NULL;
+        num = pa_xnew0(uint32_t, 1);
+        *num = 1;
+        pa_hashmap_put(u->sceneToCountMap, sceneType, num);
+    }
+}
+
 static int32_t PaHdiSinkNewInitUserDataAndSink(pa_module *m, pa_modargs *ma, const char *driver, struct Userdata *u)
 {
     if (pa_modargs_get_value_boolean(ma, "offload_enable", &u->offload_enable) < 0) {
@@ -4021,8 +4050,6 @@ static int32_t PaHdiSinkNewInitUserDataAndSink(pa_module *m, pa_modargs *ma, con
 
     u->lastRecodedLatency = 0;
     u->continuesGetLatencyErrCount = 0;
-    u->lastStreamAvailable = 0;
-    u->streamAvailable = 0;
 
     if (u->fixed_latency) {
         pa_sink_set_fixed_latency(u->sink, u->block_usec);
@@ -4032,17 +4059,7 @@ static int32_t PaHdiSinkNewInitUserDataAndSink(pa_module *m, pa_modargs *ma, con
 
     pa_sink_set_max_request(u->sink, u->buffer_size);
 
-    u->sceneToCountMap = pa_hashmap_new_full(pa_idxset_string_hash_func, pa_idxset_string_compare_func,
-        pa_xfree, pa_xfree);
-    u->streamAvailableMap = pa_hashmap_new_full(pa_idxset_string_hash_func, pa_idxset_string_compare_func,
-        pa_xfree, pa_xfree);
-
-    char *sceneType = strdup("EFFECT_NONE");
-    uint32_t *num = NULL;
-    num = pa_xnew0(uint32_t, 1);
-    *num = 1;
-    pa_hashmap_put(u->sceneToCountMap, sceneType, num);
-
+    InitStreamAvailable(u);
     return 0;
 }
 
