@@ -1012,22 +1012,23 @@ int32_t RendererInServer::DisableDualTone()
 
 int32_t RendererInServer::InitDualToneStream()
 {
-    std::unique_lock<std::mutex> lockDualToneStream(dualToneMutex_);
+    {
+        std::lock_guard<std::mutex> lock(dualToneMutex_);
 
-    int32_t ret = IStreamManager::GetDualPlaybackManager().CreateRender(processConfig_, dualToneStream_);
-    CHECK_AND_RETURN_RET_LOG(ret == SUCCESS && dualToneStream_ != nullptr,
-        ERR_OPERATION_FAILED, "Failed: %{public}d", ret);
-    dualToneStreamIndex_ = dualToneStream_->GetStreamIndex();
-    AUDIO_INFO_LOG("init dual tone renderer:[%{public}u]", dualToneStreamIndex_);
+        int32_t ret = IStreamManager::GetDualPlaybackManager().CreateRender(processConfig_, dualToneStream_);
+        CHECK_AND_RETURN_RET_LOG(ret == SUCCESS && dualToneStream_ != nullptr,
+            ERR_OPERATION_FAILED, "Failed: %{public}d", ret);
+        dualToneStreamIndex_ = dualToneStream_->GetStreamIndex();
+        AUDIO_INFO_LOG("init dual tone renderer:[%{public}u]", dualToneStreamIndex_);
 
-    isDualToneEnabled_ = true;
+        isDualToneEnabled_ = true;
+    }
 
     if (status_ == I_STATUS_STARTED) {
         AUDIO_INFO_LOG("Renderer %{public}u is already running, let's start the dual stream", dualToneStreamIndex_);
-        lockDualToneStream.unlock();
         stream_->GetAudioEffectMode(effectModeWhenDual_);
         stream_->SetAudioEffectMode(EFFECT_NONE);
-        lockDualToneStream.lock();
+        std::lock_guard<std::mutex> lock(dualToneMutex_);
         dualToneStream_->Start();
     }
     return SUCCESS;
