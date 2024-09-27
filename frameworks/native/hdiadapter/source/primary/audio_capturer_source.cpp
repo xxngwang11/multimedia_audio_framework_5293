@@ -605,7 +605,7 @@ void AudioCapturerSourceInner::InitAttrsCapture(struct AudioSampleAttributes &at
     attrs.channelCount = AUDIO_CHANNELCOUNT;
     attrs.sampleRate = AUDIO_SAMPLE_RATE_48K;
     attrs.interleaved = true;
-    attrs.streamId = GenerateUniqueIDBySource(attr_.sourceType);
+    attrs.streamId = static_cast<int32_t>(GenerateUniqueIDBySource(attr_.sourceType));
     attrs.type = AUDIO_IN_MEDIA;
     attrs.period = DEEP_BUFFER_CAPTURE_PERIOD_SIZE;
     attrs.frameSize = PCM_16_BIT * attrs.channelCount / PCM_8_BIT;
@@ -801,11 +801,11 @@ int32_t AudioCapturerSourceInner::CaptureFrame(char *frame, uint64_t requestByte
             RingBuffer buffer = ringBuffer_->AcquireOutputBuffer();
             int32_t ret = ringBuffer_->ReleaseOutputBuffer(buffer);
             CHECK_AND_RETURN_RET_LOG(ret == 0, ERR_READ_FAILED, "get data from ring buffer fail");
-            CHECK_AND_RETURN_RET_LOG(buffer.length == requestBytes, ERR_READ_FAILED, "buffer length is invalid");
+            CHECK_AND_RETURN_RET_LOG(static_cast<uint64_t>(buffer.length) == requestBytes, ERR_READ_FAILED, "buffer length is invalid");
             if (memcpy_s(frame, requestBytes, buffer.data, requestBytes) != EOK) {
                 AUDIO_ERR_LOG("memcpy error");
             } else {
-                replyBytes = buffer.length;
+                replyBytes = static_cast<uint64_t>(buffer.length);
             }
         }
 
@@ -922,7 +922,7 @@ void AudioCapturerSourceInner::CaptureThreadLoop()
         Trace trace("CaptureRefInput");
         RingBuffer buffer = ringBuffer_->DequeueInputBuffer();
         uint64_t replyBytes;
-        uint32_t requestBytes = buffer.length;
+        uint32_t requestBytes = static_cast<uint32_t>(buffer.length);
         int32_t ret = 0;
         if (attr_.sourceType == SOURCE_TYPE_MIC_REF) {
             ret = audioCapture_->CaptureFrame(
@@ -1221,7 +1221,7 @@ int32_t AudioCapturerSourceInner::SetInputRoute(DeviceType inputDevice, AudioPor
     sink.role = AUDIO_PORT_SINK_ROLE;
     sink.type = AUDIO_PORT_MIX_TYPE;
     sink.ext.mix.moduleId = 0;
-    sink.ext.mix.streamId = GenerateUniqueIDBySource(attr_.sourceType);
+    sink.ext.mix.streamId = static_cast<int32_t>(GenerateUniqueIDBySource(attr_.sourceType));
     sink.ext.mix.source = static_cast<int32_t>(ConvertToHDIAudioInputType(attr_.sourceType));
     sink.ext.device.desc = (char *)"";
 

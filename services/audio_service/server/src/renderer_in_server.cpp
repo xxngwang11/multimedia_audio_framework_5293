@@ -510,7 +510,7 @@ void RendererInServer::OtherStreamEnqueue(const BufferDesc &bufferDesc)
         std::lock_guard<std::mutex> lock(dupMutex_);
         if (dupStream_ != nullptr) {
             if (renderEmptyCountForInnerCap_ > 0) {
-                size_t emptyBufferSize = renderEmptyCountForInnerCap_ * spanSizeInByte_;
+                size_t emptyBufferSize = static_cast<size_t>(renderEmptyCountForInnerCap_ * spanSizeInByte_);
                 auto buffer = std::make_unique<uint8_t []>(emptyBufferSize);
                 BufferDesc emptyBufferDesc = {buffer.get(), emptyBufferSize, emptyBufferSize};
                 memset_s(emptyBufferDesc.buffer, emptyBufferDesc.bufLength, 0, emptyBufferDesc.bufLength);

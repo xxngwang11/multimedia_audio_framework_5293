@@ -103,7 +103,7 @@ void AudioAffinityManager::AddSelectRendererDevice(int32_t clientUID, const sptr
     AffinityDeviceInfo affinityDeviceInfo =
         GetAffinityDeviceInfoByDeviceType(rendererAffinityDeviceArray_, desc->getType(), desc->networkId_);
 
-    affinityDeviceInfo.chooseTimeStamp = GetCurrentTimeMS();
+    affinityDeviceInfo.chooseTimeStamp = static_cast<uint64_t>(GetCurrentTimeMS());
 
     std::unordered_map<int32_t, AffinityDeviceInfo> affinityDeviceInfoMap =
         GetActiveAffinityDeviceMapByGroupName(activeRendererGroupAffinityMap_, affinityDeviceInfo.groupName);
@@ -122,7 +122,7 @@ void AudioAffinityManager::AddSelectCapturerDevice(int32_t clientUID, const sptr
     AffinityDeviceInfo affinityDeviceInfo =
         GetAffinityDeviceInfoByDeviceType(capturerAffinityDeviceArray_, desc->getType(), desc->networkId_);
 
-    affinityDeviceInfo.chooseTimeStamp = GetCurrentTimeMS();
+    affinityDeviceInfo.chooseTimeStamp = static_cast<uint64_t>(GetCurrentTimeMS());
 
     std::unordered_map<int32_t, AffinityDeviceInfo> affinityDeviceInfoMap =
         GetActiveAffinityDeviceMapByGroupName(activeCapturerGroupAffinityMap_, affinityDeviceInfo.groupName);
