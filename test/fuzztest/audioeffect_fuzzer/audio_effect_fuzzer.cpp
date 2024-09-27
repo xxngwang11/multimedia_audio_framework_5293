@@ -59,13 +59,13 @@ void InitAudioEffectChainManagerFuzzTest(const uint8_t *rawData, size_t size)
     string effectMode = "EFFECT_DEFAULT";
     string sceneType = "SCENE_MOVIE";
     string spatializationEnabled = "0";
-    bool enabled = *reinterpret_cast<const bool *>(rawData);
+    AudioEffectScene currSceneType = SCENE_MUSIC;
     AudioEffectChainManager::GetInstance()->InitAudioEffectChainManager(DEFAULT_EFFECT_CHAINS, DEFAULT_MAP,
         DEFAULT_EFFECT_LIBRARY_LIST);
     AudioEffectChainManager::GetInstance()->CreateAudioEffectChainDynamic(sceneType);
     AudioEffectChainManager::GetInstance()->ExistAudioEffectChain(sceneType, effectMode,
         spatializationEnabled);
-    AudioEffectChainManager::GetInstance()->SetHdiParam(sceneType, effectMode, enabled);
+    AudioEffectChainManager::GetInstance()->SetHdiParam(currSceneType);
     AudioEffectChainManager::GetInstance()->ResetInfo();
 }
 
@@ -197,10 +197,8 @@ void SetHdiParamFuzzTest(const uint8_t *rawData, size_t size)
     if (rawData == nullptr || size < LIMITSIZE) {
         return;
     }
-    bool enabled = false;
-    string sceneType = "SCENE_MOVIE";
-    string effectMode = "EFFECT_DEFAULT";
-    AudioEffectChainManager::GetInstance()->SetHdiParam(sceneType, effectMode, enabled);
+    AudioEffectScene currSceneType = SCENE_MUSIC;
+    AudioEffectChainManager::GetInstance()->SetHdiParam(currSceneType);
     AudioEffectChainManager::GetInstance()->ResetInfo();
 }
 
