@@ -96,6 +96,7 @@ private:
     void CheckRenderSessionMuteState(uint32_t sessionId, std::shared_ptr<RendererInServer> renderer);
     void CheckCaptureSessionMuteState(uint32_t sessionId, std::shared_ptr<CapturerInServer> capturer);
     void CheckFastSessionMuteState(uint32_t sessionId, sptr<AudioProcessInServer> process);
+    int32_t GetReleaseDelayTime(DeviceType deviceType, bool destoryAtOnce);
 
 private:
     std::mutex processListMutex_;
