@@ -57,6 +57,7 @@ const uint32_t PCM_24_BIT = 24;
 const uint32_t PCM_32_BIT = 32;
 const int64_t SECOND_TO_NANOSECOND = 1000000000;
 const int INVALID_FD = -1;
+const unsigned int DEINIT_TIME_OUT_SECONDS = 10;
 }
 
 class FastAudioRendererSinkInner : public FastAudioRendererSink {
@@ -146,6 +147,7 @@ private:
     int bufferFd_ = INVALID_FD;
     uint32_t frameSizeInByte_ = 1;
     uint32_t eachReadFrameSize_ = 0;
+    std::mutex mutex_;
 #ifdef FEATURE_POWER_MANAGER
     std::shared_ptr<AudioRunningLockManager<PowerMgr::RunningLock>> runningLockManager_;
 #endif
@@ -623,7 +625,9 @@ int32_t FastAudioRendererSinkInner::CheckPositionTime()
 
 int32_t FastAudioRendererSinkInner::Start(void)
 {
+    std::lock_guard<std::mutex> lock(mutex_);
     Trace trace("FastAudioRendererSinkInner::Start");
+    AudioXCollie sourceXCollie("FastAudioRendererSinkInner::Start", DEINIT_TIME_OUT_SECONDS);
     AUDIO_INFO_LOG("FastAudioRendererSinkInner::Start");
     int64_t stamp = ClockTime::GetCurNano();
     int32_t ret;
@@ -805,7 +809,9 @@ int32_t FastAudioRendererSinkInner::GetLatency(uint32_t *latency)
 
 int32_t FastAudioRendererSinkInner::Stop(void)
 {
+    std::lock_guard<std::mutex> lock(mutex_);
     Trace trace("FastAudioRendererSinkInner::Stop");
+    AudioXCollie sourceXCollie("FastAudioRendererSinkInner::Stop", DEINIT_TIME_OUT_SECONDS);
     AUDIO_INFO_LOG("Stop.");
 
     CHECK_AND_RETURN_RET_LOG(audioRender_ != nullptr, ERR_INVALID_HANDLE,
