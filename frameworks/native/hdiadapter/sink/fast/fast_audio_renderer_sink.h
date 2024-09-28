@@ -16,7 +16,6 @@
 #ifndef FAST_AUDIO_RENDERER_SINK_H
 #define FAST_AUDIO_RENDERER_SINK_H
 
-#include <mutex>
 #include "audio_info.h"
 #include "i_audio_renderer_sink.h"
 
