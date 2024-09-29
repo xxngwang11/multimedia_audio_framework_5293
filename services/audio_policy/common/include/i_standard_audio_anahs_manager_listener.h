@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-#ifndef I_STANDARD_AUDIO_ROUTING_MANAGER_LISTENER_H
-#define I_STANDARD_AUDIO_ROUTING_MANAGER_LISTENER_H
+#ifndef I_STANDARD_AUDIO_ANAHS_MANAGER_LISTENER_H
+#define I_STANDARD_AUDIO_ANAHS_MANAGER_LISTENER_H
 
 #include "ipc_types.h"
 #include "iremote_broker.h"
@@ -23,23 +23,17 @@
 
 namespace OHOS {
 namespace AudioStandard {
-class IStandardAudioRoutingManagerListener : public IRemoteBroker, public AudioDeviceRefiner {
+class IStandardAudioAnahsManagerListener : public IRemoteBroker, public AudioDeviceAnahs {
 public:
-    virtual ~IStandardAudioRoutingManagerListener() = default;
-    virtual void OnDistributedRoutingRoleChange(const sptr<AudioDeviceDescriptor> descriptor, const CastType type) = 0;
-    
-    bool hasBTPermission_ = true;
-    bool hasSystemPermission_ = true;
+    virtual ~IStandardAudioAnahsManagerListener() = default;
 
     enum AudioRingerModeUpdateListenerMsg {
         ON_ERROR = 0,
-        ON_DISTRIBUTED_ROUTING_ROLE_CHANGE,
-        ON_AUDIO_OUTPUT_DEVICE_REFINERD,
-        ON_AUDIO_INPUT_DEVICE_REFINERD,
+        ON_AUDIO_ANAHS_DEVICE_CHANGE,
     };
 
-    DECLARE_INTERFACE_DESCRIPTOR(u"IStandardAudioRoutingManagerListener");
+    DECLARE_INTERFACE_DESCRIPTOR(u"IStandardAudioAnahsManagerListener");
 };
 } // namespace AudioStandard
 } // namespace OHOS
-#endif // I_STANDARD_AUDIO_ROUTING_MANAGER_LISTENER_H
+#endif // I_STANDARD_AUDIO_ANAHS_MANAGER_LISTENER_H
