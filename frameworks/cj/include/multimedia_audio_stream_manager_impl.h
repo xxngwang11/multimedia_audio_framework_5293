@@ -13,36 +13,36 @@
  * limitations under the License.
  */
 
-#ifndef MULTIMEDIA_AUDIO_MANAGER_IMPL_H
-#define MULTIMEDIA_AUDIO_MANAGER_IMPL_H
+#ifndef MULTIMEDIA_AUDIO_STREAM_MANAGER_IMPL_H
+#define MULTIMEDIA_AUDIO_STREAM_MANAGER_IMPL_H
 #include "cj_common_ffi.h"
 #include "native/ffi_remote_data.h"
-#include "audio_group_manager.h"
+#include "audio_stream_manager.h"
 #include "audio_system_manager.h"
 #include "multimedia_audio_ffi.h"
+#include "multimedia_audio_stream_manager_callback.h"
 
 namespace OHOS {
 namespace AudioStandard {
-class MMAAudioManagerImpl : public OHOS::FFI::FFIData {
-    DECL_TYPE(MMAAudioManagerImpl, OHOS::FFI::FFIData)
+class MMAAudioStreamManagerImpl : public OHOS::FFI::FFIData {
+    DECL_TYPE(MMAAudioStreamManagerImpl, OHOS::FFI::FFIData)
 public:
-    MMAAudioManagerImpl();
-    ~MMAAudioManagerImpl()
-    {
-        audioMgr_ = nullptr;
-    }
+    MMAAudioStreamManagerImpl();
+    ~MMAAudioStreamManagerImpl();
 
-    int32_t GetAudioScene();
+    bool IsActive(int32_t volumeType);
 
-    int64_t GetRoutingManager(int32_t *errorCode);
+    CArrI32 GetAudioEffectInfoArray(int32_t usage, int32_t *errorCode);
 
-    int64_t GetStreamManger(int32_t *errorCode);
+    CArrAudioCapturerChangeInfo GetAudioCapturerInfoArray(int32_t *errorCode);
 
-    int64_t GetVolumeManager(int32_t *errorCode);
+    void RegisterCallback(int32_t callbackType, void (*callback)(), int32_t *errorCode);
 
 private:
-    AudioSystemManager *audioMgr_{};
+    int32_t cachedClientId_{};
+    AudioStreamManager *streamMgr_{};
+    std::shared_ptr<CjAudioCapturerStateChangeCallback> callback_{};
 };
 } // namespace AudioStandard
 } // namespace OHOS
-#endif // MULTIMEDIA_AUDIO_MANAGER_IMPL_H
+#endif // MULTIMEDIA_AUDIO_STREAM_MANAGER_IMPL_H
