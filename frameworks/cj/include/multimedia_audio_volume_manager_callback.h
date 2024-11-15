@@ -13,34 +13,26 @@
  * limitations under the License.
  */
 
-#ifndef MULTIMEDIA_AUDIO_VOLUME_MANAGER_IMPL_H
-#define MULTIMEDIA_AUDIO_VOLUME_MANAGER_IMPL_H
-#include "cj_common_ffi.h"
-#include "native/ffi_remote_data.h"
+#ifndef MULTIMEDIA_AUDIO_VOLUME_MANAGER_CALLBACK_H
+#define MULTIMEDIA_AUDIO_VOLUME_MANAGER_CALLBACK_H
 #include "audio_group_manager.h"
 #include "audio_system_manager.h"
 #include "multimedia_audio_ffi.h"
-#include "multimedia_audio_volume_manager_callback.h"
 
 namespace OHOS {
 namespace AudioStandard {
-class MMAAudioVolumeManagerImpl : public OHOS::FFI::FFIData {
-    DECL_TYPE(MMAAudioVolumeManagerImpl, OHOS::FFI::FFIData)
+class CjVolumeKeyEventCallback : public VolumeKeyEventCallback {
 public:
-    MMAAudioVolumeManagerImpl();
-    ~MMAAudioVolumeManagerImpl()
-    {
-        audioMngr_ = nullptr;
-    }
+    CjVolumeKeyEventCallback() = default;
+    virtual ~CjVolumeKeyEventCallback() = default;
 
-    int64_t GetVolumeGroupManager(int32_t groupId, int32_t *errorCode);
-    void RegisterCallback(int32_t callbackType, void (*callback)(), int32_t *errorCode);
+    void RegisterFunc(std::function<void(CVolumeEvent)> cjCallback);
+    void OnVolumeKeyEvent(VolumeEvent volumeEvent) override;
 
 private:
-    AudioSystemManager *audioMngr_ = nullptr;
-    int32_t cachedClientId_ = -1;
-    std::shared_ptr<CjVolumeKeyEventCallback> volumeChangeCallback_ = nullptr;
+    std::function<void(CVolumeEvent)> func_{};
+    std::mutex cbMutex_;
 };
 } // namespace AudioStandard
 } // namespace OHOS
-#endif // MULTIMEDIA_AUDIO_VOLUME_MANAGER_IMPL_H
+#endif // MULTIMEDIA_AUDIO_VOLUME_MANAGER_CALLBACK_H
