@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,23 +13,25 @@
  * limitations under the License.
  */
 
-#ifndef MULTICHANNEL_RENDERER_SINK_H
-#define MULTICHANNEL_RENDERER_SINK_H
+#ifndef PLAYBACK_CAPTURER_FILTER_LISTENER_H
+#define PLAYBACK_CAPTURER_FILTER_LISTENER_H
 
-#include <cstdio>
-#include <list>
+#include <cstdint>
 
-#include "i_audio_renderer_sink.h"
+#include "audio_info.h"
 
 namespace OHOS {
 namespace AudioStandard {
-class MultiChannelRendererSink : public IAudioRendererSink {
+class ICapturerFilterListener {
 public:
-    static MultiChannelRendererSink *GetInstance(const std::string &halName);
+    virtual ~ICapturerFilterListener() = default;
 
-    MultiChannelRendererSink() = default;
-    ~MultiChannelRendererSink() = default;
+    // This will be called when a filter is first enabled or changed.
+    virtual int32_t OnCapturerFilterChange(uint32_t sessionId, const AudioPlaybackCaptureConfig &newConfig) = 0;
+
+    // This will be called when a filter released.
+    virtual int32_t OnCapturerFilterRemove(uint32_t sessionId) = 0;
 };
 }  // namespace AudioStandard
 }  // namespace OHOS
-#endif // MULTICHANNEL_RENDERER_SINK_H
+#endif // PLAYBACK_CAPTURER_FILTER_LISTENER_H

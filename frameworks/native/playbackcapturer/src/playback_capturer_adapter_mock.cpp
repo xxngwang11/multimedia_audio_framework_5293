@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -12,24 +12,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#include "playback_capturer_adapter.h"
 
-#ifndef MULTICHANNEL_RENDERER_SINK_H
-#define MULTICHANNEL_RENDERER_SINK_H
+bool IsStreamSupportInnerCapturer(int32_t streamUsage)
+{
+    (void)streamUsage;
+    return false;
+}
 
-#include <cstdio>
-#include <list>
+bool IsPrivacySupportInnerCapturer(int32_t privacyType)
+{
+    (void)privacyType;
+    return false;
+}
 
-#include "i_audio_renderer_sink.h"
+bool IsCaptureSilently()
+{
+    return false;
+}
 
-namespace OHOS {
-namespace AudioStandard {
-class MultiChannelRendererSink : public IAudioRendererSink {
-public:
-    static MultiChannelRendererSink *GetInstance(const std::string &halName);
+extern "C" __attribute__((visibility("default"))) bool GetInnerCapturerState()
+{
+    return false;
+}
 
-    MultiChannelRendererSink() = default;
-    ~MultiChannelRendererSink() = default;
-};
-}  // namespace AudioStandard
-}  // namespace OHOS
-#endif // MULTICHANNEL_RENDERER_SINK_H
+extern "C" __attribute__((visibility("default"))) void SetInnerCapturerState(bool state)
+{
+    (void)state;
+}
