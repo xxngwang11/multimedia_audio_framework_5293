@@ -12,20 +12,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#ifndef I_AUDIO_SERVER_HPAE_DUMP_H
+#define I_AUDIO_SERVER_HPAE_DUMP_H
 
-#ifndef AUDIO_SERVICE_HPAE_DUMP_CALLBACK_H
-#define AUDIO_SERVICE_HPAE_DUMP_CALLBACK_H
 #include <string>
+#include <queue>
+
 namespace OHOS {
 namespace AudioStandard {
-class AudioServiceHpaeDumpCallback {
-public:
-    virtual void OnDumpSinkInfoCb(std::string& dumpStr, int32_t result) = 0;
-    virtual void OnDumpSourceInfoCb(std::string &dumpStr, int32_t result) = 0;
 
-    virtual ~AudioServiceHpaeDumpCallback()
-    {}
+class IAudioServerHpaeDump {
+public:
+    virtual ~IAudioServerHpaeDump() = default;
+    virtual int32_t Initialize() = 0;
+    virtual void AudioDataDump(std::string &dumpString, std::queue<std::u16string> &argQue) = 0;
 };
-}  // namespace AudioStandard
-}  // namespace OHOS
-#endif // AUDIO_SERVICE_HPAE_DUMP_CALLBACK_H
+} // namespace AudioStandard
+} // namespace OHOS
+#endif // I_AUDIO_SERVER_HPAE_DUMP_H

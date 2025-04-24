@@ -12,60 +12,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef HPAE_MANAGER_H
-#define HPAE_MANAGER_H
+#ifndef HPAE_MANAGER_IMPL_H
+#define HPAE_MANAGER_IMPL_H
+
 #include <functional>
 #include <any>
 #include "audio_module_info.h"
-#include "hpae_capturer_manager.h"
-#include "hpae_renderer_manager.h"
-#include "hpae_inner_capturer_manager.h"
-#include "hpae_msg_channel.h"
-#include "i_hpae_manager.h"
-#include "i_hpae_renderer_manager.h"
-#include "hpae_policy_manager.h"
+#include "hpae_manager.h"
 
 namespace OHOS {
 namespace AudioStandard {
 namespace HPAE {
-
-class HpaeManager;
-
-class HpaeManagerThread {
+class HpaeManagerImpl : public IHpaeManager {
 public:
-    HpaeManagerThread() : running_(false)
-    {}
-    ~HpaeManagerThread();
-    void ActivateThread(HpaeManager *hpaeManager);
-    void DeactivateThread();
-    void Run();
-    void Notify();
-    bool IsRunning() const
-    {
-        return running_.load();
-    }
-    bool IsMsgProcessing() const
-    {
-        return recvSignal_.load();
-    }
-
-private:
-    std::atomic<bool> running_;
-    std::atomic<bool> recvSignal_;
-    HpaeManager *m_hpaeManager;
-    std::condition_variable condition_;
-    std::mutex mutex_;
-    std::thread thread_;
-};
-
-class HpaeManager : public IHpaeManager, public ISendMsgCallback, public std::enable_shared_from_this<HpaeManager> {
-public:
-    static constexpr std::string_view SPLIT_STREAM_SINK = "libmodule-split-stream-sink.z.so";
-    static constexpr std::string_view HDI_SINK = "libmodule-hdi-sink.z.so";
-    static constexpr std::string_view HDI_SOURCE = "libmodule-hdi-source.z.so";
-    static constexpr std::string_view INNER_CAPTURER_SINK = "libmodule-inner-capturer-sink.z.so";
-    HpaeManager();
-    ~HpaeManager();
+    HpaeManagerImpl();
+    ~HpaeManagerImpl() = default;
     // sync interface
     int32_t Init() override;
     int32_t DeInit() override;
@@ -92,9 +53,6 @@ public:
     int32_t SetSourceOutputMute(int32_t uid, bool setMute) override;
     int32_t GetAllSinks() override;
 
-    int32_t GetMsgCount();
-
-    void Invoke(HpaeMsgCode cmdID, const std::any &args) override;
     // play and record stream interface
     int32_t CreateStream(const HpaeStreamInfo &streamInfo) override;
     int32_t DestroyStream(HpaeStreamClassType streamClassType, uint32_t sessionId) override;
@@ -122,8 +80,6 @@ public:
     int32_t UpdateSpatializationState(
         uint32_t sessionId, bool spatializationEnabled, bool headTrackingEnabled) override;
     int32_t UpdateMaxLength(uint32_t sessionId, uint32_t maxLength) override;
-    // only interface for unit test
-    int32_t GetSessionInfo(HpaeStreamClassType streamClassType, uint32_t sessionId, HpaeSessionInfo &sessionInfo);
 
     // interfaces for render effect
     void InitAudioEffectChainManager(const std::vector<EffectChain> &effectChains,
@@ -164,78 +120,9 @@ public:
         const std::string &mainkey, const std::string &subkey, const std::string &extraSceneType) override;
     bool IsAcousticEchoCancelerSupported(SourceType sourceType) override;
 private:
-    void TransModuleInfoToHpaeSinkInfo(const AudioModuleInfo &audioModuleInfo, HpaeSinkInfo &sinkInfo);
-    bool CheckSourceInfoIsDifferent(const HpaeSourceInfo &info, const HpaeSourceInfo &oldInfo);
-    void TransModuleInfoToHpaeSourceInfo(const AudioModuleInfo &audioModuleInfo, HpaeSourceInfo &sourceInfo);
-    AudioSampleFormat TransFormatFromStringToEnum(std::string format);
-    int32_t CloseOutAudioPort(std::string &sinkName);
-    void PrintAudioModuleInfo(const AudioModuleInfo &audioModuleInfo);
-    int32_t CloseInAudioPort(std::string &sourceName);
-    void AdjustMchSinkInfo(const AudioModuleInfo &audioModuleInfo, HpaeSinkInfo &sinkInfo);
-    template <typename... Args>
-    void RegisterHandler(HpaeMsgCode cmdID, void (HpaeManager::*func)(Args...));
-    void HandleUpdateStatus(
-        HpaeStreamClassType streamClassType, uint32_t sessionId, uint32_t status, IOperation operation);
-    void HandleInitDeviceResult(std::string deviceName, int32_t result);
-    void HandleDeInitDeviceResult(std::string deviceName, int32_t result);
-    void HandleMoveSinkInput(const std::shared_ptr<HpaeSinkInputNode> sinkInputNode, std::string sinkName);
-    void HandleMoveAllSinkInputs(const std::vector<std::shared_ptr<HpaeSinkInputNode>> sinkInputs, std::string sinkNam);
-    void HandleMoveSourceOutput(const HpaeCaptureMoveInfo moveInfo, std::string sourceName);
-    void HandleMoveAllSourceOutputs(const std::vector<HpaeCaptureMoveInfo> moveInfos, std::string sourceName);
-    void HandleDumpSinkInfo(std::string deviceName, std::string dumpStr);
-    void HandleDumpSourceInfo(std::string deviceName, std::string dumpStr);
-
-    void SendRequest(Request &&request);
-    int32_t OpenAudioPortInner(const AudioModuleInfo &audioModuleInfo);
-    uint32_t OpenOutputAudioPort(const AudioModuleInfo &audioModuleInfo, int32_t sinkSourceIndex);
-    uint32_t OpenInputAudioPort(const AudioModuleInfo &audioModuleInfo, int32_t sinkSourceIndex);
-    uint32_t OpenVirtualAudioPort(const AudioModuleInfo &audioModuleInfo, int32_t sinkSourceIndex);
-    void HandleRendererManager(const std::string& sinkName, const HpaeStreamInfo &streamInfo);
-    void CreateStreamForCapInner(const HpaeStreamInfo &streamInfo);
-
-    std::shared_ptr<IHpaeRendererManager> GetRendererManagerById(uint32_t sessionId);
-    std::shared_ptr<IHpaeCapturerManager> GetCapturerManagerById(uint32_t sessionId);
-    std::shared_ptr<IHpaeRendererManager> GetRendererManagerByNmae(const std::string &sinkName);
-    std::shared_ptr<IHpaeCapturerManager> GetCapturerManagerByName(const std::string &sourceName);
-    void AddStreamToCollection(const HpaeStreamInfo &streamInfo);
-
-    void MoveToPreferSink(const std::string& name);
-    void ReloadRenderManager(const AudioModuleInfo &audioModuleInfo);
-    void AddSinkIdByName(std::unordered_map<std::string, std::vector<uint32_t>> &sinkIdMap,
-        const std::pair<uint32_t, std::string> &id, const std::string &name);
-    void DestroyCapture(uint32_t sessionId);
-
-private:
-    std::unique_ptr<HpaeManagerThread> hpaeManagerThread_ = nullptr;
-    std::unique_ptr<HpaePolicyManager> hpaePolicyManager_ = nullptr;
-    std::unordered_map<std::string, std::shared_ptr<IHpaeCapturerManager>> capturerManagerMap_;
-    std::unordered_map<std::string, std::shared_ptr<IHpaeRendererManager>> rendererManagerMap_;
-    std::unordered_map<uint32_t, std::string> capturerIdSourceNameMap_;
-    std::unordered_map<uint32_t, std::string> rendererIdSinkNameMap_;
-    std::unordered_map<uint32_t, std::string> idPreferSinkNameMap_;
-    std::unordered_map<uint32_t, HpaeSessionInfo> rendererIdStreamInfoMap_;
-    std::unordered_map<uint32_t, HpaeSessionInfo> capturerIdStreamInfoMap_;
-    std::unordered_map<uint32_t, SinkInput> sinkInputs_;
-    std::unordered_map<uint32_t, SourceOutput> sourceOutputs_;
-    std::unordered_map<std::string, uint32_t> sinkNameSinkIdMap_;  // todo
-    std::unordered_map<uint32_t, std::string> sinkIdSinkNameMap_;
-    std::string defaultSink_ = "Speaker";
-    std::unordered_map<std::string, uint32_t> sourceNameSourceIdMap_;
-    std::unordered_map<uint32_t, std::string> sourceIdSourceNameMap_;
-    std::string defaultSource_ = "Built_in_mic";
-    std::atomic<int32_t> sinkSourceIndex_ = 0;
-    std::atomic<bool> isInit_ = false;
-
-    HpaeNoLockQueue hpaeNoLockQueue_;
-
-    std::atomic<int32_t> receiveMsgCount_ = 0;
-    std::weak_ptr<AudioServiceHpaeCallback> serviceCallback_;
-    std::weak_ptr<AudioServiceHpaeDumpCallback> dumpCallback_;
-    std::unordered_map<std::string, std::string> deviceDumpSinkInfoMap_;
-    std::unordered_map<HpaeMsgCode, std::function<void(const std::any &)>> handlers_;
+    std::shared_ptr<HpaeManager> manager_;
 };
-
 }  // namespace HPAE
 }  // namespace AudioStandard
 }  // namespace OHOS
-#endif  // HPAE_HDI_MANAGER_H
+#endif  // HPAE_MANAGER_IMPL_H
