@@ -13,24 +13,21 @@
  * limitations under the License.
  */
 
-#ifndef ST_APP_STATE_LISTENER_H
-#define ST_APP_STATE_LISTENER_H
+#ifndef ST_AUDIO_BUNDLE_MANAGER_H
+#define ST_AUDIO_BUNDLE_MANAGER_H
 
-#include <memory>
 #include "app_mgr_client.h"
-#include "app_state_callback_host.h"
 
 namespace OHOS {
 namespace AudioStandard {
-
-class AppStateListener : public AppExecFwk::AppStateCallbackHost {
+class AudioBundleManager {
 public:
-    AppStateListener();
-    void OnAppStateChanged(const AppExecFwk::AppProcessData& appProcessData) override;
-private:
-    void HandleAppStateChange(int32_t pid, int32_t uid, int32_t state);
+    static int32_t GetUidByBundleName(std::string bundleName, int userId);
+    static std::string GetBundleName();
+    static std::string GetBundleNameFromUid(int32_t callingUid);
+    static AppExecFwk::BundleInfo GetBundleInfo();
+    static AppExecFwk::BundleInfo GetBundleInfoFromUid(int32_t callingUid);
 };
-
-}
-}
-#endif // ST_APP_STATE_LISTENER_H
+} // namespace AudioStandard
+} // namespace OHOS
+#endif // ST_AUDIO_BUNDLE_MANAGER_H
