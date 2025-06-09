@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,27 +13,25 @@
  * limitations under the License.
  */
 
-#ifndef MULTIMEDIA_AUDIO_VOLUME_MANAGER_CALLBACK_H
-#define MULTIMEDIA_AUDIO_VOLUME_MANAGER_CALLBACK_H
-#include "audio_group_manager.h"
+#ifndef MULTIMEDIA_AUDIO_SESSION_MANAGER_CALLBACK_H
+#define MULTIMEDIA_AUDIO_SESSION_MANAGER_CALLBACK_H
 #include "audio_policy_interface.h"
-#include "audio_system_manager.h"
+#include "audio_session_manager.h"
 #include "multimedia_audio_ffi.h"
 
 namespace OHOS {
 namespace AudioStandard {
-class CjVolumeKeyEventCallback : public VolumeKeyEventCallback {
+class CjAudioSessionCallback : public AudioSessionCallback {
 public:
-    CjVolumeKeyEventCallback() = default;
-    virtual ~CjVolumeKeyEventCallback() = default;
-
-    void RegisterFunc(std::function<void(CVolumeEvent)> cjCallback);
-    void OnVolumeKeyEvent(VolumeEvent volumeEvent) override;
+    CjAudioSessionCallback() = default;
+    virtual ~CjAudioSessionCallback() = default;
+    void RegisterFunc(std::function<void(CAudioSessionDeactiveEvent)> cjCallback);
+    void OnAudioSessionDeactive(const AudioSessionDeactiveEvent& deactiveEvent) override;
 
 private:
-    std::function<void(CVolumeEvent)> func_ {};
+    std::function<void(CAudioSessionDeactiveEvent)> callback_ {};
     std::mutex cbMutex_;
 };
 } // namespace AudioStandard
 } // namespace OHOS
-#endif // MULTIMEDIA_AUDIO_VOLUME_MANAGER_CALLBACK_H
+#endif // MULTIMEDIA_AUDIO_SESSION_MANAGER_CALLBACK_H
