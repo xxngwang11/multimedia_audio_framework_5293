@@ -15,12 +15,12 @@ import("//build/config/features.gni")
 import("//build/test.gni")
 import("../../../config.gni")
 
-ohos_fuzztest("AudioVolumeManagerFuzzTest") {
+ohos_fuzztest("AudioStreamCollectorFuzzTest") {
   module_out_path = "audio_framework/audio_framework_route"
-  fuzz_config_file = "../audiovolumemanager_fuzzer"
+  fuzz_config_file = "../audiostreamcollector_fuzzer"
 
   include_dirs = [
-    "../../../services/audio_policy/server/domain/volume/include",
+    "../../../services/audio_policy/server/domain/stream",
   ]
 
   cflags = [
@@ -31,21 +31,18 @@ ohos_fuzztest("AudioVolumeManagerFuzzTest") {
     "-fno-access-control",
   ]
 
-  sources = [ "audio_volume_manager_fuzz.cpp" ]
+  sources = [ "audio_stream_collector_fuzz.cpp" ]
 
   configs = [ "../../../services/audio_service:audio_service_config" ]
   cflags_cc = [ "-std=c++20" ]
 
   deps = [
     "../../../services/audio_policy:audio_policy_service_static",
+    "../../../services/audio_service:audio_client",
   ]
   external_deps = [
-    "bluetooth:btframework",
     "c_utils:utils",
-    "data_share:datashare_consumer",
     "hilog:libhilog",
-    "os_account:os_account_innerkits",
-    "power_manager:powermgr_client",
   ]
 
   defines = []
@@ -53,5 +50,5 @@ ohos_fuzztest("AudioVolumeManagerFuzzTest") {
 
 group("fuzztest") {
   testonly = true
-  deps = [ ":AudioVolumeManagerFuzzTest" ]
+  deps = [ ":AudioStreamCollectorFuzzTest" ]
 }
