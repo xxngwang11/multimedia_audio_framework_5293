@@ -12,30 +12,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
-#ifndef I_AUDIO_WORKGROUP_CALLBACK_H
-#define I_AUDIO_WORKGROUP_CALLBACK_H
- 
-#include "ipc_types.h"
-#include "iremote_broker.h"
-#include "iremote_proxy.h"
-#include "iremote_stub.h"
-#include "audio_workgroup_ipc.h"
- 
+#ifndef AUDIO_WORKGROUP_IPC_H
+#define AUDIO_WORKGROUP_IPC_H
+
+#include <parcel.h>
+
 namespace OHOS {
 namespace AudioStandard {
- 
-class IAudioWorkgroupCallback : public IRemoteBroker {
-public:
-    virtual void OnWorkgroupChange(const AudioWorkgroupChangeInfo &info) = 0;
-    enum AudioWorkgroupMsg {
-        ON_ERROR = 0,
-        ON_WORKGROUP_CHANGE
-    };
-    DECLARE_INTERFACE_DESCRIPTOR(u"IAudioWorkgroupCallback");
+
+struct AudioWorkgroupChangeInfo {
+    int32_t pid;
+    uint32_t groupId;
+    bool startAllowed;
 };
- 
+
 } // namespace AudioStandard
 } // namespace OHOS
- 
-#endif // I_AUDIO_WORKGROUP_CALLBACK_H
+#endif // AUDIO_WORKGROUP_IPC_H
