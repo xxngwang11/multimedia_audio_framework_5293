@@ -1,4 +1,4 @@
-# Copyright (c) 2024 Huawei Device Co., Ltd.
+# Copyright (c) 2025 Huawei Device Co., Ltd.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -12,21 +12,23 @@
 # limitations under the License.
 
 import("//build/config/features.gni")
-import("//build/ohos.gni")
 import("//build/test.gni")
 import("../../../accessibility.gni")
 import("../../../config.gni")
-import("../../../sensor.gni")
 
-ohos_fuzztest("AudioEffectChainFuzzTest") {
+ohos_fuzztest("AudioDumpPcmFuzzTest") {
   module_out_path = "audio_framework/audio_framework_route"
-  fuzz_config_file = "../audioeffectchain_fuzzer"
+  fuzz_config_file = "../audiodumppcm_fuzzer"
 
   include_dirs = [
-    "../../../frameworks/native/audioeffect/include",
-    "../../../frameworks/native/audioeffect/src",
     "../../../services/audio_policy/server/include/service",
     "../../../services/audio_policy/server/include",
+    "../../../frameworks/native/audioutils/include",
+    "../../../services/audio_service/common/include/limiter/",
+    "../../../services/audio_engine/manager/include",
+    "../../../frameworks/native/audioinnercall/include",
+    "../../../services/audio_service/server/include",
+    "../../../services/audio_policy/client/include",
   ]
   cflags = [
     "-g",
@@ -35,38 +37,42 @@ ohos_fuzztest("AudioEffectChainFuzzTest") {
     "-fno-omit-frame-pointer",
     "-fno-access-control",
   ]
+  configs = [
+    "../../../services/audio_policy:audio_policy_public_config",
+    "../../../services/audio_service:audio_service_config"
+  ]
 
-  if (sensor_enable == true) {
-    cflags += [ "-DSENSOR_ENABLE" ]
-  }
-  configs = [ "../../../services/audio_policy:audio_policy_public_config" ]
-
-  sources = [ "audio_effect_chain_fuzzer.cpp" ]
+  sources = [ "audio_dump_pcm_fuzzer.cpp" ]
 
   deps = [
-    "../../../frameworks/native/audioeffect:audio_effect_static",
+    "../../../frameworks/native/audioutils:audio_utils",
     "../../../frameworks/native/bluetoothclient:audio_bluetooth_client",
-    "../../../services/audio_policy:audio_policy_service",
+    "../../../services/audio_policy:audio_policy_service_static",
+    "../../../services/audio_service:audio_common",
+    "../../../frameworks/native/audioclock:audio_clock",
+    "../../../services/audio_engine:audio_engine_manager",
+    "../../../services/audio_policy:audio_policy_client",
+    "../../../services/audio_service:audio_service_static",
   ]
 
   external_deps = [
     "ability_base:want",
     "ability_runtime:extension_manager",
+    "ability_runtime:wantagent_innerkits",
     "access_token:libaccesstoken_sdk",
     "access_token:libnativetoken_shared",
     "access_token:libprivacy_sdk",
     "access_token:libtokenid_sdk",
     "access_token:libtokensetproc_shared",
+    "background_task_mgr:bgtaskmgr_innerkits",
     "bounds_checking_function:libsec_shared",
     "bundle_framework:appexecfwk_base",
     "bundle_framework:appexecfwk_core",
     "c_utils:utils",
     "data_share:datashare_common",
     "data_share:datashare_consumer",
-    "drivers_interface_audio:libeffect_proxy_1.0",
     "eventhandler:libeventhandler",
     "hdf_core:libhdf_ipc_adapter",
-    "hdf_core:libhdf_utils",
     "hdf_core:libhdi",
     "hdf_core:libpub_utils",
     "hicollie:libhicollie",
@@ -84,9 +90,19 @@ ohos_fuzztest("AudioEffectChainFuzzTest") {
     "relational_store:native_appdatafwk",
     "safwk:system_ability_fwk",
     "samgr:samgr_proxy",
+    "bluetooth:btframework",
+    "access_token:libaccesstoken_sdk",
+    "c_utils:utils",
+    "hdf_core:libhdi",
+    "hdf_core:libpub_utils",
+    "hilog:libhilog",
+    "ipc:ipc_single",
+    "pulseaudio:pulse",
+    "safwk:system_ability_fwk",
+    "qos_manager:concurrent_task_client",
   ]
-  if (sensor_enable == true) {
-    external_deps += [ "sensor:sensor_interface_native" ]
+  if (sonic_enable == true) {
+    external_deps += [ "pulseaudio:sonic" ]
   }
   if (accessibility_enable == true) {
     external_deps += [
@@ -94,13 +110,20 @@ ohos_fuzztest("AudioEffectChainFuzzTest") {
       "accessibility:accessibilityconfig",
     ]
   }
+
   defines = []
   if (use_libfuzzer || use_clang_coverage) {
     defines += [ "TEST_COVERAGE" ]
+  }
+  if (audio_framework_feature_dtmf_tone) {
+    defines += [ "FEATURE_DTMF_TONE" ]
+  }
+  if (audio_framework_feature_input) {
+    defines += [ "FEATURE_MULTIMODALINPUT_INPUT" ]
   }
 }
 
 group("fuzztest") {
   testonly = true
-  deps = [ ":AudioEffectChainFuzzTest" ]
+  deps = [ ":AudioDumpPcmFuzzTest" ]
 }
