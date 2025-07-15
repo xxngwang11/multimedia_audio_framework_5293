@@ -12,33 +12,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef LOG_TAG
-#define LOG_TAG "AudioStreamIdAllocator"
-#endif
 
-#include "audio_stream_id_allocator.h"
+#ifndef AUDIO_OH_AUDIO_SESSION_MANAGER_UNIT_TEST_H
+#define AUDIO_OH_AUDIO_SESSION_MANAGER_UNIT_TEST_H
 
-#include "audio_log.h"
+#include "gtest/gtest.h"
 
 namespace OHOS {
 namespace AudioStandard {
-
-namespace {
-const uint32_t FIRST_SESSIONID = 100000;
-constexpr uint32_t MAX_VALID_SESSIONID = UINT32_MAX - FIRST_SESSIONID;
-static uint32_t g_sessionId = FIRST_SESSIONID; // begin from 100000
-}
-
-uint32_t AudioStreamIdAllocator::GenerateStreamId()
-{
-    std::lock_guard<std::mutex> lock(sessionIdAllocatorMutex_);
-    uint32_t sessionId = g_sessionId++;
-    if (g_sessionId > MAX_VALID_SESSIONID) {
-        AUDIO_WARNING_LOG("sessionId is too large, reset it!");
-        g_sessionId = FIRST_SESSIONID;
-    }
-
-    return sessionId;
-}
+class OHAudioSessionManagerUnitTest : public testing::Test {
+public:
+    // SetUpTestCase: Called before all test cases
+    static void SetUpTestCase(void);
+    // TearDownTestCase: Called after all test case
+    static void TearDownTestCase(void);
+    // SetUp: Called before each test cases
+    void SetUp(void);
+    // TearDown: Called after each test cases
+    void TearDown(void);
+};
 } // namespace AudioStandard
 } // namespace OHOS
+
+#endif // AUDIO_OH_AUDIO_SESSION_MANAGER_UNIT_TEST_H
