@@ -16,9 +16,9 @@ import("//build/test.gni")
 import("../../../accessibility.gni")
 import("../../../config.gni")
 
-ohos_fuzztest("HpaeInnerCapturerManagerFuzzTest") {
+ohos_fuzztest("HpaeSinkOutputNodeFuzzTest") {
   module_out_path = "audio_framework/audio_framework_engine"
-  fuzz_config_file = "../hpaeinnercapturermanager_fuzzer"
+  fuzz_config_file = "../hpaesinkoutputnode_fuzzer"
 
   include_dirs = [
     "../../../services/audio_engine/dfx",
@@ -41,7 +41,9 @@ ohos_fuzztest("HpaeInnerCapturerManagerFuzzTest") {
 
   configs = [ "../../../services/audio_policy:audio_policy_public_config" ]
 
-  sources = [ "hpaeinnercapturermanager_fuzzer.cpp" ]
+  sources = [ 
+    "hpaesinkoutputnode_fuzzer.cpp",
+    ]
 
   deps = [
     "../../../services/audio_engine:audio_engine_node",
@@ -95,5 +97,5 @@ defines = []
 
 group("fuzztest") {
   testonly = true
-  deps = [ ":HpaeInnerCapturerManagerFuzzTest" ]
+  deps = [ ":HpaeSinkOutputNodeFuzzTest" ]
 }
