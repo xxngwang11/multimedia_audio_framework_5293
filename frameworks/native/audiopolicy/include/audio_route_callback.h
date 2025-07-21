@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2025-2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -12,27 +12,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-#ifndef AUDIO_ENDPOINT_PLUS_UNIT_TEST_H
-#define AUDIO_ENDPOINT_PLUS_UNIT_TEST_H
-#include <limits>
-
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
+#ifndef ST_AUDIO_ROUTE_CALLBACK_H
+#define ST_AUDIO_ROUTE_CALLBACK_H
 
 namespace OHOS {
 namespace AudioStandard {
-class AudioEndpointPlusUnitTest : public testing::Test {
+class AudioRouteCallback {
 public:
-    // SetUpTestCase: Called before all test cases
-    static void SetUpTestCase(void);
-    // TearDownTestCase: Called after all test case
-    static void TearDownTestCase(void);
-    // SetUp: Called before each test cases
-    void SetUp(void);
-    // TearDown: Called after each test cases
-    void TearDown(void);
+    virtual ~AudioRouteCallback() = default;
+
+    virtual void OnRouteUpdate(uint32_t routeFlag, const std::string &networkId) = 0;
 };
 } // namespace AudioStandard
 } // namespace OHOS
-#endif // AUDIO_ENDPOINT_PLUS_UNIT_TEST_H
+#endif
