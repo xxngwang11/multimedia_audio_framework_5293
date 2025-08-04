@@ -12,37 +12,32 @@
 * See the License for the specific language governing permissions and
 * limitations under the License.
 */
-#ifndef AUDIO_PIPE_MANAGER_UNIT_TEST_H
-#define AUDIO_PIPE_MANAGER_UNIT_TEST_H
+
+#ifndef AUDIO_AFFINITY_PARSER_UNIT_TEST_H
+#define AUDIO_AFFINITY_PARSER_UNIT_TEST_H
+
 #include "gtest/gtest.h"
-#include "audio_pipe_manager.h"
+#include "audio_xml_node_mock.h"
+#include "audio_affinity_parser.h"
 
 namespace OHOS {
 namespace AudioStandard {
 
-class AudioPipeManagerUnitTest : public testing::Test {
+class AudioAffinityParserUnitTest : public testing::Test {
 public:
     // SetUpTestCase: Called before all test cases
-    static void SetUpTestCase(void);
+    static void SetUpTestCase(void) {};
     // TearDownTestCase: Called after all test case
-    static void TearDownTestCase(void);
+    static void TearDownTestCase(void){};
     // SetUp: Called before each test cases
     void SetUp(void);
     // TearDown: Called after each test cases
     void TearDown(void);
-};
 
-class AudioPipeManagerExtendedUnitTest : public testing::Test {
 public:
-    // SetUpTestCase: Called before all test cases
-    static void SetUpTestCase(void);
-    // TearDownTestCase: Called after all test case
-    static void TearDownTestCase(void);
-    // SetUp: Called before each test cases
-    void SetUp(void);
-    // TearDown: Called after each test cases
-    void TearDown(void);
+    std::shared_ptr<AudioAffinityParser> audioAffinityParser_{nullptr};
+    std::shared_ptr<MockAudioXmlNode> mockAudioXmlNode_{nullptr};
 };
 } // namespace AudioStandard
 } // namespace OHOS
-#endif //AUDIO_PIPE_MANAGER_UNIT_TEST_H
+#endif //AUDIO_AFFINITY_PARSER_UNIT_TEST_H
