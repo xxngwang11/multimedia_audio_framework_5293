@@ -13,14 +13,13 @@
  * limitations under the License.
  */
 
-#ifndef HPAE_OFFLOAD_RENDERER_MANAGER_FUZZER_H
-#define HPAE_OFFLOAD_RENDERER_MANAGER_FUZZER_H
+#ifndef HPAE_CAPTURER_MANAGER_FUZZER_H
+#define HPAE_CAPTURER_MANAGER_FUZZER_H
 
 #include "audio_info.h"
 #include "audio_stream_info.h"
 #include "i_capturer_stream.h"
 #include "i_renderer_stream.h"
-
 namespace OHOS {
 namespace AudioStandard {
 class WriteFixedDataCb : public IStreamCallback, public std::enable_shared_from_this<WriteFixedDataCb> {
@@ -47,4 +46,4 @@ private:
 };
 } // namespace AudioStandard
 } // namespace OHOS
-#endif // HPAE_OFFLOAD_RENDERER_MANAGER_FUZZER_H
+#endif // HPAE_CAPTURER_MANAGER_FUZZER_H
