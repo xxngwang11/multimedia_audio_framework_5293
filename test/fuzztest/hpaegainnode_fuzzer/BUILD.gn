@@ -16,9 +16,9 @@ import("//build/test.gni")
 import("../../../accessibility.gni")
 import("../../../config.gni")
 
-ohos_fuzztest("HpaeProcessClusterFuzzTest") {
+ohos_fuzztest("HpaeGainNodeFuzzTest") {
   module_out_path = "audio_framework/audio_framework_route"
-  fuzz_config_file = "../hpaeprocesscluster_fuzzer"
+  fuzz_config_file = "../hpaegainnode_fuzzer"
 
   include_dirs = [
     "../../../services/audio_engine/dfx",
@@ -41,9 +41,7 @@ ohos_fuzztest("HpaeProcessClusterFuzzTest") {
 
   configs = [ "../../../services/audio_policy:audio_policy_public_config" ]
 
-  sources = [ 
-    "hpaeprocesscluster_fuzzer.cpp",
-    ]
+  sources = [ "hpaegainnode_fuzzer.cpp" ]
 
   deps = [
     "../../../services/audio_engine:audio_engine_node",
@@ -96,5 +94,5 @@ defines = []
 
 group("fuzztest") {
   testonly = true
-  deps = [ ":HpaeProcessClusterFuzzTest" ]
+  deps = [ ":HpaeGainNodeFuzzTest" ]
 }
