@@ -12,20 +12,3 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-#include "audio_errors.h"
-#include "audio_concurrency_service_unit_test.h"
-
-#include "audio_policy_server.h"
-
-using namespace testing::ext;
-
-namespace OHOS {
-namespace AudioStandard {
-
-void AudioConcurrencyServiceUnitTest::SetUpTestCase(void) {}
-void AudioConcurrencyServiceUnitTest::TearDownTestCase(void) {}
-void AudioConcurrencyServiceUnitTest::SetUp(void) {}
-void AudioConcurrencyServiceUnitTest::TearDown(void) {}
-} // namespace AudioStandard
-} // namespace OHOS
