@@ -18,21 +18,21 @@ import("../../../../../../appgallery.gni")
 import("../../../../../../bluetooth_part.gni")
 import("../../../../../../config.gni")
 
-audio_framework_root = "../../../../../.."
-module_output_path = "audio_framework/audio_framework_policy/audio_policy"
+audio_framework_root = "../../../../../../"
 
-group("audio_policy_pipe_unittest_packages") {
+group("audio_policy_session_unit_test") {
   testonly = true
   deps = [
-    ":audio_capturer_session_ext_unit_test",
+    ":audio_session_new_unit_test",
   ]
 }
 
-ohos_unittest("audio_capturer_session_ext_unit_test") {
+module_output_path = "audio_framework/audio_framework_policy/audio_policy"
+
+ohos_unittest("audio_session_new_unit_test") {
   module_out_path = module_output_path
-  include_dirs = [
-    "./unittest/audio_capturer_session_unit_test/include",
-  ]
+
+  include_dirs = [ "./unittest/audio_session_new_unit_test/include" ]
 
   use_exceptions = true
 
@@ -43,12 +43,18 @@ ohos_unittest("audio_capturer_session_ext_unit_test") {
     "-fno-access-control",
   ]
 
-  cflags_cc = cflags
+  sanitize = {
+    cfi = true
+    cfi_cross_dso = true
+    boundary_sanitize = true
+    debug = false
+    integer_overflow = true
+    ubsan = true
+  }
 
   external_deps = [
     "bluetooth:btframework",
     "c_utils:utils",
-    "common_event_service:cesfwk_innerkits",
     "data_share:datashare_common",
     "data_share:datashare_consumer",
     "drivers_interface_audio:libaudio_proxy_5.0",
@@ -61,7 +67,8 @@ ohos_unittest("audio_capturer_session_ext_unit_test") {
     "eventhandler:libeventhandler",
   ]
 
-  sources = [ "./unittest/audio_capturer_session_unit_test/src/audio_capturer_session_ext_unit_test.cpp" ]
+  sources =
+      [ "./unittest/audio_session_new_unit_test/src/audio_session_new_unit_test.cpp" ]
 
   deps = [
     "${audio_framework_root}/services/audio_service/idl:audio_framework_interface",
