@@ -12,24 +12,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef AUDIO_SERVICE_ENUM_H
-#define AUDIO_SERVICE_ENUM_H
-#include <cstdint>
+
+#ifndef AUDIO_INJECTOR_POLICY_UNIT_TEST_H
+#define AUDIO_INJECTOR_POLICY_UNIT_TEST_H
+
+#include "gtest/gtest.h"
+#include "audio_injector_policy.h"
 
 namespace OHOS {
 namespace AudioStandard {
-enum SessionOperation : uint32_t {
-    SESSION_OPERATION_START = 0,
-    SESSION_OPERATION_PAUSE,
-    SESSION_OPERATION_STOP,
-    SESSION_OPERATION_RELEASE,
-};
 
-enum SessionOperationMsg : uint32_t {
-    SESSION_OP_MSG_DEFAULT = 0,
-    SESSION_OP_MSG_REMOVE_PIPE = 1,
+class AudioInjectorPolicyUnitTest : public testing::Test {
+public:
+    // SetUpTestCase: Called before all test cases
+    static void SetUpTestCase(void);
+    // TearDownTestCase: Called after all test case
+    static void TearDownTestCase(void);
+    // SetUp: Called before each test cases
+    void SetUp(void);
+    // TearDown: Called after each test cases
+    void TearDown(void);
 };
 
 } // namespace AudioStandard
 } // namespace OHOS
-#endif // AUDIO_SERVICE_ENUM_H
+#endif // AUDIO_INJECTOR_POLICY_UNIT_TEST_H
