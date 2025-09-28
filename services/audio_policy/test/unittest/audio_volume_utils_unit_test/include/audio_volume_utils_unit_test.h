@@ -13,35 +13,26 @@
  * limitations under the License.
  */
 
-#ifndef CAPTURER_CLOCK_H
-#define CAPTURER_CLOCK_H
-
-#include <mutex>
-#include "audio_info.h"
-
+#ifndef AUDIO_VOLUME_UTILS_UNIT_TEST_H
+#define AUDIO_VOLUME_UTILS_UNIT_TEST_H
+ 
+#include "gtest/gtest.h"
+#include "audio_volume_utils.h"
+ 
 namespace OHOS {
 namespace AudioStandard {
-
-class CapturerClock {
+ 
+class AudioVolumeUtilsUnitTest : public testing::Test {
 public:
-    CapturerClock(uint32_t capturerSampleRate);
-    ~CapturerClock() {}
-
-    void Start();
-    void Stop();
-    bool GetTimeStampByPosition(uint64_t capturerPos, uint64_t& timestamp);
-    void SetTimeStampByPosition(uint64_t timestamp, uint32_t srcSampleRate, uint64_t posIncSize);
-private:
-    uint64_t position_ = 0;
-    uint64_t timestamp_ = 0;
-    uint64_t logTimestamp_ = 0;
-    uint32_t capturerSampleRate_ = 0;
-    uint64_t lastPosInc_ = 0;
-    bool isRunning_ = false;
-    std::mutex clockMtx_;
+    // SetUpTestCase: Called before all test cases
+    static void SetUpTestCase(void);
+    // TearDownTestCase: Called after all test case
+    static void TearDownTestCase(void);
+    // SetUp: Called before each test cases
+    void SetUp(void);
+    // TearDown: Called after each test cases
+    void TearDown(void);
 };
-
 } // namespace AudioStandard
 } // namespace OHOS
-
-#endif // CAPTURER_CLOCK_H
+#endif // AUDIO_VOLUME_UTILS_UNIT_TEST_H
