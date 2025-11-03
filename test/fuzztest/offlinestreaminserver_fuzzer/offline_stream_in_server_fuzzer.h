@@ -12,19 +12,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef PRO_AUDIO_STREAM_MANAGER_FUZZ_H
-#define PRO_AUDIO_STREAM_MANAGER_FUZZ_H
+#ifndef OFFLIEN_STREAM_IN_SERVER_FUZZ_H
+#define OFFLIEN_STREAM_IN_SERVER_FUZZ_H
 
-#include "pro_audio_stream_manager.h"
+#include "offline_stream_in_server.h"
 #include "audio_info.h"
 namespace OHOS {
 namespace AudioStandard {
-class ProAudioStreamManagerFuzzTest {
+class OfflineStreamInServerFuzzTest {
 public:
-    void ProAudioStreamManagerFuzz();
+    void OfflineStreamInServerFuzz();
     std::vector<std::function<void()>> Funcs_;
-    std::shared_ptr<ProAudioStreamManager> audioStreamManager_;
+    std::shared_ptr<OfflineStreamInServer> offlineStreamInServer_;
 };
 } // namespace AudioStandard
 } // namespace OHOS
-#endif // PRO_AUDIO_STREAM_MANAGER_FUZZ_H
+#endif // OFFLIEN_STREAM_IN_SERVER_FUZZ_H
