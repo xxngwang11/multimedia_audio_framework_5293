@@ -13,37 +13,15 @@
  * limitations under the License.
  */
 
-#ifndef AUDIO_POLICY_SERVICE_FOURTH_UNIT_TEST_H
-#define AUDIO_POLICY_SERVICE_FOURTH_UNIT_TEST_H
+#ifndef AUDIO_INTERRUPT_CUSTOM_UNIT_TEST_H
+#define AUDIO_INTERRUPT_CUSTOM_UNIT_TEST_H
 
-#include <gtest/gtest.h>
-
-#include "audio_policy_service.h"
-#include "audio_policy_server.h"
-#include "message_parcel.h"
-#include "token_setproc.h"
+#include "gtest/gtest.h"
 
 namespace OHOS {
 namespace AudioStandard {
 
-struct StreamPropTestInfo {
-    AudioSampleFormat format_ = INVALID_WIDTH;
-    uint32_t sampleRate_ = 0;
-    AudioChannelLayout channelLayout_ = CH_LAYOUT_UNKNOWN;
-    AudioChannel channels_ = CHANNEL_UNKNOW;
-};
-
-class GetDynamicInfoTestData {
-public:
-    GetDynamicInfoTestData(AudioStreamInfo streamInfo, AudioSampleFormat format, uint32_t sampleRate,
-        AudioChannelLayout channelLayout, AudioChannel channels);
-
-    bool Check(std::shared_ptr<PipeStreamPropInfo> streamPropInfo);
-    AudioStreamInfo streamInfo_;
-    std::shared_ptr<PipeStreamPropInfo> streamPropInfo_ = nullptr;
-};
-
-class AudioPolicyServiceFourthUnitTest : public testing::Test {
+class AudioInterruptCustomUnitTest : public testing::Test {
 public:
     // SetUpTestCase: Called before all test cases
     static void SetUpTestCase(void);
@@ -54,6 +32,7 @@ public:
     // TearDown: Called after each test cases
     void TearDown(void);
 };
+
 } // namespace AudioStandard
 } // namespace OHOS
-#endif // AUDIO_POLICY_SERVICE_FOURTH_UNIT_TEST_H
+#endif // AUDIO_INTERRUPT_CUSTOM_UNIT_TEST_H
