@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2025 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -12,26 +12,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef PRO_RENDERER_STREAM_IMPL_H
-#define PRO_RENDERER_STREAM_IMPL_H
+#ifndef HW_DECODING_RENDERER_STREAM_IMPL_H
+#define HW_DECODING_RENDERER_STREAM_IMPL_H
 
 #include <atomic>
-#include <queue>
 #include <mutex>
-#include <condition_variable>
 #include "i_renderer_stream.h"
-#include "audio_resample.h"
-#include "linear_pos_time_model.h"
-#include "audio_down_mix_stereo.h"
-#include "audio_common_converter.h"
+#include "sink/i_audio_render_sink.h"
 
 namespace OHOS {
 namespace AudioStandard {
-class ProRendererStreamImpl : public IRendererStream {
+class HWDecodingRendererStream : public IRendererStream {
 public:
-    ProRendererStreamImpl(AudioProcessConfig processConfig, bool isDirect);
-    ~ProRendererStreamImpl();
-    int32_t InitParams();
+    HWDecodingRendererStream(AudioProcessConfig &processConfig);
+    ~HWDecodingRendererStream();
+    int32_t Init();
     int32_t Start() override;
     int32_t Pause(bool isStandby = false) override;
     int32_t Flush() override;
@@ -81,63 +76,30 @@ public:
 
     int32_t GetLatencyWithFlag(uint64_t &latency, LatencyFlag flag) override;
     int32_t RegisterSinkLatencyFetcher(const std::function<int32_t (uint32_t &)> &fetcher) override;
-
 private:
-    bool GetAudioTime(uint64_t &framePos, int64_t &sec, int64_t &nanoSec);
-    AudioSamplingRate GetDirectSampleRate(AudioSamplingRate sampleRate) const noexcept;
-    AudioSampleFormat GetDirectFormat(AudioSampleFormat format) const noexcept;
-    void ConvertSrcToFloat(const BufferDesc &bufferDesc);
-    void ConvertFloatToDes(int32_t writeIndex);
-    void GetStreamVolume();
-    void PopSinkBuffer(std::vector<char> *audioBuffer, int32_t &index);
-    int32_t PopWriteBufferIndex();
-    void SetOffloadDisable();
-    void InitBasicInfo(const AudioStreamInfo &streamInfo);
-
+    int32_t InitSink(AudioStreamInfo streamInfo);
+    int32_t InitBuffer();
+    void NotifyOperation(IOperation operation);
 private:
-    bool isDirect_;
-    bool isNeedResample_;
-    bool isNeedMcr_;
-    bool isBlock_;
-    bool isDrain_;
-    bool isFirstFrame_;
-    std::atomic<bool> sendDataEnabled_ = true;
-    int32_t privacyType_;
-    int32_t renderRate_;
-    uint32_t streamIndex_; // invalid index
-    uint32_t currentRate_;
-    uint32_t desSamplingRate_;
-    AudioSampleFormat desFormat_;
-    size_t byteSizePerFrame_;
-    size_t spanSizeInFrame_;
-    size_t totalBytesWritten_;
-    size_t sinkBytesWritten_;
-    size_t minBufferSize_;
-    std::atomic<IStatus> status_;
+    // sink values
+    uint32_t renderId_ = 0;
+    std::mutex sinkMutex_;
+    std::shared_ptr<IAudioRenderSink> sink_ = nullptr;
+
+    // stream values
+    AudioProcessConfig processConfig_;
+    uint32_t streamIndex_ = 0;
     std::weak_ptr<IStatusCallback> statusCallback_;
     std::weak_ptr<IWriteCallback> writeCallback_;
-    std::vector<float> resampleSrcBuffer;
-    std::vector<float> resampleDesBuffer;
-    std::vector<std::vector<char>> sinkBuffer_;
-    std::shared_ptr<AudioResample> resample_;
-    std::queue<int32_t> readQueue_;
-    std::queue<int32_t> writeQueue_;
-    LinearPosTimeModel handleTimeModel_;
-    AudioProcessConfig processConfig_;
-    std::unique_ptr<AudioDownMixStereo> downMixer_;
-    BufferBaseInfo bufferInfo_;
-    std::function<int32_t (uint32_t &)> sinkLatencyFetcher_;
+    int32_t privacyType_ = 0;
+    uint64_t writtenFrameCount_ = 0;
     std::mutex sinkLatencyFetcherMutex_;
+    std::function<int32_t (uint32_t &)> sinkLatencyFetcher_;
 
-    std::mutex firstFrameMutex;
-    std::mutex enqueueMutex;
-    std::mutex peekMutex;
-    std::condition_variable firstFrameSync_;
-    std::condition_variable drainSync_;
-    FILE *dumpFile_;
-
-    std::atomic<bool> isFirstNoUnderrunFrame_ = false;
+    // buffer values
+    std::unique_ptr<uint8_t []> rawBuffer_ = nullptr;
+    size_t bufferSize_ = 0;
 };
 } // namespace AudioStandard
 } // namespace OHOS
-#endif
+#endif // HW_DECODING_RENDERER_STREAM_IMPL_H
