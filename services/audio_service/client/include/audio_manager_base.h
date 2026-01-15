@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025-2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2021-2024 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,30 +13,25 @@
  * limitations under the License.
  */
 
-#ifndef OH_AUDIO_RESOURCE_MANAGER_H
-#define OH_AUDIO_RESOURCE_MANAGER_H
+#ifndef I_ST_AUDIO_MANAGER_BASE_H
+#define I_ST_AUDIO_MANAGER_BASE_H
 
-#include "audio_info.h"
-#include "audio_log.h"
-#include "OHAudioWorkgroup.h"
-#include "audio_manager_base.h"
-#include "native_audio_common.h"
-#include "native_audio_resource_manager.h"
+#include "audio_stutter.h"
 
 namespace OHOS {
 namespace AudioStandard {
-
-class OHAudioResourceManager {
+class AudioDeviceDescriptor;
+class DataTransferStateChangeCallbackInner {
 public:
-    ~OHAudioResourceManager() {};
+    virtual ~DataTransferStateChangeCallbackInner() = default;
+    
+    virtual void OnDataTransferStateChange(const int32_t &callbackId,
+        const AudioRendererDataTransferStateChangeInfo &info) = 0;
 
-    static OHAudioResourceManager *GetInstance();
-    OHAudioWorkgroup *CreateWorkgroup();
-    bool ReleaseWorkgroup(OHAudioWorkgroup *group);
-private:
-    OHAudioResourceManager() {};
+    virtual void OnMuteStateChange(const int32_t &callbackId, const int32_t &uid,
+        const uint32_t &sessionId, const bool &isMuted) = 0;
 };
 
 } // namespace AudioStandard
-} // namespace OHOS
-#endif // OH_AUDIO_RESOURCE_MANAGER_H
+} // namespace OHO
+#endif // I_ST_AUDIO_MANAGER_BASE_H
