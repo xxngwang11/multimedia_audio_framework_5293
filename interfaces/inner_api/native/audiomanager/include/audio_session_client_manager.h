@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024 Huawei Device Co., Ltd.
+ * Copyright (c) 2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -13,21 +13,80 @@
  * limitations under the License.
  */
 
-#ifndef ST_AUDIO_SESSION_MANAGER_H
-#define ST_AUDIO_SESSION_MANAGER_H
+#ifndef AUDIO_SESSION_CLIENT_MANAGER_H
+#define AUDIO_SESSION_CLIENT_MANAGER_H
 
 #include "audio_policy_interface.h"
 #include "audio_session_device_info.h"
-#include "audio_system_manager.h"
 
 namespace OHOS {
 namespace AudioStandard {
-class AudioSessionManager {
+class AudioSessionRestoreParams {
 public:
-    AudioSessionManager() = default;
-    virtual ~AudioSessionManager() = default;
+    enum class OperationType {
+        AUDIO_SESSION_ACTIVATE,
+        AUDIO_SESSION_SET_SCENE,
+        AUDIO_SESSION_MUTE_SUGGESTION,
+    };
 
-    static AudioSessionManager *GetInstance();
+    struct AudioSessionAction {
+        OperationType type;
+        int32_t optValue;
+
+        AudioSessionAction(const OperationType type, const int32_t value)
+            : type(type), optValue(value) {}
+
+        ~AudioSessionAction() = default;
+    };
+
+    explicit AudioSessionRestoreParams() = default;
+
+    ~AudioSessionRestoreParams() = default;
+
+    void OnAudioSessionDeactive();
+    void OnAudioSessionStateChanged(AudioSessionStateChangeHint audioSessionStateChangeHint);
+    void RecordAudioSessionOpt(const OperationType type, const int32_t value);
+    bool RestoreParams(void);
+    void EnsureMuteAfterScene();
+
+private:
+    void DeduplicateLastOperation(OperationType type);
+
+private:
+    std::mutex actionsMutex_;
+    std::vector<std::unique_ptr<AudioSessionAction>> actions_;
+};
+
+class AudioSessionManagerServiceDiedRestore : public AudioSessionManagerPolicyServiceDiedCallback {
+public:
+    AudioSessionManagerServiceDiedRestore() = default;
+
+    void OnAudioPolicyServiceDied() override;
+
+    ~AudioSessionManagerServiceDiedRestore() = default;
+};
+
+class AudioSessionManagerStateCallback : public AudioSessionStateChangedCallback {
+public:
+    explicit AudioSessionManagerStateCallback() = default;
+
+    void OnAudioSessionStateChanged(const AudioSessionStateChangedEvent &stateChangedEvent) override;
+
+    ~AudioSessionManagerStateCallback() = default;
+};
+
+class AudioSessionManagerDeactivedCallback : public AudioSessionCallback {
+public:
+    explicit AudioSessionManagerDeactivedCallback() = default;
+
+    void OnAudioSessionDeactive(const AudioSessionDeactiveEvent &deactiveEvent) override;
+
+    ~AudioSessionManagerDeactivedCallback() = default;
+};
+
+class AudioSessionClientManager {
+public:
+    static AudioSessionClientManager &GetInstance();
 
     /**
      * @brief Activate audio session.
@@ -274,7 +333,21 @@ public:
     BluetoothAndNearlinkPreferredRecordCategory GetPreferBluetoothAndNearlinkRecord();
 
     int32_t EnableMuteSuggestionWhenMixWithOthers(bool enable);
+private:
+    AudioSessionClientManager() = default;
+    ~AudioSessionClientManager() = default;
+
+    std::mutex setDefaultOutputDeviceMutex_;
+    bool setDefaultOutputDevice_ = false;
+    DeviceType setDeviceType_ = DEVICE_TYPE_INVALID;
+
+    // used by restore
+    std::mutex sessionManagerRestoreMutex_;
+    bool policyServerDiedCbRegistered_ = false;
+    std::shared_ptr<AudioSessionManagerPolicyServiceDiedCallback> sessionManagerRestoreCb_ = nullptr;
+
+    AudioSessionRestoreParams restoreParams_;
 };
 } // namespace AudioStandard
 } // namespace OHOS
-#endif // ST_AUDIO_SESSION_MANAGER_H
+#endif // AUDIO_SESSION_CLIENT_MANAGER_H
