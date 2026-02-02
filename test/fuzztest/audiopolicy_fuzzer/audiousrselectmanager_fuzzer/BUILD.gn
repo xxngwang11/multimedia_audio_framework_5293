@@ -1,4 +1,4 @@
-# Copyright (c) 2024-2025 Huawei Device Co., Ltd.
+# Copyright (c) 2026 Huawei Device Co., Ltd.
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -13,16 +13,15 @@
 
 import("//build/config/features.gni")
 import("//build/test.gni")
-import("../../../config.gni")
+import("../../../../config.gni")
 
-ohos_fuzztest("AudioSessionServiceFuzzTest") {
+ohos_fuzztest("AudioUsrSelectManagerFuzzTest") {
   module_out_path = "audio_framework/audio_framework_policy"
-  fuzz_config_file = "../audiosessionservice_fuzzer"
+  fuzz_config_file = "../audiousrselectmanager_fuzzer"
 
   include_dirs = [
-    "../../../services/audio_policy/server/domain/session/include",
+    "../../../../services/audio_policy/server/domain/device/include",
   ]
-
   cflags = [
     "-g",
     "-O0",
@@ -31,14 +30,14 @@ ohos_fuzztest("AudioSessionServiceFuzzTest") {
     "-fno-access-control",
   ]
 
-  sources = [ "audio_session_service_fuzzer.cpp" ]
+  sources = [ "audio_usr_select_manager_fuzzer.cpp" ]
 
-  configs = [ "../../../services/audio_service:audio_service_config" ]
+  configs = [ "../../../../services/audio_policy:audio_policy_public_config" ]
   cflags_cc = [ "-std=c++20" ]
 
   deps = [
-    "../../../services/audio_service/idl:audio_framework_interface",
-    "../../../services/audio_policy:audio_policy_service_static",
+    "../../../../services/audio_service/idl:audio_framework_interface",
+    "../../../../services/audio_policy:audio_policy_service_static",
   ]
   external_deps = [
     "c_utils:utils",
@@ -52,5 +51,5 @@ ohos_fuzztest("AudioSessionServiceFuzzTest") {
 
 group("fuzztest") {
   testonly = true
-  deps = [ ":AudioSessionServiceFuzzTest" ]
+  deps = [ ":AudioUsrSelectManagerFuzzTest" ]
 }
