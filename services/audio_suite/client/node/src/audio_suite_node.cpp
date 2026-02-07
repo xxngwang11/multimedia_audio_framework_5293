@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2025 Huawei Device Co., Ltd.
+ * Copyright (c) 2026 Huawei Device Co., Ltd.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -159,16 +159,16 @@ std::vector<AudioSuitePcmBuffer*> AudioNode::PullOutputData(
 std::vector<AudioSuitePcmBuffer*> AudioNode::ReadPreNodeData(
     PcmBufferFormat outFormat, bool needConvert, uint32_t needDataLength)
 {
-    std::vector<AudioSuitePcmBuffer*> result;
+    preNodeResult_.clear();
     for (auto& weakNode : preNodes_) {
         auto node = weakNode.lock();
         if (!node) {
             continue;
         }
         auto data = node->PullOutputData(outFormat, needConvert, needDataLength);
-        result.insert(result.end(), data.begin(), data.end());
+        preNodeResult_.insert(preNodeResult_.end(), data.begin(), data.end());
     }
-    return result;
+    return preNodeResult_;
 }
 
 // Format converter initialization (base implementation)

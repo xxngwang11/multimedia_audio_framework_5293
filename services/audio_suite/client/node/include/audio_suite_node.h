@@ -55,43 +55,13 @@ public:
     virtual int32_t DoProcess(uint32_t needDataLength) = 0;
     // for Flush node
     virtual int32_t Flush() = 0;
-    virtual int32_t Connect(const std::shared_ptr<AudioNode> &nextNode) = 0;
+    virtual int32_t Connect(const std::shared_ptr<AudioNode> &preNode) = 0;
     virtual int32_t DisConnect(const std::shared_ptr<AudioNode> &preNode) = 0;
     virtual std::shared_ptr<AudioNode> GetSharedInstance();
     // Data management methods
     virtual std::vector<AudioSuitePcmBuffer*> ReadPreNodeData(
         PcmBufferFormat outFormat, bool needConvert, uint32_t needDataLength);
-
-protected:
-    // Connection management
-    void AddNextNode(const std::shared_ptr<AudioNode>& node);
-    void RemoveNextNode(const std::shared_ptr<AudioNode>& node);
-    void AddPreNode(const std::shared_ptr<AudioNode>& node);
-    void RemovePreNode(const std::shared_ptr<AudioNode>& node);
-
-    // Output data management
-    int32_t WriteOutputData(AudioSuitePcmBuffer* data);
-    std::vector<AudioSuitePcmBuffer*> PullOutputData(
-        PcmBufferFormat outFormat, bool needConvert, uint32_t needDataLength);
-
-    // Format converter initialization (subclasses can override as needed)
-    virtual int32_t InitFormatConverters();
-
-protected:
-    // Node connections
-    std::vector<std::weak_ptr<AudioNode>> preNodes_;
-    std::vector<std::weak_ptr<AudioNode>> nextNodes_;
-
-    // Output data buffer
-    std::vector<AudioSuitePcmBuffer*> outputData_;
-
-    // Format converters (independent utility class, created as needed)
-    std::vector<std::unique_ptr<AudioSuiteFormatConversion>> formatConverters_;
-
-    // Temporary data (for format conversion)
-    std::vector<AudioSuitePcmBuffer> tmpData_;
-
-    virtual int32_t SetRequestDataCallback(std::shared_ptr<InputNodeRequestDataCallBack> callback);
+        virtual int32_t SetRequestDataCallback(std::shared_ptr<InputNodeRequestDataCallBack> callback);
     virtual bool IsSetReadDataCallback();
     virtual int32_t SetOptions(std::string name, std::string value);
     virtual int32_t GetOptions(std::string name, std::string &value);
@@ -116,14 +86,41 @@ protected:
     virtual std::string GetVoiceBeautifierType();
     virtual void SetAudioNodeWorkMode(PipelineWorkMode workMode);
     virtual PipelineWorkMode GetAudioNodeWorkMode();
+    std::vector<AudioSuitePcmBuffer*> PullOutputData(
+        PcmBufferFormat outFormat, bool needConvert, uint32_t needDataLength);
+    // Connection management
+    void AddNextNode(const std::shared_ptr<AudioNode>& node);
+    void RemoveNextNode(const std::shared_ptr<AudioNode>& node);
+    void AddPreNode(const std::shared_ptr<AudioNode>& node);
+    void RemovePreNode(const std::shared_ptr<AudioNode>& node);
+
+protected:
+    // Output data management
+    int32_t WriteOutputData(AudioSuitePcmBuffer* data);
+
+    // Format converter initialization (subclasses can override as needed)
+    virtual int32_t InitFormatConverters();
+
+protected:
+    // Node connections
+    std::vector<std::weak_ptr<AudioNode>> preNodes_;
+    std::vector<std::weak_ptr<AudioNode>> nextNodes_;
+
+    // Output data buffer
+    std::vector<AudioSuitePcmBuffer*> outputData_;
+
+    // Format converters (independent utility class, created as needed)
+    std::vector<std::unique_ptr<AudioSuiteFormatConversion>> formatConverters_;
+
+    // Temporary data (for format conversion)
+    std::vector<AudioSuitePcmBuffer> tmpData_;
 
 private:
     static uint32_t GenerateAudioNodeId();
-
-private:
     AudioNodeInfo audioNodeInfo_;
     inline static std::mutex nodeIdCounterMutex_;
     inline static uint32_t nodeIdCounter_ = MIN_START_NODE_ID;
+    std::vector<AudioSuitePcmBuffer> preNodeResult_;
 };
 
 }  // namespace AudioSuite

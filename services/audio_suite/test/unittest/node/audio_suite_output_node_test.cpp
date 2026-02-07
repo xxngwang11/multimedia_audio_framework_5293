@@ -265,9 +265,9 @@ static bool RunFormatConversionTest(const FormatConversionInfo& info,
     auto ret = outputNode->Connect(inputNode);
     EXPECT_EQ(ret, SUCCESS);
 
-    outputNode->needDataLength = SINGLE_FRAME_NEED_LENGTH;
+    outputNode->needDataLength_ = SINGLE_FRAME_NEED_LENGTH;
     if (info.outputFormat.rate == SAMPLE_RATE_11025) {
-        outputNode->needDataLength = DOUBLE_FRAME_NEED_LENGTH;
+        outputNode->needDataLength_ = DOUBLE_FRAME_NEED_LENGTH;
     }
 
     inputFile.seekg(HEADER_SIZE, std::ios::beg);
@@ -340,7 +340,8 @@ HWTEST_F(AudioSuiteOutputNodeTest, AudioSuiteOutputNodeCreateTest, TestSize.Leve
     EXPECT_EQ(ret, 0);
 
     outputNode->DeInit();
-    EXPECT_EQ(outputNode->inputStream_.outputPorts_.size(), 0);
+    // Verify connection state is properly cleared
+    EXPECT_EQ(outputNode->GetPreNodes().size(), 0);
 }
 
 HWTEST_F(AudioSuiteOutputNodeTest, Connection_001, TestSize.Level0)
@@ -428,7 +429,7 @@ HWTEST_F(AudioSuiteOutputNodeTest, DoProcess_002, TestSize.Level0)
     inputNode->Init();
     std::unique_ptr<AudioSuitePcmBuffer> data = std::make_unique<AudioSuitePcmBuffer>(
         PcmBufferFormat(SAMPLE_RATE_44100, 2, AudioChannelLayout::CH_LAYOUT_STEREO, SAMPLE_F32LE));
-    inputNode->GetOutputPort()->outputData_.push_back(data.get());
+    inputNode->WriteOutputData(data.get());
     outputNode->Connect(inputNode);
     auto ret = outputNode->DoProcess(NEED_DATA_LENGTH);
     EXPECT_EQ(ret, SUCCESS);
@@ -497,11 +498,11 @@ HWTEST_F(AudioSuiteOutputNodeTest, SetAudioNodeFormat_001, TestSize.Level0)
     outputNode->Init();
     
     outputNode->SetAudioNodeFormat(format);
-    EXPECT_EQ(outputNode->needDataLength, 20);
+    EXPECT_EQ(outputNode->needDataLength_, 20);
  
     format.rate = AudioSamplingRate::SAMPLE_RATE_11025;
     outputNode->SetAudioNodeFormat(format);
-    EXPECT_EQ(outputNode->needDataLength, 40);
+    EXPECT_EQ(outputNode->needDataLength_, 40);
 }
  
 }

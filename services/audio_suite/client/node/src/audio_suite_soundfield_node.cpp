@@ -40,24 +40,25 @@ AudioSuiteSoundFieldNode::~AudioSuiteSoundFieldNode()
 int32_t AudioSuiteSoundFieldNode::Init()
 {
     AUDIO_INFO_LOG("AudioSuiteSoundFieldNode::Init begin");
-    if (!isOutputPortInit_) {
+    if (!isOutputStreamInit_) {
         CHECK_AND_RETURN_RET_LOG(InitOutputStream() == SUCCESS, ERROR, "Init OutPutStream error");
-        isOutputPortInit_ = true;
+        isOutputStreamInit_ = true;
     }
     
     algoInterface_ =
-        AudioSuiteAlgoInterface::CreateAlgoInterface(AlgoType::AUDIO_NODE_TYPE_SOUND_FIELD, nodeParameter);
+        AudioSuiteAlgoInterface::CreateAlgoInterface(AlgoType::AUDIO_NODE_TYPE_SOUND_FIELD, nodeParameter_);
     CHECK_AND_RETURN_RET_LOG(algoInterface_ != nullptr, ERROR, "Failed to create soundField algoInterface");
 
     int32_t ret = algoInterface_->Init();
     CHECK_AND_RETURN_RET_LOG(ret == SUCCESS, ret, "Failed to Init soundField algorithm");
 
-    SetAudioNodeFormat(AudioFormat{{SOUNDFIELD_ALGO_CHANNEL_LAYOUT, nodeParameter.inChannels},
-        static_cast<AudioSampleFormat>(nodeParameter.inFormat),
-        static_cast<AudioSamplingRate>(nodeParameter.inSampleRate)});
+    SetAudioNodeFormat(AudioFormat{{SOUNDFIELD_ALGO_CHANNEL_LAYOUT, nodeParameter_.inChannels},
+        static_cast<AudioSampleFormat>(nodeParameter_.inFormat),
+        static_cast<AudioSamplingRate>(nodeParameter_.inSampleRate)});
 
-    CHECK_AND_RETURN_RET_LOG(nodeParameter.inSampleRate != 0, ERROR, "Invalid input SampleRate");
-    nodeNeedDataDuration_  = (nodeParameter.frameLen * MILLISECONDS_TO_MICROSECONDS) / nodeParameter.inSampleRate;
+    CHECK_AND_RETURN_RET_LOG(nodeParameter_.inSampleRate != 0, ERROR, "Invalid input SampleRate");
+    nodeNeedDataDuration_ =
+        static_cast<uint64_t>(nodeParameter_.frameLen) * MILLISECONDS_TO_MICROSECONDS / nodeParameter_.inSampleRate;
     AUDIO_INFO_LOG("AudioSuiteSoundFieldNode::Init end");
     return SUCCESS;
 }

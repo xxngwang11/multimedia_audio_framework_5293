@@ -680,6 +680,7 @@ IAudioSinkAttr AudioEndpointInner::InitSinkAttr(const AudioEndpointConfig &endpo
     }
     attr.audioStreamFlag = endpointType_ == TYPE_VOIP_MMAP ? AUDIO_FLAG_VOIP_FAST : AUDIO_FLAG_MMAP;
     attr.address = endpointConfig.deviceInfo.GetMacAddress();
+    attr.isLoopback = endpointConfig.isLoopback;
     return attr;
 }
 
@@ -1623,7 +1624,7 @@ void AudioEndpointInner::RecordCheckSyncInfo(uint64_t curReadPos)
 {
     CHECK_AND_RETURN(dstSpanSizeInframe_ != 0);
     uint32_t curReadFrame = curReadPos / dstSpanSizeInframe_;
-    dstAudioBuffer_->SetSyncWriteFrame(curReadFrame);
+    dstAudioBuffer_->SetSyncReadFrame(curReadFrame);
     uint32_t curWriteFrame = dstAudioBuffer_->GetSyncWriteFrame();
     Trace trace("Sync: writeIndex:" + std::to_string(curWriteFrame) + " readIndex:" + std::to_string(curReadFrame));
 

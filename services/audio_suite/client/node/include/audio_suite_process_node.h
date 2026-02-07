@@ -21,6 +21,7 @@
 #include "audio_errors.h"
 #include "audio_suite_pcm_buffer.h"
 #include "audio_suite_capabilities.h"
+#include "audio_suite_node.h"
 #include "audio_suite_perf.h"
 #include "audio_suite_algo_interface.h"
 
@@ -72,6 +73,7 @@ protected:
     void CheckEffectNodeOvertimeCount();
 
     std::unordered_set<std::shared_ptr<AudioNode>> finishedPrenodeSet;
+    AudioSuiteFormatConversion convert_;
     
     uint32_t nodeNeedDataDuration_ = 0;
     uint32_t requestPreNodeDuration_ = 0;
@@ -89,7 +91,7 @@ protected:
     std::vector<uint8_t *> algoInput_{nullptr};
     std::vector<uint8_t *> algoOutput_;
     std::shared_ptr<AudioSuiteAlgoInterface> algoInterface_{ nullptr };
-    NodeParameter nodeParameter;
+    NodeParameter nodeParameter_;
  
     bool secondCall_ = false;
     bool needCache_ = false;

@@ -39,6 +39,7 @@ AudioOutputNode::AudioOutputNode(AudioFormat format)
     : AudioNode(AudioNodeType::NODE_TYPE_OUTPUT, format),
       preNodeOutputNum_(DEFAULT_NODE_OUTPUT_NUM)
 {
+    SetAudioNodeFormat(format);
     AUDIO_INFO_LOG("AudioOutputNode create nodeId is %{public}u.", GetAudioNodeId());
 }
 
@@ -52,9 +53,9 @@ void AudioOutputNode::SetAudioNodeFormat(AudioFormat audioFormat)
 {
     AUDIO_INFO_LOG("numChannels:%{public}u, sampleFormat:%{public}u, sampleRate:%{public}d, encodingType:%{public}d",
         audioFormat.audioChannelInfo.numChannels, audioFormat.format, audioFormat.rate, audioFormat.encodingType);
-    needDataLength = SINGLE_FRAME_NEED_LENGTH;
+    needDataLength_ = SINGLE_FRAME_NEED_LENGTH;
     if (audioFormat.rate == AudioSamplingRate::SAMPLE_RATE_11025) {
-        needDataLength = DOUBLE_FRAME_NEED_LENGTH;
+        needDataLength_ = DOUBLE_FRAME_NEED_LENGTH;
     }
     AudioNode::SetAudioNodeFormat(audioFormat);
 }
@@ -98,7 +99,7 @@ int32_t AudioOutputNode::Flush()
 
 int32_t AudioOutputNode::DoProcess(uint32_t needDataLength)
 {
-    std::vector<AudioSuitePcmBuffer *> &inputs =
+    const std::vector<AudioSuitePcmBuffer *> &inputs =
         ReadPreNodeData(GetAudioNodeInPcmFormat(), true, needDataLength);
 
     outputs_.clear();
@@ -167,7 +168,7 @@ int32_t AudioOutputNode::DoProcess(uint8_t **audioDataArray, int32_t arraySize,
             return SUCCESS;
         }
 
-        CHECK_AND_RETURN_RET_LOG(DoProcess(needDataLength) == SUCCESS, ERROR, "Get data from pre node failed.");
+        CHECK_AND_RETURN_RET_LOG(DoProcess(needDataLength_) == SUCCESS, ERROR, "Get data from pre node failed.");
     } while (writeDataSize < requestFrameSize);
 
     AUDIO_ERR_LOG("write data failed, writeDataSize = %{public}d.", writeDataSize);

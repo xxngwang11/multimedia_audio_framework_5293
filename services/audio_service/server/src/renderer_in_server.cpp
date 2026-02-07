@@ -1779,6 +1779,8 @@ int32_t RendererInServer::DisableInnerCapHandle(int32_t innerCapId)
 
 int32_t RendererInServer::InitDupStream(int32_t innerCapId)
 {
+    CHECK_AND_RETURN_RET_LOG(processConfig_.rendererInfo.rendererFlags != AUDIO_FLAG_3DA_DIRECT, ERR_NOT_SUPPORTED,
+        "InitDupStream failed: innerCap is not supported in 3DA mode, id:%{public}d", innerCapId);
     AUDIO_INFO_LOG("InitDupStream for innerCapId:%{public}d", innerCapId);
     Trace trace(traceTag_ + "InitDupStream innerCapId:" + std::to_string(innerCapId));
     std::lock_guard<std::mutex> lock(dupMutex_);
@@ -2879,12 +2881,6 @@ int32_t RendererInServer::SetLoopTimes(int64_t bufferLoopTimes)
     return SUCCESS;
 }
 
-int32_t RendererInServer::GetStaticBufferInfo(StaticBufferInfo &staticBufferInfo)
-{
-    CHECK_AND_RETURN_RET_LOG(staticBufferProvider_ != nullptr, ERR_OPERATION_FAILED, "bufferProvider_ is nullptr!");
-    return staticBufferProvider_->GetStaticBufferInfo(staticBufferInfo);
-}
-
 int32_t RendererInServer::ProcessAndSetStaticBuffer()
 {
     CHECK_AND_RETURN_RET_LOG(staticBufferProvider_ != nullptr && staticBufferProcessor_ != nullptr,
@@ -2974,7 +2970,7 @@ void RendererInServer::MarkStaticFadeOut(bool isRefresh)
     }
     // Refresh needs to be called after fadeout
     if (isRefresh || staticBufferProvider_->IsLoopEnd()) {
-        staticBufferProvider_->RefreshBufferStatus();
+        staticBufferProvider_->ResetStaticPlayPosition();
     }
 }
 
@@ -2993,6 +2989,17 @@ void RendererInServer::HandleIsWriteFirst(bool isWriteFirst)
 bool RendererInServer::IsWriteFirst() const noexcept
 {
     return isWriteFirst_;
+}
+
+int32_t RendererInServer::ResetStaticPlayPosition()
+{
+    CHECK_AND_RETURN_RET_LOG(processConfig_.rendererInfo.isStatic, ERR_OPERATION_FAILED, "not in static mode");
+    CHECK_AND_RETURN_RET_LOG(staticBufferProvider_ != nullptr, ERR_OPERATION_FAILED, "bufferProvider_ is nullptr!");
+
+    staticBufferProvider_->NeedProcessFadeOut();
+    staticBufferProvider_->ResetStaticPlayPosition();
+    staticBufferProvider_->NeedProcessFadeIn();
+    return SUCCESS;
 }
 } // namespace AudioStandard
 } // namespace OHOS

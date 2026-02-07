@@ -153,7 +153,8 @@ std::vector<std::future<AudioSuiteMixerNode::PullResult>> AudioSuiteMixerNode::S
         futures.emplace_back(pullThreadPool_->Submit([this, node]() -> PullResult {
             PullResult r;
             r.preNode = node;
- 	        auto data = node->PullOutputData(GetAudioNodeInPcmFormat(), !GetNodeBypassStatus());
+            auto data = 
+                node->PullOutputData(GetAudioNodeInPcmFormat(), !GetNodeBypassStatus(), requestPreNodeDuration_);
             if (!data.empty() && data[0] != nullptr) {
                 r.ok = true;
                 r.data = std::move(data);

@@ -50,8 +50,7 @@ private:
     std::unique_ptr<AudioLimiter> limiter_ = nullptr;
     AudioSuitePcmBuffer tmpOutput_;
     void StopPullPool();
-    std::vector<std::future<PullResult>> SubmitPullTasks(
-        const std::unordered_map<OutputPort<AudioSuitePcmBuffer*>*, std::shared_ptr<AudioNode>>& preOutputMap);
+    std::vector<std::future<PullResult>> SubmitPullTasks();
     bool CollectPullResults(std::vector<AudioSuitePcmBuffer*>& preOutputs,
         std::vector<std::future<PullResult>>& futures);
 };
