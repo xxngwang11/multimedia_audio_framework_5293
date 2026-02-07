@@ -24,6 +24,7 @@
 #include "audio_errors.h"
 #include "audio_suite_manager.h"
 #include "audio_suite_pcm_buffer.h"
+#include "audio_suite_format_conversion.h"
 
 namespace OHOS {
 namespace AudioStandard {
@@ -43,9 +44,6 @@ struct AudioNodeInfo {
 
 class AudioNode;
 
-template <typename T>
-class OutputPort;
-
 class AudioNode : public std::enable_shared_from_this<AudioNode> {
 public:
     AudioNode(AudioNodeType nodeType);
@@ -57,10 +55,42 @@ public:
     virtual int32_t DoProcess(uint32_t needDataLength) = 0;
     // for Flush node
     virtual int32_t Flush() = 0;
-    virtual int32_t Connect(const std::shared_ptr<AudioNode> &preNode) = 0;
+    virtual int32_t Connect(const std::shared_ptr<AudioNode> &nextNode) = 0;
     virtual int32_t DisConnect(const std::shared_ptr<AudioNode> &preNode) = 0;
     virtual std::shared_ptr<AudioNode> GetSharedInstance();
-    virtual OutputPort<AudioSuitePcmBuffer*>* GetOutputPort();
+    // Data management methods
+    virtual std::vector<AudioSuitePcmBuffer*> ReadPreNodeData(
+        PcmBufferFormat outFormat, bool needConvert, uint32_t needDataLength);
+
+protected:
+    // Connection management
+    void AddNextNode(const std::shared_ptr<AudioNode>& node);
+    void RemoveNextNode(const std::shared_ptr<AudioNode>& node);
+    void AddPreNode(const std::shared_ptr<AudioNode>& node);
+    void RemovePreNode(const std::shared_ptr<AudioNode>& node);
+
+    // Output data management
+    int32_t WriteOutputData(AudioSuitePcmBuffer* data);
+    std::vector<AudioSuitePcmBuffer*> PullOutputData(
+        PcmBufferFormat outFormat, bool needConvert, uint32_t needDataLength);
+
+    // Format converter initialization (subclasses can override as needed)
+    virtual int32_t InitFormatConverters();
+
+protected:
+    // Node connections
+    std::vector<std::weak_ptr<AudioNode>> preNodes_;
+    std::vector<std::weak_ptr<AudioNode>> nextNodes_;
+
+    // Output data buffer
+    std::vector<AudioSuitePcmBuffer*> outputData_;
+
+    // Format converters (independent utility class, created as needed)
+    std::vector<std::unique_ptr<AudioSuiteFormatConversion>> formatConverters_;
+
+    // Temporary data (for format conversion)
+    std::vector<AudioSuitePcmBuffer> tmpData_;
+
     virtual int32_t SetRequestDataCallback(std::shared_ptr<InputNodeRequestDataCallBack> callback);
     virtual bool IsSetReadDataCallback();
     virtual int32_t SetOptions(std::string name, std::string value);

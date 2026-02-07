@@ -23,7 +23,6 @@
 #include "audio_suite_log.h"
 #include "audio_suite_node.h"
 #include "audio_suite_common.h"
-#include "audio_suite_channel.h"
 #include "audio_suite_pcm_buffer.h"
 #include "audio_suite_output_node.h"
 
@@ -46,7 +45,6 @@ AudioOutputNode::AudioOutputNode(AudioFormat format)
 AudioOutputNode::~AudioOutputNode()
 {
     DeInit();
-    inputStream_.deInit();
     AUDIO_INFO_LOG("AudioOutputNode destroy nodeId: %{public}u.", GetAudioNodeId());
 }
 
@@ -68,7 +66,10 @@ int32_t AudioOutputNode::Connect(const std::shared_ptr<AudioNode> &preNode)
         return ERR_INVALID_PARAM;
     }
 
-    inputStream_.Connect(preNode->GetSharedInstance(), preNode->GetOutputPort());
+     // Add upstream node to preNodes_
+    AddPreNode(preNode);
+    // Add this node to upstream's nextNodes_
+    preNode->AddNextNode(shared_from_this());
 
     if (preNode->GetNodeType() == NODE_TYPE_AUDIO_SEPARATION) {
         preNodeOutputNum_ = AUDIO_SEPARATION_NODE_OUTPUT_NUM;
@@ -81,7 +82,10 @@ int32_t AudioOutputNode::Connect(const std::shared_ptr<AudioNode> &preNode)
 
 int32_t AudioOutputNode::DisConnect(const std::shared_ptr<AudioNode> &preNode)
 {
-    inputStream_.DisConnect(preNode);
+    // Remove from preNodes_
+    RemovePreNode(preNode);
+    // Remove this node from upstream's nextNodes_
+    preNode->RemoveNextNode(shared_from_this());
     return SUCCESS;
 }
 
@@ -95,7 +99,7 @@ int32_t AudioOutputNode::Flush()
 int32_t AudioOutputNode::DoProcess(uint32_t needDataLength)
 {
     std::vector<AudioSuitePcmBuffer *> &inputs =
-        inputStream_.ReadPreOutputData(GetAudioNodeInPcmFormat(), true, needDataLength);
+        ReadPreNodeData(GetAudioNodeInPcmFormat(), true, needDataLength);
 
     outputs_.clear();
     outputs_.insert(outputs_.end(), inputs.begin(), inputs.end());

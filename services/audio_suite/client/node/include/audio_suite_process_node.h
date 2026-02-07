@@ -19,7 +19,6 @@
 #include <memory>
 #include <vector>
 #include "audio_errors.h"
-#include "audio_suite_channel.h"
 #include "audio_suite_pcm_buffer.h"
 #include "audio_suite_capabilities.h"
 #include "audio_suite_perf.h"
@@ -55,10 +54,8 @@ public:
         return AudioNode::GetAudioNodeInfo().audioFormat.audioChannelInfo.numChannels;
     }
 
-    virtual OutputPort<AudioSuitePcmBuffer*>* GetOutputPort() override
-    {
-        return &outputStream_;
-    }
+    // Format converter initialization (override for audio separation node)
+ 	int32_t InitFormatConverters() override;
     
 protected:
     virtual std::vector<AudioSuitePcmBuffer *> SignalProcess(const std::vector<AudioSuitePcmBuffer*>& inputs);
@@ -75,8 +72,6 @@ protected:
     void CheckEffectNodeOvertimeCount();
 
     std::unordered_set<std::shared_ptr<AudioNode>> finishedPrenodeSet;
-    OutputPort<AudioSuitePcmBuffer *> outputStream_;
-    InputPort<AudioSuitePcmBuffer *> inputStream_;
     
     uint32_t nodeNeedDataDuration_ = 0;
     uint32_t requestPreNodeDuration_ = 0;
@@ -98,7 +93,7 @@ protected:
  
     bool secondCall_ = false;
     bool needCache_ = false;
-    bool isOutputPortInit_ = false;
+    bool isOutputStreamInit_ = false;
 
 private:
     // for dfx
