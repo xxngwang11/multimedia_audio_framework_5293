@@ -1188,6 +1188,18 @@ void AudioAdapterManager::UpdateVolumeForStream(std::shared_ptr<AudioStreamDescr
     AudioVolumeManager::GetInstance().SetSharedAbsVolumeScene(IsAbsVolumeScene());
 }
 
+void AudioAdapterManager::RedirectVolumeType(std::shared_ptr<AudioStreamDescriptor> streamDescriptor,
+    AudioVolumeType &volumeType)
+{
+    CHECK_AND_RETURN_LOG(streamDescriptor != nullptr, "streamDescriptor is null");
+    if (volumeType == STREAM_VOICE_ASSISTANT &&
+        !CheckoutSystemAppUtil::CheckoutSystemApp(audioActiveDevice_.GetRealUid(streamDescriptor))) {
+        AUDIO_INFO_LOG("RedirectVolumeType to STREAM_MUSIC when not system app for uid %{public}d",
+            audioActiveDevice_.GetRealUid(streamDescriptor));
+        volumeType = STREAM_MUSIC;
+    }
+}
+
 void AudioAdapterManager::UpdateVolumeForStreams()
 {
     std::lock_guard<std::mutex> lock(activeDeviceMutex_);
@@ -1201,6 +1213,7 @@ void AudioAdapterManager::UpdateVolumeForStreams()
         CHECK_AND_CONTINUE(desc != nullptr);
         CHECK_AND_CONTINUE(desc->volumeBehavior_.controlMode != PASS_THROUGH_MODE);
         CHECK_AND_CONTINUE(desc->volumeBehavior_.controlMode != HILINK_MODE);
+        RedirectVolumeType(streamDesc, volumeType);
         int32_t volumeLevel = GetStreamVolumeInternal(desc, volumeType);
         SaveSystemVolumeForSwitchDevice(desc, volumeType, volumeLevel);
         SetVolumeDb(desc, volumeType);
@@ -1976,13 +1989,14 @@ static AudioSampleFormat ParseSinkAudioSampleFormat(const std::string &format)
 {
     if (format == "u8") {
         return SAMPLE_U8;
-    } else if (format == "s16le") {
+    } else if (format == "s16le" || format == "s16") {
         return SAMPLE_S16LE;
-    } else if (format == "s24le") {
+    } else if (format == "s24le" || format == "s24") {
         return SAMPLE_S24LE;
-    } else if (format == "s32le") {
+    } else if (format == "s32le" || format == "s32") {
         return SAMPLE_S32LE;
     }
+    AUDIO_ERR_LOG("invalid param: %{public}s", format.c_str());
     return INVALID_WIDTH;
 }
 
@@ -3162,7 +3176,7 @@ int32_t AudioAdapterManager::SetNearlinkDeviceVolume(AudioVolumeType volumeType,
 {
     auto desc = audioConnectedDevice_.GetDeviceByDeviceType(DEVICE_TYPE_NEARLINK);
     CHECK_AND_RETURN_RET_LOG(desc, ERROR, "DEVICE_TYPE_NEARLINK device is null");
-    SaveVolumeData(desc, volumeType, volume, true, true);
+    SaveVolumeData(desc, volumeType, volume, false, true);
     SetVolumeDbForDeviceInPipe(desc, volumeType);
     return SUCCESS;
 }
@@ -3658,6 +3672,7 @@ int32_t AudioAdapterManager::SetVolumeDbForDeviceInPipe(std::shared_ptr<AudioDev
         CHECK_AND_CONTINUE(device != nullptr && device->GetName() == desc->GetName());
         CHECK_AND_CONTINUE(device->volumeBehavior_.controlMode != PASS_THROUGH_MODE);
         CHECK_AND_CONTINUE(device->volumeBehavior_.controlMode != HILINK_MODE);
+        RedirectVolumeType(streamDesc, streamType);
         SetVolumeDb(device, streamType);
     }
     return SUCCESS;

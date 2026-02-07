@@ -190,6 +190,126 @@ HWTEST_F(AudioAdapterManagerUnitTest, UpdateSinkArgs_002, TestSize.Level1)
 }
 
 /**
+ * @tc.name: GetAudioSinkAttr_FormatU8_001
+ * @tc.desc: Test GetAudioSinkAttr when format is u8.
+ * @tc.type: FUNC
+ * @tc.require: #ICDC94
+ */
+HWTEST_F(AudioAdapterManagerUnitTest, GetAudioSinkAttr_FormatU8_001, TestSize.Level1)
+{
+    AudioModuleInfo info;
+    info.format = "u8";
+    AudioAdapterManager audioAdapterManager;
+    auto attr = audioAdapterManager.GetAudioSinkAttr(info);
+    EXPECT_EQ(attr.format, SAMPLE_U8);
+}
+
+/**
+ * @tc.name: GetAudioSinkAttr_FormatS16le_001
+ * @tc.desc: Test GetAudioSinkAttr when format is s16le.
+ * @tc.type: FUNC
+ * @tc.require: #ICDC94
+ */
+HWTEST_F(AudioAdapterManagerUnitTest, GetAudioSinkAttr_FormatS16le_001, TestSize.Level1)
+{
+    AudioModuleInfo info;
+    info.format = "s16le";
+    AudioAdapterManager audioAdapterManager;
+    auto attr = audioAdapterManager.GetAudioSinkAttr(info);
+    EXPECT_EQ(attr.format, SAMPLE_S16LE);
+}
+
+/**
+ * @tc.name: GetAudioSinkAttr_FormatS24le_001
+ * @tc.desc: Test GetAudioSinkAttr when format is s24le.
+ * @tc.type: FUNC
+ * @tc.require: #ICDC94
+ */
+HWTEST_F(AudioAdapterManagerUnitTest, GetAudioSinkAttr_FormatS24le_001, TestSize.Level1)
+{
+    AudioModuleInfo info;
+    info.format = "s24le";
+    AudioAdapterManager audioAdapterManager;
+    auto attr = audioAdapterManager.GetAudioSinkAttr(info);
+    EXPECT_EQ(attr.format, SAMPLE_S24LE);
+}
+
+/**
+ * @tc.name: GetAudioSinkAttr_FormatS32le_001
+ * @tc.desc: Test GetAudioSinkAttr when format is s32le.
+ * @tc.type: FUNC
+ * @tc.require: #ICDC94
+ */
+HWTEST_F(AudioAdapterManagerUnitTest, GetAudioSinkAttr_FormatS32le_001, TestSize.Level1)
+{
+    AudioModuleInfo info;
+    info.format = "s32le";
+    AudioAdapterManager audioAdapterManager;
+    auto attr = audioAdapterManager.GetAudioSinkAttr(info);
+    EXPECT_EQ(attr.format, SAMPLE_S32LE);
+}
+
+/**
+ * @tc.name: GetAudioSinkAttr_FormatS16_001
+ * @tc.desc: Test GetAudioSinkAttr when format is s16 alias.
+ * @tc.type: FUNC
+ * @tc.require: #ICDC94
+ */
+HWTEST_F(AudioAdapterManagerUnitTest, GetAudioSinkAttr_FormatS16_001, TestSize.Level1)
+{
+    AudioModuleInfo info;
+    info.format = "s16";
+    AudioAdapterManager audioAdapterManager;
+    auto attr = audioAdapterManager.GetAudioSinkAttr(info);
+    EXPECT_EQ(attr.format, SAMPLE_S16LE);
+}
+
+/**
+ * @tc.name: GetAudioSinkAttr_FormatS24_001
+ * @tc.desc: Test GetAudioSinkAttr when format is s24 alias.
+ * @tc.type: FUNC
+ * @tc.require: #ICDC94
+ */
+HWTEST_F(AudioAdapterManagerUnitTest, GetAudioSinkAttr_FormatS24_001, TestSize.Level1)
+{
+    AudioModuleInfo info;
+    info.format = "s24";
+    AudioAdapterManager audioAdapterManager;
+    auto attr = audioAdapterManager.GetAudioSinkAttr(info);
+    EXPECT_EQ(attr.format, SAMPLE_S24LE);
+}
+
+/**
+ * @tc.name: GetAudioSinkAttr_FormatS32_001
+ * @tc.desc: Test GetAudioSinkAttr when format is s32 alias.
+ * @tc.type: FUNC
+ * @tc.require: #ICDC94
+ */
+HWTEST_F(AudioAdapterManagerUnitTest, GetAudioSinkAttr_FormatS32_001, TestSize.Level1)
+{
+    AudioModuleInfo info;
+    info.format = "s32";
+    AudioAdapterManager audioAdapterManager;
+    auto attr = audioAdapterManager.GetAudioSinkAttr(info);
+    EXPECT_EQ(attr.format, SAMPLE_S32LE);
+}
+
+/**
+ * @tc.name: GetAudioSinkAttr_FormatInvalid_001
+ * @tc.desc: Test GetAudioSinkAttr when format is invalid.
+ * @tc.type: FUNC
+ * @tc.require: #ICDC94
+ */
+HWTEST_F(AudioAdapterManagerUnitTest, GetAudioSinkAttr_FormatInvalid_001, TestSize.Level1)
+{
+    AudioModuleInfo info;
+    info.format = "invalid_format";
+    AudioAdapterManager audioAdapterManager;
+    auto attr = audioAdapterManager.GetAudioSinkAttr(info);
+    EXPECT_EQ(attr.format, INVALID_WIDTH);
+}
+
+/**
  * @tc.name: Test SetSystemVolumeDegree
  * @tc.desc: SetSystemVolumeDegree_001
  * @tc.type: FUNC
@@ -968,6 +1088,28 @@ HWTEST_F(AudioAdapterManagerUnitTest, GetSourceIdInfoAndIdType_013, TestSize.Lev
     HdiIdType idType;
     audioAdapterManager->GetSourceIdInfoAndIdType(pipeInfo, idInfo, idType);
     EXPECT_EQ(idInfo, "err");
+}
+
+/**
+ * @tc.name: Test GetSourceIdInfoAndIdType
+ * @tc.number: RedirectVolumeType
+ * @tc.type: FUNC
+ * @tc.desc: when successful execution, return success
+ */
+HWTEST_F(AudioAdapterManagerUnitTest, RedirectVolumeType, TestSize.Level1)
+{
+    auto audioAdapterManager = std::make_shared<AudioAdapterManager>();
+    std::shared_ptr<AudioStreamDescriptor> streamDescriptor = std::make_shared<AudioStreamDescriptor>();
+    AudioVolumeType volumeType = STREAM_MUSIC;
+    audioAdapterManager->RedirectVolumeType(streamDescriptor, volumeType);
+    streamDescriptor->callerUid_ = 1003;
+    audioAdapterManager->RedirectVolumeType(streamDescriptor, volumeType);
+    streamDescriptor->callerUid_ = 0;
+    volumeType = STREAM_VOICE_ASSISTANT;
+    audioAdapterManager->RedirectVolumeType(streamDescriptor, volumeType);
+    streamDescriptor->callerUid_ = 1003;
+    audioAdapterManager->RedirectVolumeType(streamDescriptor, volumeType);
+    EXPECT_EQ(volumeType, STREAM_MUSIC);
 }
 } // namespace AudioStandard
 } // namespace OHOS

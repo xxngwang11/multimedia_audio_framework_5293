@@ -89,7 +89,7 @@ protected:
     std::vector<uint8_t *> algoInput_{nullptr};
     std::vector<uint8_t *> algoOutput_;
     std::shared_ptr<AudioSuiteAlgoInterface> algoInterface_{ nullptr };
-    NodeParameter nodeParameter;
+    NodeParameter nodeParameter_;
  
     bool secondCall_ = false;
     bool needCache_ = false;
